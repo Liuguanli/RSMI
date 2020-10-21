@@ -2,3 +2,4 @@
 *.o
 torch_models/*
 Exp
+*.sh
