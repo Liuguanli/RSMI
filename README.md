@@ -18,6 +18,8 @@ https://pytorch.org/get-started/locally/
 
 Use CPU version or GPU according to you LibTorch library.
 
+Replace *home/liuguanli/Documents* with your own path.
+
 ```
 # TYPE = CPU
 TYPE = GPU
