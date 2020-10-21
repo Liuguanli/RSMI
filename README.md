@@ -1,9 +1,11 @@
 # RSMI
 
-### LibTorch
+###  How to use
+
+#### 1. Download LibTorch
 https://pytorch.org/get-started/locally/
 
-### change makefile
+#### 2. Change makefile
 
 Use CPU version or GPU according to you LibTorch library.
 
@@ -21,15 +23,49 @@ else
 	FLAG = -Wl,-rpath=/home/liuguanli/Documents/libtorch/lib
 endif
 ```
+#### 3. Change Exp.cpp
 
-### how to generate datasets
+comment *#define use_gpu* to use CPU version
 
-[dataset demo][./dataset/uniform_10000_1_2_.csv]
+```C++
+#ifndef use_gpu
+#define use_gpu
+.
+.
+.
+#endif  // use_gpu
+```
 
-### how to choose CPU or GPU version
 
-### how to test
+#### Prepare datasets
 
-### Paper Link
+[dataset demo](./datasets/uniform_10000_1_2_.csv)
 
-### 
+#### Run
+
+```bash
+make clean
+make -f Makefile
+./Exp -c 1000000 -d uniform -s 1
+```
+
+### Our Paper
+
+> Jianzhong Qi, Guanli Liu, Christian S. Jensen, Lars Kulik: [Effectively Learning Spatial Indices](http://www.vldb.org/pvldb/vol13/p2341-qi.pdf). Proc. VLDB Endow. 13(11): 2341-2354 (2020)
+
+```tex
+@article{DBLP:journals/pvldb/QiLJK20,
+  author    = {Jianzhong Qi and
+               Guanli Liu and
+               Christian S. Jensen and
+               Lars Kulik},
+  title     = {Effectively Learning Spatial Indices},
+  journal = {{PVLDB}}
+  volume    = {13},
+  number    = {11},
+  pages     = {2341--2354},
+  year      = {2020},
+  url       = {http://www.vldb.org/pvldb/vol13/p2341-qi.pdf},
+}
+```
+
