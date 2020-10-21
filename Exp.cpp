@@ -23,28 +23,6 @@ using namespace std;
 
 #ifndef use_gpu
 #define use_gpu
-// check kNN_query
-// struct sortD
-// {
-//     bool operator()(double d1, double d2)
-//     {
-//         return d1 < d2;
-//     }
-// };
-
-// void check(vector<Point*> points)
-// {
-//      vector<double> dists;
-//     for (Point *point : points)
-//     {
-//         dists.push_back(point->cal_dist(points[0]));
-//     }
-//     sort(dists.begin(), dists.end(), sortD());
-//     for (int i = 0; i < 10; i++)
-//     {
-//         cout << dists[i] << endl;
-//     }
-// }
 
 int ks[] = {1, 5, 25, 125, 625};
 float areas[] = {0.000006, 0.000025, 0.0001, 0.0004, 0.0016};
@@ -159,18 +137,15 @@ int main(int argc, char **argv)
         {"skewness", required_argument,      NULL,'s'}
     };
 
-    //循环执行，确保所有选项都能得到处理
     while(1)
     {
         int opt_index = 0;
-        //参数解析方法，重点
         c = getopt_long(argc, argv,"c:d:s:", long_options,&opt_index);
         
         if(-1 == c)
         {
             break;
         }
-        //根据返回值做出相应处理
         switch(c)
         {
             case 'c':
@@ -184,9 +159,6 @@ int main(int argc, char **argv)
                 break;
         }
     }
-    // cardinality = atoll(argv[1]);
-    // distribution = argv[2];
-    // skewness = atoi(argv[3]);
 
     ExpRecorder exp_recorder;
     exp_recorder.dataset_cardinality = cardinality;
@@ -241,7 +213,6 @@ int main(int argc, char **argv)
     }
     string model_path = "./torch_models/" + distribution + "_" + to_string(cardinality) + "/";
     FileWriter file_writer(Constants::RECORDS);
-    // // expZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
     expRSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
 }
 #endif  // use_gpu
