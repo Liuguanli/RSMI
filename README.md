@@ -5,7 +5,7 @@ https://pytorch.org/get-started/locally/
 
 ### change makefile
 
-Use CPU version or GPU version according to you LibTorch library.
+Use CPU version or GPU according to you LibTorch library.
 
 ```
 # TYPE = CPU
@@ -23,6 +23,8 @@ endif
 ```
 
 ### how to generate datasets
+
+[dataset demo][./dataset/uniform_10000_1_2_.csv]
 
 ### how to choose CPU or GPU version
 
