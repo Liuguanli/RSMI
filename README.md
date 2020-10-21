@@ -1,9 +1,11 @@
 # RSMI
 
-### LibTorch
+###  How to use
+
+#### 1. Download LibTorch
 https://pytorch.org/get-started/locally/
 
-### change makefile and CPU or GPU version
+#### 2. Change makefile
 
 Use CPU version or GPU according to you LibTorch library.
 
@@ -21,6 +23,7 @@ else
 	FLAG = -Wl,-rpath=/home/liuguanli/Documents/libtorch/lib
 endif
 ```
+#### 3. Change Exp.cpp
 
 comment *#define use_gpu* to use CPU version
 
@@ -34,13 +37,17 @@ comment *#define use_gpu* to use CPU version
 ```
 
 
-### About datasets
+#### Prepare datasets
 
 [dataset demo](./datasets/uniform_10000_1_2_.csv)
 
-### how to test
+#### Run
 
-
+```bash
+make clean
+make -f Makefile
+./Exp -c 1000000 -d uniform -s 1
+```
 
 ### Our Paper
 
