@@ -24,7 +24,7 @@ endif
 
 ### how to generate datasets
 
-[dataset demo][./dataset/uniform_10000_1_2_.csv]
+[dataset demo][./datasets/uniform_10000_1_2_.csv]
 
 ### how to choose CPU or GPU version
 
