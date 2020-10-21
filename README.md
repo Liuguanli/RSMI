@@ -44,7 +44,7 @@ comment *#define use_gpu* to use CPU version
 
 ### Our Paper
 
-> Jianzhong Qi, Guanli Liu, Christian S. Jensen, Lars Kulik: Effectively Learning Spatial Indices. Proc. VLDB Endow. 13(11): 2341-2354 (2020)
+> Jianzhong Qi, Guanli Liu, Christian S. Jensen, Lars Kulik: [Effectively Learning Spatial Indices](http://www.vldb.org/pvldb/vol13/p2341-qi.pdf). Proc. VLDB Endow. 13(11): 2341-2354 (2020)
 
 ```tex
 @article{DBLP:journals/pvldb/QiLJK20,
