@@ -1,5 +1,14 @@
 # RSMI
 
+- [ ] change path for dataset, inserted points ... 
+- [ ] mkdir for model saving
+- [ ] explain trained model 
+- [ ] recommend libtorch version
+- [ ] add comments
+- [ ] switch GPU and CPU 
+
+
+
 ###  How to use
 
 #### 1. Download LibTorch
@@ -46,7 +55,7 @@ comment *#define use_gpu* to use CPU version
 ```bash
 make clean
 make -f Makefile
-./Exp -c 1000000 -d uniform -s 1
+./Exp -c 10000 -d uniform -s 1
 ```
 
 ### Our Paper
