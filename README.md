@@ -1,8 +1,6 @@
 # RSMI
 
 - [ ] change path for dataset, inserted points ... 
-- [ ] mkdir for model saving
-- [ ] explain trained model 
 - [ ] add comments 
 
 
@@ -44,17 +42,41 @@ comment *#define use_gpu* to use CPU version
 #endif  // use_gpu
 ```
 
+#### 4. change path
 
-#### 4. Prepare datasets
+```C++
+const string Constants::RECORDS = "/home/liuguanli/Dropbox/records/VLDB20/";
+const string Constants::QUERYPROFILES = "/home/liuguanli/Documents/datasets/RLRtree/queryprofile/";
+const string Constants::DATASETS = "/home/liuguanli/Documents/datasets/RLRtree/raw/";
+```
+
+#### 5. Prepare datasets
 
 [dataset demo](./datasets/uniform_10000_1_2_.csv)
 
-#### 5. Run
+#### 6. Run
 
 ```bash
 make clean
 make -f Makefile
 ./Exp -c 10000 -d uniform -s 1
+```
+
+### Notions
+
+model save. If you do not record the training time, you can use trained models and load them. 
+
+```C++
+    std::ifstream fin(this->model_path);
+    if (!fin)
+    {
+	net->train_model(locations, labels);
+	torch::save(net, this->model_path);
+    }
+    else
+    {
+	torch::load(net, this->model_path);
+    }
 ```
 
 ### Paper
