@@ -3,10 +3,7 @@
 - [ ] change path for dataset, inserted points ... 
 - [ ] mkdir for model saving
 - [ ] explain trained model 
-- [ ] recommend libtorch version
-- [ ] add comments
-- [ ] switch GPU and CPU 
-
+- [ ] add comments 
 
 
 ###  How to use
