@@ -16,7 +16,7 @@ https://pytorch.org/get-started/locally/
 
 #### 2. Change makefile
 
-Use CPU version or GPU according to you LibTorch library.
+Choose CPU or GPU
 
 Replace *home/liuguanli/Documents* with your own path.
 
