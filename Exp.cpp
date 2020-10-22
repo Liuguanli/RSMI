@@ -211,8 +211,17 @@ int main(int argc, char **argv)
             mbrs_map.insert(pair<string, vector<Mbr>>(to_string(areas[i]) + to_string(ratios[j]), mbrs));
         }
     }
-    string model_path = "./torch_models/" + distribution + "_" + to_string(cardinality) + "/";
-    FileWriter file_writer(Constants::RECORDS);
-    expRSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
+    string model_root_path = "./torch_models/" + distribution + "_" + to_string(cardinality);
+    // create dir to store models
+    std::ifstream fin(model_root_path);
+    if (!fin)
+    {
+        string command = "mkdir -p " + model_root_path;
+        system(command.c_str());
+    }
+
+    // string model_path = model_root_path + "/";
+    // FileWriter file_writer(Constants::RECORDS);
+    // expRSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
 }
 #endif  // use_gpu
