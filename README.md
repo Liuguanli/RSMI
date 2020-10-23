@@ -5,16 +5,24 @@
 - [ ] use any name of the datasets 
 
 
-###  How to use
+##  How to use
 
-#### 1. Download LibTorch
-https://pytorch.org/get-started/locally/
+### 1. Related libraries
 
-#### 2. Change makefile
+#### LibTorch
+homepage: https://pytorch.org/get-started/locally/
+
+CPU version: https://download.pytorch.org/libtorch/cpu/libtorch-macos-1.4.0.zip
+
+For GPU version, you need to choose according to your setup.
+
+#### boost
+
+homepage: https://www.boost.org/
+
+#### 2. Change Makefile
 
 Choose CPU or GPU
-
-Replace *home/liuguanli/Documents* with your own path.
 
 ```
 # TYPE = CPU
@@ -45,29 +53,64 @@ comment *#define use_gpu* to use CPU version
 
 #### 4. change path
 
+Change the path is you do not want to store the datasets under the project's root path.
+
+Constants.h
 ```C++
-const string Constants::RECORDS = "/home/liuguanli/Dropbox/records/VLDB20/";
-const string Constants::QUERYPROFILES = "/home/liuguanli/Documents/datasets/RLRtree/queryprofile/";
-const string Constants::DATASETS = "/home/liuguanli/Documents/datasets/RLRtree/raw/";
+const string Constants::RECORDS = "./files/records/";
+const string Constants::QUERYPROFILES = "./files/queryprofile/";
+const string Constants::DATASETS = "./datasets/";
 ```
+
+data_generator.py
+```python
+if __name__ == '__main__':
+    distribution, size, skewness, filename, dim = parser(sys.argv[1:])
+    if distribution == 'uniform':
+        filename = "datasets/uniform_%d_1_%d_.csv"
+        getUniformPoints(size, filename, dim)
+    elif distribution == 'normal':
+        filename = "datasets/normal_%d_1_%d_.csv"
+        getNormalPoints(size, filename, dim)
+    elif distribution == 'skewed':
+        filename = "datasets/skewed_%d_%d_%d_.csv"
+        getSkewedPoints(size, skewness, filename, dim)
+```
+
 
 #### 5. Prepare datasets
 
 [dataset demo](./datasets/uniform_10000_1_2_.csv)
+
+```bash
+python data_generator.py -d uniform -s 1000000 -n 1 -f datasets/uniform_1000000_1_2_.csv -m 2
+```
+
+```bash
+python data_generator.py -d normal -s 1000000 -n 1 -f datasets/normal_1000000_1_2_.csv -m 2
+```
+
+```bash
+python data_generator.py -d skewed -s 1000000 -n 4 -f datasets/skewed_1000000_4_2_.csv -m 2
+```
 
 #### 6. Run
 
 ```bash
 make clean
 make -f Makefile
-./Exp -c 10000 -d uniform -s 1
+./Exp -c 1000000 -d uniform -s 1
+./Exp -c 1000000 -d normal -s 1
+./Exp -c 1000000 -d skewed -s 4
 ```
 
 ### Notions
 
 model save. If you do not record the training time, you can use trained models and load them. 
 
+
 ```C++
+//RSMI.h
     std::ifstream fin(this->model_path);
     if (!fin)
     {
