@@ -1,13 +1,16 @@
 #include "Constants.h"
 
 #ifdef __APPLE__
-const string Constants::RECORDS = "/Users/guanli/Dropbox/records/VLDB20/";
-const string Constants::QUERYPROFILES = "/Users/guanli/Documents/datasets/RLRtree/queryprofile/";
-const string Constants::DATASETS = "/Users/guanli/Documents/datasets/RLRtree/raw/";
+// const string Constants::RECORDS = "/Users/guanli/Dropbox/records/VLDB20/";
+// const string Constants::QUERYPROFILES = "/Users/guanli/Documents/datasets/RLRtree/queryprofile/";
+// const string Constants::DATASETS = "/Users/guanli/Documents/datasets/RLRtree/raw/";
 #else
-const string Constants::RECORDS = "/home/liuguanli/Dropbox/records/VLDB20/";
-const string Constants::QUERYPROFILES = "/home/liuguanli/Documents/datasets/RLRtree/queryprofile/";
-const string Constants::DATASETS = "/home/liuguanli/Documents/datasets/RLRtree/raw/";
+// const string Constants::RECORDS = "/home/liuguanli/Dropbox/records/VLDB20/";
+// const string Constants::QUERYPROFILES = "/home/liuguanli/Documents/datasets/RLRtree/queryprofile/";
+// const string Constants::DATASETS = "/home/liuguanli/Documents/datasets/RLRtree/raw/";
+const string Constants::RECORDS = "./files/records/";
+const string Constants::QUERYPROFILES = "./files/queryprofile/";
+const string Constants::DATASETS = "./datasets/";
 #endif
 const string Constants::DEFAULT_DISTRIBUTION = "skewed";
 const string Constants::BUILD = "build/";

@@ -5,8 +5,8 @@
 #include "../entities/Mbr.h"
 #include "../entities/NonLeafNode.h"
 #include <typeinfo>
-// #include "../utils/SortTools.h"
-// #include "../utils/ModelTools.h"
+// #include "../file_utils/SortTools.h"
+// #include "../file_utils/ModelTools.h"
 #include "../curves/hilbert.H"
 #include "../curves/hilbert4.H"
 #include <map>

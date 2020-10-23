@@ -46,9 +46,7 @@ vector<vector<string>> FileReader::get_data()
 vector<Point> FileReader::get_points()
 {
     ifstream file(filename);
-
     vector<Point> points;
-
     string line = "";
     while (getline(file, line))
     {

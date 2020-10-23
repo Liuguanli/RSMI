@@ -11,7 +11,7 @@
 #include "utils/ExpRecorder.h"
 #include "utils/Constants.h"
 #include "utils/FileWriter.h"
-
+#include "utils/util.h"
 #include <torch/torch.h>
 
 #include <xmmintrin.h>
@@ -128,7 +128,6 @@ string RSMI::model_path_root = "";
 // int RSMI::total_num = 0;
 int main(int argc, char **argv)
 {
-
     int c;
     static struct option long_options[] =
     {
@@ -168,16 +167,20 @@ int main(int argc, char **argv)
 
     // // exp_recorder.window_size = area;
     // // exp_recorder.window_ratio = ratio;
+    cout<<"--------- 3 ------" << endl;
     FileReader filereader((Constants::DATASETS + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv"), ",");
     vector<Point> points = filereader.get_points();
+    cout<<"--------- 4 ------" << endl;
     exp_recorder.insert_num = inserted_num;
     vector<Point> query_poitns;
     vector<Point> insert_points;
     /***********************write query data*********************/
     FileWriter query_file_writer(Constants::QUERYPROFILES);
+    cout<<"--------- 5 ------" << points.size() << endl;
     query_poitns = Point::get_points(points, query_k_num);
+    cout<<"--------- 1 ------" << endl;
     query_file_writer.write_points(query_poitns, exp_recorder);
-
+    cout<<"--------- 2 ------" << endl;
     insert_points = Point::get_inserted_points(exp_recorder.insert_num);
     query_file_writer.write_inserted_points(insert_points, exp_recorder);
 
@@ -212,16 +215,9 @@ int main(int argc, char **argv)
         }
     }
     string model_root_path = "./torch_models/" + distribution + "_" + to_string(cardinality);
-    // create dir to store models
-    std::ifstream fin(model_root_path);
-    if (!fin)
-    {
-        string command = "mkdir -p " + model_root_path;
-        system(command.c_str());
-    }
-
-    // string model_path = model_root_path + "/";
-    // FileWriter file_writer(Constants::RECORDS);
-    // expRSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
+    file_utils::check_dir(model_root_path);
+    string model_path = model_root_path + "/";
+    FileWriter file_writer(Constants::RECORDS);
+    expRSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
 }
 #endif  // use_gpu
