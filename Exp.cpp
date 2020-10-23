@@ -29,17 +29,12 @@ float areas[] = {0.000006, 0.000025, 0.0001, 0.0004, 0.0016};
 float ratios[] = {0.25, 0.5, 1, 2, 4};
 int Ns[] = {5000, 2500, 500};
 
-// double ks[] = {125};
-// double areas[] = {0.0016};
-// double ratios[] = {1};
-
 int k_length = sizeof(ks) / sizeof(ks[0]);
 int window_length = sizeof(areas) / sizeof(areas[0]);
 int ratio_length = sizeof(ratios) / sizeof(ratios[0]);
 
 int n_length = sizeof(Ns) / sizeof(Ns[0]);
 
-// int query_window_num = 1000;
 int query_window_num = 1000;
 int query_k_num = 1000;
 
@@ -65,29 +60,15 @@ double knn_diff(vector<Point> acc, vector<Point> pred)
     return num * 1.0 / pred.size();
 }
 
-void expRSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, vector<Point> insert_points, string model_path)
+void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, vector<Point> insert_points, string model_path)
 {
     exp_recorder.clean();
     exp_recorder.structure_name = "RSMI";
-    cout << "expRSMI" << endl;
-    // RSMI rsmi(4, 10000);
-    // rsmi.build(exp_recorder, points);
-    int level = 0;
-    int max_width = Constants::MAX_WIDTH;
     RSMI::model_path_root = model_path;
-    RSMI *partition = new RSMI(level, max_width);
+    RSMI *partition = new RSMI(0,  Constants::MAX_WIDTH);
     auto start = chrono::high_resolution_clock::now();
     partition->model_path = model_path;
     partition->build(exp_recorder, points);
-    // cout<< "RSMI::total_num: " << RSMI::total_num << endl;
-    // cout << "finish point_query max_error: " << exp_recorder.max_error << endl;
-    // cout << "finish point_query min_error: " << exp_recorder.min_error << endl;
-    // cout << "finish point_query average_max_error: " << exp_recorder.average_max_error << endl;
-    // cout << "finish point_query average_min_error: " << exp_recorder.average_min_error << endl;
-    // cout << "last_level_model_num: " << exp_recorder.last_level_model_num << endl;
-    // cout << "leaf_node_num: " << exp_recorder.leaf_node_num << endl;
-    // cout << "non_leaf_node_num: " << exp_recorder.non_leaf_node_num << endl;
-    // cout << "depth: " << exp_recorder.depth << endl;
     auto finish = chrono::high_resolution_clock::now();
     exp_recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     cout << "build time: " << exp_recorder.time << endl;
@@ -124,8 +105,8 @@ void expRSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> poi
     partition->point_query(exp_recorder, insert_points);
 
 }
+
 string RSMI::model_path_root = "";
-// int RSMI::total_num = 0;
 int main(int argc, char **argv)
 {
     int c;
@@ -165,22 +146,15 @@ int main(int argc, char **argv)
     exp_recorder.skewness = skewness;
     inserted_num = cardinality / 2;
 
-    // // exp_recorder.window_size = area;
-    // // exp_recorder.window_ratio = ratio;
-    cout<<"--------- 3 ------" << endl;
     FileReader filereader((Constants::DATASETS + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv"), ",");
     vector<Point> points = filereader.get_points();
-    cout<<"--------- 4 ------" << endl;
     exp_recorder.insert_num = inserted_num;
     vector<Point> query_poitns;
     vector<Point> insert_points;
     /***********************write query data*********************/
     FileWriter query_file_writer(Constants::QUERYPROFILES);
-    cout<<"--------- 5 ------" << points.size() << endl;
     query_poitns = Point::get_points(points, query_k_num);
-    cout<<"--------- 1 ------" << endl;
     query_file_writer.write_points(query_poitns, exp_recorder);
-    cout<<"--------- 2 ------" << endl;
     insert_points = Point::get_inserted_points(exp_recorder.insert_num);
     query_file_writer.write_inserted_points(insert_points, exp_recorder);
 
@@ -194,10 +168,8 @@ int main(int argc, char **argv)
             query_file_writer.write_mbrs(mbrs, exp_recorder);
         }
     }
-
     /********************************************/
-
-    FileReader knn_reader((Constants::QUERYPROFILES + "knn/" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.k_num) + ".csv"), ",");
+    FileReader knn_reader((Constants::QUERYPROFILES + Constants::KNN + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.k_num) + ".csv"), ",");
     map<string, vector<Mbr>> mbrs_map;
     FileReader query_filereader;
 
@@ -214,10 +186,11 @@ int main(int argc, char **argv)
             mbrs_map.insert(pair<string, vector<Mbr>>(to_string(areas[i]) + to_string(ratios[j]), mbrs));
         }
     }
-    string model_root_path = "./torch_models/" + distribution + "_" + to_string(cardinality);
+    string model_root_path = Constants::TORCH_MODELS + distribution + "_" + to_string(cardinality);
     file_utils::check_dir(model_root_path);
     string model_path = model_root_path + "/";
     FileWriter file_writer(Constants::RECORDS);
-    expRSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
+    exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
 }
+
 #endif  // use_gpu

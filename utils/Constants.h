@@ -45,6 +45,8 @@ public:
     static const string DELETEACCWINDOW;
     static const string DELETEKNN;
     static const string DELETEACCKNN;
+
+    static const string TORCH_MODELS;
     Constants();
 };
 

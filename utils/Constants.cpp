@@ -32,6 +32,8 @@ const string Constants::DELETEWINDOW= "deleteWindow/";
 const string Constants::DELETEACCWINDOW= "deleteAccWindow/";
 const string Constants::DELETEKNN= "deleteKnn/";
 const string Constants::DELETEACCKNN= "deleteAccKnn/";
+
+const string Constants::TORCH_MODELS = "./torch_models/";
 const double Constants::LEARNING_RATE = 0.05;
 Constants::Constants()
 {

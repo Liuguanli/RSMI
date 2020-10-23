@@ -16,7 +16,8 @@ class FileReader
 public:
     FileReader();
     FileReader(string, string);
-    vector<vector<string> > get_data(); 
+    vector<vector<string>> get_data(); 
+    vector<vector<string>> get_data(string); 
     vector<Point> get_points();
     vector<Mbr> get_mbrs();
     vector<Point> get_points(string filename, string delimeter);

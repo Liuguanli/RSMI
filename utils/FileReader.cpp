@@ -23,9 +23,9 @@ FileReader::FileReader(string filename, string delimeter)
     this->delimeter = delimeter;
 }
 
-vector<vector<string>> FileReader::get_data()
+vector<vector<string>> FileReader::get_data(string path)
 {
-    ifstream file(this->filename);
+    ifstream file(path);
 
     vector<vector<string>> data_list;
 
@@ -41,6 +41,11 @@ vector<vector<string>> FileReader::get_data()
     file.close();
 
     return data_list;
+}
+
+vector<vector<string>> FileReader::get_data()
+{
+    return get_data(this->filename);
 }
 
 vector<Point> FileReader::get_points()

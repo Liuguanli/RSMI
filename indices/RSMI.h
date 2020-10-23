@@ -54,6 +54,7 @@ public:
     RSMI(int index, int max_partition_num);
     RSMI(int index, int level, int max_partition_num);
     void build(ExpRecorder &exp_recorder, vector<Point> points);
+    void print_index_info(ExpRecorder &exp_recorder);
 
     bool point_query(ExpRecorder &exp_recorder, Point query_point);
     void point_query(ExpRecorder &exp_recorder, vector<Point> query_points);
@@ -97,7 +98,6 @@ RSMI::RSMI(int index, int level, int max_partition_num)
     this->level = level;
     this->max_partition_num = max_partition_num;
 }
-
 
 void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
 {
@@ -462,6 +462,18 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             iter++;
         }
     }
+}
+
+void RSMI::print_index_info(ExpRecorder &exp_recorder)
+{
+    cout << "finish point_query max_error: " << exp_recorder.max_error << endl;
+    cout << "finish point_query min_error: " << exp_recorder.min_error << endl;
+    cout << "finish point_query average_max_error: " << exp_recorder.average_max_error << endl;
+    cout << "finish point_query average_min_error: " << exp_recorder.average_min_error << endl;
+    cout << "last_level_model_num: " << exp_recorder.last_level_model_num << endl;
+    cout << "leaf_node_num: " << exp_recorder.leaf_node_num << endl;
+    cout << "non_leaf_node_num: " << exp_recorder.non_leaf_node_num << endl;
+    cout << "depth: " << exp_recorder.depth << endl;
 }
 
 bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
