@@ -1,8 +1,6 @@
 # RSMI
 
-- [ ] change path for dataset, inserted points ... 
-- [ ] add comments 
-- [ ] use any name of the datasets 
+
 
 
 ##  How to use
@@ -51,7 +49,7 @@ comment *#define use_gpu* to use CPU version
 #endif  // use_gpu
 ```
 
-#### 4. change path
+#### 4. Change path
 
 Change the path is you do not want to store the datasets under the project's root path.
 
