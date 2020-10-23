@@ -78,8 +78,6 @@ if __name__ == '__main__':
 
 #### 5. Prepare datasets
 
-[dataset demo](./datasets/uniform_10000_1_2_.csv)
-
 ```bash
 python data_generator.py -d uniform -s 1000000 -n 1 -f datasets/uniform_1000000_1_2_.csv -m 2
 ```

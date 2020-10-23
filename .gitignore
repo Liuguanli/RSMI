@@ -5,4 +5,4 @@ Exp
 *.sh
 files/*
 indices/ZM.h
-!datasets/uniform_10000_1_2_.csv
+datasets/*
