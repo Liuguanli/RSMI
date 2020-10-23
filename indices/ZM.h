@@ -124,13 +124,6 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points)
         long long curve_val = compute_Z_value(points[i].x_i, points[i].y_i, bit_num);
         points[i].curve_val = curve_val;
     }
-    // side = pow(2, bit_num);
-    // side = pow(4, bit_num);
-    // for (long long i = 0; i < N; i++)
-    // {
-    //     long long curve_val = compute_Z_value(points[i]->x_i, points[i]->y_i, bit_num);
-    //     points[i]->curve_val = curve_val;
-    // }
     sort(points.begin(), points.end(), sort_curve_val());
     min_curve_val = points[0].curve_val;
     max_curve_val = points[points.size() - 1].curve_val;
@@ -304,19 +297,6 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points)
         // cout << "size of stages:" << stages[i] << endl;
     }
 
-    // auto net = this->trainModel(tmp_records[0][0]);
-
-    // torch::Tensor res = net->forward(torch::tensor({1.0}));
-    // cout << res.item().toInt() << endl;
-    // cout << typeid(net).name() << endl;
-    // for (size_t i = 0; i < stages.size(); i++)
-    // {
-    //     for (size_t j = 0; j < stages[i]; j++)
-    //     {
-    //         cout << tmp_records[i][j].size() << endl;
-    //     }
-    //     cout << endl;
-    // }
     auto finish = chrono::high_resolution_clock::now();
     exp_recorder.max_error = zm_max_error;
     exp_recorder.min_error = zm_min_error;
@@ -623,7 +603,6 @@ vector<Point> ZM::kNN_query(ExpRecorder &exp_recorder, Point query_point, int k)
             // cout << " last dist : " << last->cal_dist(queryPoint) << " knnquerySide: " << knnquerySide << endl;
             if (last.cal_dist(query_point) <= knn_query_side)
             {
-                // TODO get top K from the vector.
                 auto bn = temp_result.begin();
                 auto en = temp_result.begin() + k;
                 vector<Point> vec(bn, en);
@@ -667,7 +646,6 @@ vector<Point> ZM::acc_kNN_query(ExpRecorder &exp_recorder, Point query_point, in
             Point last = temp_result[k - 1];
             if (last.cal_dist(query_point) <= knn_query_side)
             {
-                // TODO get top K from the vector.
                 auto bn = temp_result.begin();
                 auto en = temp_result.begin() + k;
                 vector<Point> vec(bn, en);
@@ -730,27 +708,6 @@ void ZM::insert(ExpRecorder &exp_recorder, Point point)
 
     if (leafnode->is_full())
     {
-        // int front = 0;
-        // int back = leafnode->children->size() - 1;
-        // int mid = 0;
-        // while (front <= back)
-        // {
-        //     mid = (front + back) / 2;
-
-        //     if ((*leafnode->children)[mid]->curve_val > point->curve_val)
-        //     {
-        //         back = mid - 1;
-        //     }
-        //     else if ((*leafnode->children)[mid]->curve_val < point->curve_val)
-        //     {
-        //         front = mid + 1;
-        //     }
-        //     else
-        //     {
-        //         break;
-        //     }
-        // }
-        // leafnode->children->insert(leafnode->children->begin() + mid, point);
         leafnode->add_point(point);
         LeafNode *right = leafnode->split();
         leafnodes.insert(leafnodes.begin() + inserted_index + 1, right);
@@ -826,35 +783,6 @@ void ZM::remove(ExpRecorder &exp_recorder, Point point)
         }
     }
 
-    // while (front <= back)
-    // {
-    //     int mid = (front + back) / 2;
-    //     int node_index = mid / Constants::PAGESIZE;
-
-    //     LeafNode *leafnode = leafnodes[node_index];
-
-    //     vector<Point *>::iterator iter = find(leafnode->children->begin(), leafnode->children->end(), point);
-    //     if (leafnode->mbr->contains(point) && leafnode->delete_point(point))
-    //     {
-    //         // cout << "remove it" << endl;
-    //         break;
-    //     }
-    //     else
-    //     {
-    //         if ((*leafnode->children)[0]->curve_val < curve_val)
-    //         {
-    //             front = mid + 1;
-    //         }
-    //         else
-    //         {
-    //             back = mid - 1;
-    //         }
-    //     }
-    //     // if (front > back)
-    //     // {
-    //     //     cout << "not found!" << endl;
-    //     // }
-    // }
 }
 
 void ZM::remove(ExpRecorder &exp_recorder, vector<Point> points)
