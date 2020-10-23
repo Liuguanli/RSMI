@@ -3,6 +3,5 @@
 torch_models/*
 Exp
 *.sh
-*.py
 files/*
 indices/ZM.h
