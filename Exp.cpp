@@ -22,7 +22,7 @@
 using namespace std;
 
 #ifndef use_gpu
-#define use_gpu
+// #define use_gpu
 
 int ks[] = {1, 5, 25, 125, 625};
 float areas[] = {0.000006, 0.000025, 0.0001, 0.0004, 0.0016};
