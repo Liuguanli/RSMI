@@ -27,7 +27,6 @@ bool Point::operator==(const Point &point)
     {
         return true;
     }
-    // TODO change double type comparison
     else if (this->x == point.x && this->y == point.y)
     {
         return true;

@@ -31,7 +31,6 @@ void LeafNode::add_points(vector<Point> points)
     {
         add_point(points[i]);
     }
-    // cout<< mbr.x1 << " " << mbr.y1 << " " << mbr.x2 << " " << mbr.y2 << endl;
 }
 
 bool LeafNode::is_full()

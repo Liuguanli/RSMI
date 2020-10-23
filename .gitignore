@@ -4,5 +4,5 @@ torch_models/*
 Exp
 *.sh
 *.py
-datasets/*
 files/*
+indices/ZM.h

@@ -78,18 +78,6 @@ bool Mbr::contains(Point point)
     }
 }
 
-// bool Mbr::contains(Point point)
-// {
-//     if (x1 <= point.x && point.x <= x2 && y1 <= point.y && point.y <= y2)
-//     {
-//         return true;
-//     }
-//     else
-//     {
-//         return false;
-//     }
-// }
-
 bool Mbr::strict_contains(Point point)
 {
     if (x1 < point.x && point.x < x2 && y1 < point.y && point.y < y2)
