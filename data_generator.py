@@ -21,35 +21,6 @@ sys.path.append(rootPath)
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-def get_tf_normalrandomPoints(num, length):
-    longitudes = tf.truncated_normal([num, 1], mean=95.0, stddev=2.5, dtype=tf.float32)
-    latitudes = tf.truncated_normal([num, 1], mean=45.0, stddev=2.5, dtype=tf.float32)
-    with tf.Session() as sees:
-        lati = sees.run(latitudes)
-        longi = sees.run(longitudes)
-        with open("../dataset/8M/random_tf_.csv", "w") as fo:
-            result = []
-            for i in range(length * length):
-                result.append([])
-            for i in range(num):
-                x = longi[i]
-                y = lati[i]
-
-                y_index = int(y - 40)
-                x_index = int(x - 90)
-                index = x_index + length * y_index
-                if index < 0 or index > 99:
-                    print(index)
-                result[index].append([x[0], y[0], str(i)])
-                node_string = str(x[0]) + "," + str(y[0]) + "," + str(i) + "\n"
-                fo.write(node_string)
-            for i in range(length * length):
-                with open("../dataset/8M/random_tf_" + str(i) + "_.csv", "w") as fo:
-                    for item in result[i]:
-                        # print(item)
-                        node_string = str(item[0]) + "," + str(item[1]) + "," + str(item[2]) + "\n"
-                        fo.write(node_string)
-
 def getUniformPoints(num, filename, dim):
     all_result = {}
     for i in range(dim - 1):
