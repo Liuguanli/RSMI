@@ -110,6 +110,11 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
 
     partition->insert(exp_recorder, insert_points);
     cout << "exp_recorder.insert_time: " << exp_recorder.insert_time << endl;
+    exp_recorder.clean();
+    partition->point_query(exp_recorder, points);
+    cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
+    cout << "finish point_query time: " << exp_recorder.time << endl;
+    exp_recorder.clean();
 }
 
 string RSMI::model_path_root = "";
