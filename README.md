@@ -5,7 +5,7 @@
 
 ##  How to use
 
-### 1. Related libraries
+### 1. Required libraries
 
 #### LibTorch
 homepage: https://pytorch.org/get-started/locally/
