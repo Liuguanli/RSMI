@@ -26,6 +26,8 @@ Choose CPU or GPU
 # TYPE = CPU
 TYPE = GPU
 
+Change *home/liuguanli/Documents/libtorch_gpu* to your own path.
+
 ifeq ($(TYPE), GPU)
 	INCLUDE = -I/home/liuguanli/Documents/libtorch_gpu/include -I/home/liuguanli/Documents/libtorch_gpu/include/torch/csrc/api/include
 	LIB +=-L/home/liuguanli/Documents/libtorch_gpu/lib -ltorch -lc10 -lpthread
