@@ -36,9 +36,7 @@ private:
     int min_error = 0;
     int width = 0;
     int leaf_node_num;
-
     
-    // whether it is the last level
     bool is_last;
     Mbr mbr;
     std::shared_ptr<Net> net;
@@ -46,7 +44,6 @@ private:
 public:
     string model_path;
     static string model_path_root;
-    // static int total_num;
     map<int, RSMI> children;
     vector<LeafNode> leafnodes;
 
@@ -107,7 +104,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
     if (points.size() <= exp_recorder.N)
     {
         this->model_path += "_" + to_string(level) + "_" + to_string(index);
-        // RSMI::total_num += points.size();
         if (exp_recorder.depth < level)
         {
             exp_recorder.depth = level;
@@ -116,8 +112,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         is_last = true;
         N = points.size();
         long long side = pow(2, ceil(log(points.size()) / log(2)));
-        // cout << "Partition::build is last" << endl;
-        // cout << "points.size: " << points.size() << endl;
         sort(points.begin(), points.end(), sortX());
         for (int i = 0; i < N; i++)
         {
@@ -125,16 +119,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             mbr.update(points[i].x, points[i].y);
         }
         sort(points.begin(), points.end(), sortY());
-        // cout<< "side:" << side << endl;
         for (int i = 0; i < N; i++)
         {
             points[i].y_i = i;
             long long curve_val = compute_Hilbert_value(points[i].x_i, points[i].y_i, side);
             points[i].curve_val = curve_val;
-            // if(fabs(points[i].x - 0.95708) < 0.00001 && fabs(points[i].y - 0.960424) < 0.00001)
-            // {
-            //     points[i].print();
-            // }
         }
         sort(points.begin(), points.end(), sort_curve_val());
         width = N - 1;
@@ -147,12 +136,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             for (long i = 0; i < N; i++)
             {
                 points[i].index = i * 1.0 / (N - 1);
-                // if(fabs(points[i].x - 0.95708) < 0.00001 && fabs(points[i].y - 0.960424) < 0.00001)
-                // {
-                //     cout<< "model_path: " << model_path << endl;
-                //     cout<< "i: " << i << endl;
-                //      points[i].print();
-                // }
             }
         }
         leaf_node_num = points.size() / page_size;
@@ -205,9 +188,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         }
         net->get_parameters();
 
-        // net = this->trainModel(x, y, Constants::EPOCH, false, leaf_node_num / 2 + 2);
-        // auto end2 = chrono::high_resolution_clock::now();
-        // cout<< " last level training time: " << chrono::duration_cast<chrono::nanoseconds>(end2 - start2).count() << endl;
         exp_recorder.non_leaf_node_num++;
         for (int i = 0; i < N; i++)
         {
@@ -218,12 +198,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
 
             int error = i / page_size - predicted_index;
 
-            // if(fabs(point.x - 0.95708) < 0.00001 && fabs(point.y - 0.960424) < 0.00001)
-            // {
-            //     cout<< "i / page_size: " << i / page_size << endl;
-            //     cout<< "predicted_index: " << predicted_index << endl;
-            // }
-
             if (error > 0)
             {
                 if (error > max_error)
@@ -233,11 +207,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             else
             {
-                // if (error < -1000)
-                // {
-                //     cout << "point.index: " << point.index << " net->predict(point): " << net->predict(point) << " leaf_node_num: "
-                //          << " predicted_index: " << predicted_index << endl;
-                // }
                 if (error < min_error)
                 {
                     min_error = error;
@@ -246,19 +215,12 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         }
         exp_recorder.average_max_error += max_error;
         exp_recorder.average_min_error += min_error;
-        if (max_error > 100)
-        {
-            cout << "max_error:: " << max_error << endl;
-        }
         if ((max_error - min_error) > (exp_recorder.max_error - exp_recorder.min_error))
         {
             exp_recorder.max_error = max_error;
             exp_recorder.min_error = min_error;
         }
 
-        // auto finish = chrono::high_resolution_clock::now();
-        //     cout << "points.size: " << points.size() << endl;
-        //     cout << "Time Cost(last level): " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
     }
     else
     {
@@ -318,9 +280,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 long sub_size = sub_vec.size();
                 for (Point point : sub_vec)
                 {
-                    // point.index = (Z_value + sub_point_index * 1.0 / N) / width;
                     point.index = Z_value * 1.0 / width;
-                    // point.index = (point_index * 1.0) / N;
                     locations[point_index * 2] = point.x;
                     locations[point_index * 2 + 1] = point.y;
                     labels[point_index] = point.index;
@@ -335,10 +295,8 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
 
         int epoch = Constants::START_EPOCH;
         bool is_retrain = false;
-        // int reTrainTime = 0;
         do
         {
-            // net = this->trainModel(x, y, epoch, is_retrain, width);
             net = std::make_shared<Net>(2);
             #ifdef use_gpu
                 net->to(torch::kCUDA);
@@ -360,12 +318,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             for (Point point : points)
             {
                 int predicted_index = (int)(net->predict(point) * width);
-                // cout<< "predict : " << endl;
-                // net->predict(point);
-                // cout<< "predict 1 : " <<  endl;
-                // net->predict1(point);
-                // cout<< "forward: " << endl;
-                // net->forward(torch::tensor({point.x, point.y}));
 
                 predicted_index = predicted_index < 0 ? 0 : predicted_index;
                 predicted_index = predicted_index >= width ? width - 1 : predicted_index;
@@ -379,31 +331,20 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             {
                 if (iter1->second.size() > 0)
                 {
-                    // cout<< "iter1->first: " << iter1->first << " iter1->second.size: " << iter1->second.size() << endl;
                     map_size++;
                 }
                 iter1++;
             }
-            // cout << "level and submodel size: " << level << " " << map_size << endl;
             if (map_size < 2)
             {
-                // get the index value can clear that in the map
                 int predicted_index = (int)(net->predict(points[0]) * width);
                 predicted_index = predicted_index < 0 ? 0 : predicted_index;
                 predicted_index = predicted_index >= width ? width - 1 : predicted_index;
 
-                // cout<< "predicted_index: " << predicted_index << endl;
-                // cout<< "size before clear: " << points_map[predicted_index].size() << endl;
                 points_map[predicted_index].clear();
                 points_map[predicted_index].shrink_to_fit();
-                // cout<< "size after clear: " << points_map[predicted_index].size() << endl;
                 is_retrain = true;
                 epoch = Constants::EPOCH_ADDED;
-                // reTrainTime++;
-                // if (reTrainTime > 5)
-                // {
-                //     epoch /= 2;
-                // }
             }
             else
             {
@@ -412,38 +353,12 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
 
         } while (is_retrain);
         auto finish = chrono::high_resolution_clock::now();
-        // if (level == 0)
-        // {
-        //     cout<< "level 0 build time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
-        //     return;
-        // }
         
         exp_recorder.non_leaf_node_num++;
-        // predict
-        // torch::Tensor prediction = net->forward(x);
-
-        // for (size_t i = 0; i < N; i++)
-        // {
-        //     int predicted_index = (int)(prediction.select(0, i).item().toDouble() * width);
-        //     predicted_index = predicted_index < 0 ? 0 : predicted_index;
-        //     predicted_index = predicted_index > width ? width : predicted_index;
-        //     points_map[predicted_index].push_back(points[i]);
-        // }
-
-        // for (Point point : points)
-        // {
-        //     int predicted_index = (int)(net->predict(point) * width);
-        //     predicted_index = predicted_index < 0 ? 0 : predicted_index;
-        //     predicted_index = predicted_index >= width ? width - 1 : predicted_index;
-        //     points_map[predicted_index].push_back(point);
-        // }
 
         points.clear();
         points.shrink_to_fit();
 
-        // cout << "Time Cost(Not last level): " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
-
-        // map<int, vector<Point>>::iterator iter1;
         map<int, vector<Point>>::iterator iter;
         iter = points_map.begin();
 
@@ -451,7 +366,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         {
             if (iter->second.size() > 0)
             {
-                // cout << "sub partition, level: " << level + 1 << " size:" << iter->second.size() << endl;
                 RSMI partition(iter->first, level + 1, max_partition_num);
                 partition.model_path = model_path;
                 partition.build(exp_recorder, iter->second);
@@ -480,7 +394,6 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
 {
     if (is_last)
     {
-        // cout<< "is last" << endl;
         int predicted_index = 0;
         predicted_index = net->predict(query_point) * leaf_node_num;
         predicted_index = predicted_index < 0 ? 0 : predicted_index;
@@ -492,8 +405,6 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
             vector<Point>::iterator iter = find(leafnode.children->begin(), leafnode.children->end(), query_point);
             if (iter != leafnode.children->end())
             {
-                // predicted result is correct
-                // cout<<"find it" << endl;
                 return true;
             }
         }
@@ -578,7 +489,6 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
             predicted_index_right = predicted_index + gap;
         }
         // cout<< "not find" << endl;
-        // cout<< "here query_point:" << endl;
         // query_point.print();
         return false;
     }
@@ -607,14 +517,10 @@ void RSMI::point_query(ExpRecorder &exp_recorder, vector<Point> query_points)
     }
     exp_recorder.time /= size;
     exp_recorder.page_access = exp_recorder.page_access / size;
-    cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
-    cout << "finish point_query time: " << exp_recorder.time << endl;
 }
 
 void RSMI::window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows)
 {
-    // cout << "window_query:" << query_windows.size() << endl;
-
     long long time_cost = 0;
     int length = query_windows.size();
     // length = 1;
@@ -630,20 +536,13 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows)
         exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     }
     exp_recorder.time /= length;
-    cout << "window_query time: " << exp_recorder.time << endl;
-    // cout<< "exp_recorder.time: " << exp_recorder.time << endl;
     exp_recorder.page_access = (double)exp_recorder.page_access / length;
-    cout << "window_query page_access: " << exp_recorder.page_access << endl;
-    cout << "exp_recorder.window_query_result_size: " << exp_recorder.window_query_result_size << endl;
 }
 
 void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr query_window)
 {
-    // vector<Point> window_query_results;
-    // vector<int> indices;
     if (is_last)
     {
-        // cout<< "window_query(ExpRecorder &exp_recorder, vector<Point *> vertexes, Mbr *query_window) leafnodes.size(): " << leafnodes.size() << endl;
         int leafnodes_size = leafnodes.size();
         int front = leafnodes_size - 1;
         int back = 0;
@@ -665,8 +564,6 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                 int predicted_index = net->predict(vertexes[i]) * leaf_node_num;
                 predicted_index = predicted_index < 0 ? 0 : predicted_index;
                 predicted_index = predicted_index > width ? width : predicted_index;
-                // indices.push_back(predicted_index + max_error);
-                // indices.push_back(predicted_index + min_error);
                 int predicted_index_max = predicted_index + max_error;
                 int predicted_index_min = predicted_index + min_error;
                 if (predicted_index_min < min)
@@ -679,16 +576,8 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                 }
             }
 
-            // auto start = chrono::high_resolution_clock::now();
-            // sort(indices.begin(), indices.end());
-            // auto finish = chrono::high_resolution_clock::now();
-            // cout << "each sort time:" << chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
-
-            // front = indices.front();
-            // back = indices.back();
             front = min < 0 ? 0 : min;
             back = max >= leafnodes_size ? leafnodes_size - 1 : max;
-            // cout << "leafnodes size: " << leafnodes.size() << endl;
         }
         for (size_t i = front; i <= back; i++)
         {
@@ -718,7 +607,6 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
             int predicted_index = net->predict(vertexes[i]) * children.size();
             predicted_index = predicted_index < 0 ? 0 : predicted_index;
             predicted_index = predicted_index >= children_size ? children_size - 1 : predicted_index;
-            // indices.push_back(predicted_index);
             if (predicted_index < front)
             {
                 front = predicted_index;
@@ -728,15 +616,9 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                 back = predicted_index;
             }
         }
-        // sort(indices.begin(), indices.end());
-
-        // cout<< "window_query(ExpRecorder &exp_recorder, vector<Point *> vertexes, Mbr *query_window) children.size(): " << children.size() << " width: " << width << endl;
-        // cout<< "front: " << front << endl;
-        // cout<< "back: " << back << endl;
 
         for (size_t i = front; i <= back; i++)
         {
-            // cout<< " child window query i: " << i << endl;
             if (children.count(i) == 0)
             {
                 continue;
@@ -749,7 +631,7 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
     }
 }
 
-// this is for knn query
+// this method is for knn query
 void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr query_window, float boundary, int k, Point query_point, float &kth)
 {
     if (is_last)
@@ -775,7 +657,6 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                 auto start = chrono::high_resolution_clock::now();
                 int predicted_index = net->predict(vertexes[i]) * leaf_node_num;
                 auto finish = chrono::high_resolution_clock::now();
-                // cout<< "calculation time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
                 predicted_index = predicted_index < 0 ? 0 : predicted_index;
                 predicted_index = predicted_index > width ? width : predicted_index;
                 int predictedIndexMax = predicted_index + max_error;
@@ -793,16 +674,10 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
             front = min < 0 ? 0 : min;
             back = max >= leafnodesSize ? leafnodesSize - 1 : max;
         }
-        // for (size_t i = 0; i < level; i++)
-        // {
-        //     cout << "    ";
-        // }
-        // cout << "leaf --  front: " << front << " back: " << back << endl;
         for (size_t i = front; i <= back; i++)
         {
             LeafNode leafnode = leafnodes[i];
             float dis = leafnode.mbr.cal_dist(query_point);
-            // cout << "dis: " << dis << endl;
             if (dis > boundary)
             {
                 continue;
@@ -820,37 +695,12 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                     {
                         if (point.cal_dist(query_point) <= boundary)
                         {
-                            // if (exp_recorder.pq.size() >= k)
-                            // {
-                            //     if (kth < point.tempDist)
-                            //     {
-                            //         continue;
-                            //     }
-                            // }
-                            // else
-                            // {
-                            //     if (kth < point.tempDist)
-                            //     {
-                            //         kth = point.tempDist;
-                            //     }
-                            //     expRecorder.pq.push(point);
-                            // }
                             exp_recorder.pq.push(point);
-                            // if (index >= windowQueryResults.size())
-                            // {
-                            //     windowQueryResults.resize(index * 2);
-                            // }
-                            // windowQueryResults[index++] = point;
                         }
                     }
                 }
             }
         }
-        // for (size_t i = 0; i < level; i++)
-        // {
-        //     cout << "    ";
-        // }
-        // cout << "pq.size: " << expRecorder.pq.size() << endl;
         return;
     }
     else
@@ -862,10 +712,8 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
             auto start = chrono::high_resolution_clock::now();
             int predicted_index = net->predict(vertexes[i]) * width;
             auto finish = chrono::high_resolution_clock::now();
-            // cout<< "calculation time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
             predicted_index = predicted_index < 0 ? 0 : predicted_index;
             predicted_index = predicted_index >= width ? width - 1 : predicted_index;
-            // indices.push_back(predicted_index);
             if (predicted_index < front)
             {
                 front = predicted_index;
@@ -875,14 +723,8 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                 back = predicted_index;
             }
         }
-        // for (size_t i = 0; i < level; i++)
-        // {
-        //     cout << "    ";
-        // }
-        // cout << "nonleaf -- front: " << front << " back: " << back << endl;
         for (size_t i = front; i <= back; i++)
         {
-            // cout<< " child window query i: " << i << endl;
             if (children.count(i) == 0)
             {
                 continue;
@@ -893,125 +735,10 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
             }
             if (children[i].mbr.interact(query_window))
             {
-                // cout << "children: " << i << endl;
                 children[i].window_query(exp_recorder, vertexes, query_window, boundary, k, query_point, kth);
             }
         }
     }
-    // if (is_last)
-    // {
-    //     int leafnodes_size = leafnodes.size();
-    //     int front = leafnodes_size - 1;
-    //     int back = 0;
-    //     if (leaf_node_num == 0)
-    //     {
-    //         return;
-    //     }
-    //     else if (leaf_node_num < 2)
-    //     {
-    //         front = 0;
-    //         back = 0;
-    //     }
-    //     else
-    //     {
-    //         int max = 0;
-    //         int min = width;
-    //         for (size_t i = 0; i < vertexes.size(); i++)
-    //         {
-    //             auto start = chrono::high_resolution_clock::now();
-    //             int predicted_index = net->predict(vertexes[i]) * leaf_node_num;
-    //             auto finish = chrono::high_resolution_clock::now();
-    //             // cout<< "calculation time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
-    //             predicted_index = predicted_index < 0 ? 0 : predicted_index;
-    //             predicted_index = predicted_index > width ? width : predicted_index;
-    //             int predicted_index_max = predicted_index + max_error;
-    //             int predicted_index_min = predicted_index + min_error;
-    //             if (predicted_index_min < min)
-    //             {
-    //                 min = predicted_index_min;
-    //             }
-    //             if (predicted_index_max > max)
-    //             {
-    //                 max = predicted_index_max;
-    //             }
-    //         }
-
-    //         front = min < 0 ? 0 : min;
-    //         back = max >= leafnodes_size ? leafnodes_size - 1 : max;
-    //     }
-    //     for (size_t i = front; i <= back; i++)
-    //     {
-    //         LeafNode leafnode = leafnodes[i];
-    //         if (leafnode.mbr.interact(query_window))
-    //         {
-    //             for (Point point : (*leafnode.children))
-    //             {
-    //                 if (query_window.contains(point))
-    //                 {
-    //                     exp_recorder.page_access += 1;
-    //                     if (point.cal_dist(query_point) <= boundary)
-    //                     {
-    //                         if (index > k)
-    //                         {
-    //                             if (kth < point.temp_dist)
-    //                             {
-    //                                 continue;
-    //                             }
-    //                         }
-    //                         else
-    //                         {
-    //                             if (kth < point.temp_dist)
-    //                             {
-    //                                 kth = point.temp_dist;
-    //                             }
-    //                         }
-    //                         exp_recorder.pq.push(point);
-    //                         // if (index >= window_query_results.size())
-    //                         // {
-    //                         //     window_query_results.resize(index * 2);
-    //                         // }
-    //                         // window_query_results[index++] = point;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     return;
-    // }
-    // else
-    // {
-    //     int children_size = children.size();
-    //     int front = children_size - 1;
-    //     int back = 0;
-    //     for (size_t i = 0; i < vertexes.size(); i++)
-    //     {
-    //         auto start = chrono::high_resolution_clock::now();
-    //         int predicted_index = net->predict(vertexes[i]) * children.size();
-    //         auto finish = chrono::high_resolution_clock::now();
-    //         // cout<< "calculation time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
-    //         predicted_index = predicted_index < 0 ? 0 : predicted_index;
-    //         predicted_index = predicted_index >= children_size ? children_size - 1 : predicted_index;
-    //         // indices.push_back(predicted_index);
-    //         if (predicted_index < front)
-    //         {
-    //             front = predicted_index;
-    //         }
-    //         if (predicted_index > back)
-    //         {
-    //             back = predicted_index;
-    //         }
-    //     }
-
-    //     for (size_t i = front; i <= back; i++)
-    //     {
-    //         // cout<< " child window query i: " << i << endl;
-    //         if (children.count(i) == 0)
-    //         {
-    //             continue;
-    //         }
-    //         children[i].window_query(exp_recorder, vertexes, query_window, boundary, k, query_point, kth);
-    //     }
-    // }
 }
 
 vector<Point> RSMI::acc_window_query(ExpRecorder &exp_recorder, Mbr query_window)
@@ -1052,8 +779,6 @@ vector<Point> RSMI::acc_window_query(ExpRecorder &exp_recorder, Mbr query_window
 
 void RSMI::acc_window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows)
 {
-    cout << "RSMI::acc_window_query window num:" << query_windows.size() << endl;
-
     int length = query_windows.size();
     for (int i = 0; i < length; i++)
     {
@@ -1062,17 +787,12 @@ void RSMI::acc_window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows
         auto finish = chrono::high_resolution_clock::now();
         exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     }
-    // cout << "end:" << end.tv_nsec << " begin" << begin.tv_nsec << endl;
     exp_recorder.time = exp_recorder.time / length;
     exp_recorder.page_access = (double)exp_recorder.page_access / length;
-    cout << "exp_recorder.acc_window_query_qesult_size: " << exp_recorder.acc_window_query_qesult_size << endl;
-    cout << "RSMI::acc_window_query time: " << exp_recorder.time << endl;
-    cout << "RSMI::acc_window_query page_access: " << exp_recorder.page_access << endl;
 }
 
 void RSMI::kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k)
 {
-    cout << "RSMI::kNN_query" << endl;
     int length = query_points.size();
     exp_recorder.time = 0;
     exp_recorder.page_access = 0;
@@ -1087,15 +807,9 @@ void RSMI::kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int 
         long long temp_time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
         exp_recorder.time += temp_time;
         exp_recorder.knn_query_results.insert(exp_recorder.knn_query_results.end(), knnresult.begin(), knnresult.end());
-        // cout << "knn_diff: " << knn_diff(acc_kNN_query(exp_recorder, query_points[i], k), kNN_query(exp_recorder, query_points[i], k)) << endl;
     }
-    cout << "finish RSMI::kNN_query" << endl;
-    cout << "RSMI::kNN_query exp_recorder.knn_query_results: " << exp_recorder.knn_query_results.size() << endl;
-
     exp_recorder.time /= length;
     exp_recorder.page_access = (double)exp_recorder.page_access / length;
-    cout << "exp_recorder.time: " << exp_recorder.time << endl;
-    cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
     exp_recorder.k_num = k;
 }
 
@@ -1137,17 +851,10 @@ vector<Point> RSMI::kNN_query(ExpRecorder &exp_recorder, Point query_point, int 
         Mbr mbr = Mbr::get_mbr(query_point, knnquery_side);
         vector<Point> vertexes = mbr.get_corner_points();
 
-        // auto start1 = chrono::high_resolution_clock::now();
-        // vector<Point> tempResult(k * 2);
         int size = 0;
         float kth = 0.0;
         window_query(exp_recorder, vertexes, mbr, knnquery_side, k, query_point, kth);
         size = exp_recorder.pq.size();
-        // cout<< "exp_recorder.pq.size(): " << size << endl;
-        // auto finish1 = chrono::high_resolution_clock::now();
-        // cout << "window query: " << chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count() << endl;
-        // cout<< " after window " << endl;
-        // cout << "query point: " << query_point.get_self() << endl;
         if (size >= k)
         {
             for (size_t i = 0; i < k; i++)
@@ -1155,13 +862,8 @@ vector<Point> RSMI::kNN_query(ExpRecorder &exp_recorder, Point query_point, int 
                 result.push_back(exp_recorder.pq.top());
                 exp_recorder.pq.pop();
             }
-            // for (size_t i = 0; i < k; i++)
-            // {
-            //     cout<< result[i].get_self() << " " << result[i].temp_dist << endl;
-            // }
             break;
         }
-        // cout << "size: "<< size << " double yixia: " << endl;
         knnquery_side *= 2;
     }
     return result;
@@ -1169,7 +871,6 @@ vector<Point> RSMI::kNN_query(ExpRecorder &exp_recorder, Point query_point, int 
 
 void RSMI::acc_kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k)
 {
-    cout << "RSMI::acc_kNN_query " << query_points.size() << endl;
     int length = query_points.size();
     // length = 1;
     for (int i = 0; i < length; i++)
@@ -1183,8 +884,6 @@ void RSMI::acc_kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, 
     exp_recorder.time /= length;
     exp_recorder.k_num = k;
     exp_recorder.page_access = (double)exp_recorder.page_access / length;
-    cout << "exp_recorder.time: " << exp_recorder.time << endl;
-    cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
 }
 
 vector<Point> RSMI::acc_kNN_query(ExpRecorder &exp_recorder, Point query_point, int k)
@@ -1224,12 +923,8 @@ void RSMI::insert(ExpRecorder &exp_recorder, Point point)
     {
         if (N == Constants::THRESHOLD)
         {
-            cout << "rebuild: " << endl;
+            // cout << "rebuild: " << endl;
             is_last = false;
-            // get all points
-
-            // use build method
-            // exp_recorder.rebuild_time+= buildtime
             vector<Point> points;
             for (LeafNode leafNode : leafnodes)
             {
@@ -1270,7 +965,6 @@ void RSMI::insert(ExpRecorder &exp_recorder, Point point)
 
 void RSMI::insert(ExpRecorder &exp_recorder, vector<Point> points)
 {
-    cout << "insert: " << endl;
     auto start = chrono::high_resolution_clock::now();
     for (Point point : points)
     {
@@ -1278,7 +972,6 @@ void RSMI::insert(ExpRecorder &exp_recorder, vector<Point> points)
     }
     auto finish = chrono::high_resolution_clock::now();
     exp_recorder.insert_time = (chrono::duration_cast<chrono::nanoseconds>(finish - start).count()) / exp_recorder.insert_num;
-    cout << "exp_recorder.insert_time: " << exp_recorder.insert_time << endl;
 }
 
 void RSMI::remove(ExpRecorder &exp_recorder, Point point)
@@ -1301,9 +994,7 @@ void RSMI::remove(ExpRecorder &exp_recorder, Point point)
             vector<Point>::iterator iter = find(leafnode.children->begin(), leafnode.children->end(), point);
             if (leafnode.mbr.contains(point) && leafnode.delete_point(point))
             {
-                // cout << "remove it" << endl;
                 N--;
-                // width++;
                 break;
             }
         }
@@ -1320,7 +1011,6 @@ void RSMI::remove(ExpRecorder &exp_recorder, Point point)
 
 void RSMI::remove(ExpRecorder &exp_recorder, vector<Point> points)
 {
-    cout << "remove: " << endl;
     auto start = chrono::high_resolution_clock::now();
     for (Point point : points)
     {

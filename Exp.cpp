@@ -76,34 +76,40 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     file_writer.write_build(exp_recorder);
     exp_recorder.clean();
     partition->point_query(exp_recorder, points);
+    cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
+    cout << "finish point_query time: " << exp_recorder.time << endl;
     file_writer.write_point_query(exp_recorder);
     exp_recorder.clean();
 
     exp_recorder.window_size = areas[2];
     exp_recorder.window_ratio = ratios[2];
     partition->acc_window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
-    cout<< "exp_recorder.acc_window_query_qesult_size: " << exp_recorder.acc_window_query_qesult_size << endl;
+    cout << "RSMI::acc_window_query time: " << exp_recorder.time << endl;
+    cout << "RSMI::acc_window_query page_access: " << exp_recorder.page_access << endl;
     file_writer.write_acc_window_query(exp_recorder);
     partition->window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
     exp_recorder.accuracy = ((double)exp_recorder.window_query_result_size) / exp_recorder.acc_window_query_qesult_size;
-    file_writer.write_window_query(exp_recorder);
-    cout<< "exp_recorder.window_query_result_size: " << exp_recorder.window_query_result_size << endl;
+    cout << "window_query time: " << exp_recorder.time << endl;
+    cout << "window_query page_access: " << exp_recorder.page_access << endl;
     cout<< "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
+    file_writer.write_window_query(exp_recorder);
 
     exp_recorder.clean();
     exp_recorder.k_num = ks[2];
     partition->acc_kNN_query(exp_recorder, query_poitns, ks[2]);
+    cout << "exp_recorder.time: " << exp_recorder.time << endl;
+    cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
     file_writer.write_acc_kNN_query(exp_recorder);
     partition->kNN_query(exp_recorder, query_poitns, ks[2]);
+    cout << "exp_recorder.time: " << exp_recorder.time << endl;
+    cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
     exp_recorder.accuracy = knn_diff(exp_recorder.acc_knn_query_results, exp_recorder.knn_query_results);
-    cout<< "exp_recorder.knn_query_results: " << exp_recorder.knn_query_results.size() << endl;
     cout<< "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
     file_writer.write_kNN_query(exp_recorder);
     exp_recorder.clean();
 
     partition->insert(exp_recorder, insert_points);
-    partition->point_query(exp_recorder, insert_points);
-
+    cout << "exp_recorder.insert_time: " << exp_recorder.insert_time << endl;
 }
 
 string RSMI::model_path_root = "";
@@ -146,12 +152,14 @@ int main(int argc, char **argv)
     exp_recorder.skewness = skewness;
     inserted_num = cardinality / 2;
 
-    FileReader filereader((Constants::DATASETS + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv"), ",");
+    // TODO change filename
+    string dataset_filename = Constants::DATASETS + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv";
+    FileReader filereader(dataset_filename, ",");
     vector<Point> points = filereader.get_points();
     exp_recorder.insert_num = inserted_num;
     vector<Point> query_poitns;
     vector<Point> insert_points;
-    /***********************write query data*********************/
+    //***********************write query data*********************
     FileWriter query_file_writer(Constants::QUERYPROFILES);
     query_poitns = Point::get_points(points, query_k_num);
     query_file_writer.write_points(query_poitns, exp_recorder);
@@ -168,7 +176,7 @@ int main(int argc, char **argv)
             query_file_writer.write_mbrs(mbrs, exp_recorder);
         }
     }
-    /********************************************/
+    //**************************prepare knn, window query, and insertion data******************
     FileReader knn_reader((Constants::QUERYPROFILES + Constants::KNN + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.k_num) + ".csv"), ",");
     map<string, vector<Mbr>> mbrs_map;
     FileReader query_filereader;
