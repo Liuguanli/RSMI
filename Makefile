@@ -3,22 +3,23 @@ SRCS=$(wildcard *.cpp */*.cpp)
 OBJS=$(patsubst %.cpp, %.o, $(SRCS))
 
 # for MacOs
-INCLUDE = -I/usr/local/include/libtorch/include -I/usr/local/include/libtorch/include/torch/csrc/api/include
-LIB +=-L/usr/local/include/libtorch/lib -ltorch -lc10 -lpthread 
-FLAG = -Xlinker -rpath -Xlinker /usr/local/include/libtorch/lib
+# INCLUDE = -I/usr/local/include/libtorch/include -I/usr/local/include/libtorch/include/torch/csrc/api/include
+# LIB +=-L/usr/local/include/libtorch/lib -ltorch -lc10 -lpthread 
+# FLAG = -Xlinker -rpath -Xlinker /usr/local/include/libtorch/lib
 
 TYPE = CPU
 # TYPE = GPU
 
-# ifeq ($(TYPE), GPU)
-# 	INCLUDE = -I/home/liuguanli/Documents/libtorch_gpu/include -I/home/liuguanli/Documents/libtorch_gpu/include/torch/csrc/api/include
-# 	LIB +=-L/home/liuguanli/Documents/libtorch_gpu/lib -ltorch -lc10 -lpthread
-# 	FLAG = -Wl,-rpath=/home/liuguanli/Documents/libtorch_gpu/lib
-# else
-# 	INCLUDE = -I/home/liuguanli/Documents/libtorch/include -I/home/liuguanli/Documents/libtorch/include/torch/csrc/api/include
-# 	LIB +=-L/home/liuguanli/Documents/libtorch/lib -ltorch -lc10 -lpthread
-# 	FLAG = -Wl,-rpath=/home/liuguanli/Documents/libtorch/lib
-# endif
+# for linux
+ifeq ($(TYPE), GPU)
+	INCLUDE = -I/home/liuguanli/Documents/libtorch_gpu/include -I/home/liuguanli/Documents/libtorch_gpu/include/torch/csrc/api/include
+	LIB +=-L/home/liuguanli/Documents/libtorch_gpu/lib -ltorch -lc10 -lpthread
+	FLAG = -Wl,-rpath=/home/liuguanli/Documents/libtorch_gpu/lib
+else
+	INCLUDE = -I/home/liuguanli/Documents/libtorch/include -I/home/liuguanli/Documents/libtorch/include/torch/csrc/api/include
+	LIB +=-L/home/liuguanli/Documents/libtorch/lib -ltorch -lc10 -lpthread
+	FLAG = -Wl,-rpath=/home/liuguanli/Documents/libtorch/lib
+endif
 
 
 
