@@ -21,8 +21,18 @@
 #include <torch/types.h>
 #include <torch/utils.h>
 
+
 #include <xmmintrin.h> //SSE指令集需包含词头文件
 // #include <immintrin.h>
+
+#include <dirent.h>
+
+#include "../entities/Feature.h"
+#include "../entities/SFC.h"
+#include "SimMeasurement.h"
+#include "../utils/FileReader.h"
+#include "../curves/hilbert.H"
+#include "../curves/hilbert4.H"
 
 using namespace at;
 using namespace torch::nn;
@@ -40,10 +50,10 @@ public:
 
     float learning_rate = Constants::LEARNING_RATE;
 
-    float w1[Constants::HIDDEN_LAYER_WIDTH * 2];
-    float w1_[Constants::HIDDEN_LAYER_WIDTH];
-    float w2[Constants::HIDDEN_LAYER_WIDTH];
-    float b1[Constants::HIDDEN_LAYER_WIDTH];
+    // float w1[Constants::HIDDEN_LAYER_WIDTH * 2];
+    // float w1_[Constants::HIDDEN_LAYER_WIDTH];
+    // float w2[Constants::HIDDEN_LAYER_WIDTH];
+    // float b1[Constants::HIDDEN_LAYER_WIDTH];
 
     float *w1_0 = (float *)_mm_malloc(Constants::HIDDEN_LAYER_WIDTH * sizeof(float), 32);
     float *w1_1 = (float *)_mm_malloc(Constants::HIDDEN_LAYER_WIDTH * sizeof(float), 32);
@@ -76,8 +86,11 @@ public:
         this->input_width = input_width;
         fc1 = register_module("fc1", torch::nn::Linear(input_width, this->width));
         fc2 = register_module("fc2", torch::nn::Linear(this->width, 1));
-        torch::nn::init::uniform_(fc1->weight, 0, 0.1);
-        torch::nn::init::uniform_(fc2->weight, 0, 0.1);
+        // torch::nn::init::uniform_(fc1->weight, 0, 0.1);
+        // torch::nn::init::uniform_(fc2->weight, 0, 0.1);
+        torch::nn::init::uniform_(fc1->weight, 0, 1.0 / width);
+        torch::nn::init::uniform_(fc1->bias, 0, 1.0 / width);
+        torch::nn::init::uniform_(fc2->weight, 0, 1.0 / width);
         // torch::nn::init::normal_(fc1->weight, 0, 1);
         // torch::nn::init::normal_(fc2->weight, 0, 1);
     }
@@ -91,19 +104,19 @@ public:
         p1 = p1.reshape({width, 1});
         for (size_t i = 0; i < width; i++)
         {
-            w1_[i] = p1.select(0, i).item().toFloat();
+            w1__[i] = p1.select(0, i).item().toFloat();
         }
 
         p2 = p2.reshape({width, 1});
         for (size_t i = 0; i < width; i++)
         {
-            b1[i] = p2.select(0, i).item().toFloat();
+            b1_[i] = p2.select(0, i).item().toFloat();
         }
 
         p3 = p3.reshape({width, 1});
         for (size_t i = 0; i < width; i++)
         {
-            w2[i] = p3.select(0, i).item().toFloat();
+            w2_[i] = p3.select(0, i).item().toFloat();
         }
         b2 = p4.item().toFloat();
     }
@@ -117,8 +130,8 @@ public:
         p1 = p1.reshape({2 * width, 1});
         for (size_t i = 0; i < width; i++)
         {
-            w1[i * 2] = p1.select(0, 2 * i).item().toFloat();
-            w1[i * 2 + 1] = p1.select(0, 2 * i + 1).item().toFloat();
+            // w1[i * 2] = p1.select(0, 2 * i).item().toFloat();
+            // w1[i * 2 + 1] = p1.select(0, 2 * i + 1).item().toFloat();
 
             w1_0[i] = p1.select(0, 2 * i).item().toFloat();
             w1_1[i] = p1.select(0, 2 * i + 1).item().toFloat();
@@ -127,7 +140,7 @@ public:
         p2 = p2.reshape({width, 1});
         for (size_t i = 0; i < width; i++)
         {
-            b1[i] = p2.select(0, i).item().toFloat();
+            // b1[i] = p2.select(0, i).item().toFloat();
 
             b1_[i] = p2.select(0, i).item().toFloat();
         }
@@ -135,7 +148,7 @@ public:
         p3 = p3.reshape({width, 1});
         for (size_t i = 0; i < width; i++)
         {
-            w2[i] = p3.select(0, i).item().toFloat();
+            // w2[i] = p3.select(0, i).item().toFloat();
 
             w2_[i] = p3.select(0, i).item().toFloat();
         }
@@ -144,16 +157,26 @@ public:
 
     void print_parameters()
     {
+        cout<< "W1" << endl;
         for (size_t i = 0; i < width; i++)
         {
-            cout<< b1[i] << " " << b1[i] << " ";
+            cout<< w1__[i] << " ";
         }
         cout<< endl;
+        cout<< "b1" << endl;
         for (size_t i = 0; i < width; i++)
         {
-            cout<< b1_[i] << " " << b1_[i] << " ";
+            cout<< b1_[i] << " ";
         }
         cout<< endl;
+        cout<< "W2" << endl;
+        for (size_t i = 0; i < width; i++)
+        {
+            cout<< w2_[i] << " ";
+        }
+        cout<< endl;
+        cout<< "b2" << endl;
+        cout<< b2 << endl;
     }
 
     torch::Tensor forward(torch::Tensor x)
@@ -203,7 +226,6 @@ public:
         float result;
         for (int i = 0; i < blocks; i++)
         {
-            // TODO change w1
             fLoad_w1 = _mm_load_ps(w1__);
             fLoad_b1 = _mm_load_ps(b1_);
             fLoad_w2 = _mm_load_ps(w2_);
@@ -253,7 +275,6 @@ public:
         float result;
         for (int i = 0; i < blocks; i++)
         {
-            // TODO change w1
             fLoad_w1_1 = _mm_load_ps(w1_0);
             fLoad_w1_2 = _mm_load_ps(w1_1);
             fLoad_b1 = _mm_load_ps(b1_);
@@ -327,7 +348,6 @@ public:
         // torch::Tensor y = torch::tensor(labels).reshape({N, 1});
         // auto net = isRetrain ? this->net : std::make_shared<Net>(2, width);
         // auto net = std::make_shared<Net>(this->input_width, this->width);
-
         torch::optim::Adam optimizer(this->parameters(), torch::optim::AdamOptions(this->learning_rate));
         if (N > 64000000)
         {
@@ -362,6 +382,178 @@ public:
                 optimizer.step();
             }
         }
+    }
+
+    // cal the total errors can compare the error
+    // long get_error()
+    // {
+        
+    // }
+
+    // paras SFC target, SFC source , threshold
+    bool is_reusable(SFC target, Histogram histogram, double threshold, string &model_path)
+    {
+        double min_dist = 1.0;
+        std::map<string, Histogram>::iterator iter;
+        iter = pre_trained_histograms.begin();
+
+        while (iter != pre_trained_histograms.end())
+        {
+            double temp_dist = iter->second.cal_similarity(histogram);
+            // if (iter->first == "uniform_1000_scale_1")
+            // {
+            //     cout<< iter->second.hist << endl;
+            // }
+            if (temp_dist < min_dist)
+            {
+                min_dist = temp_dist;
+                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/" + iter->first + ".pt";
+            }
+            iter++;
+        }
+        // cout<< "min_dist: " << min_dist << endl;
+        // if (min_dist > 0.9)
+        // {
+        //     cout<< "hist: " << histogram.hist << endl;
+        //     cout<< "data: " << histogram.data << endl;
+        // }
+        return true;
+    }
+
+    bool is_reusable(Histogram histogram, double threshold, string &model_path)
+    {
+        double min_dist = 1.0;
+        std::map<string, SFC>::iterator iter;
+        iter = pre_trained_features.begin();
+
+        while (iter != pre_trained_features.end())
+        {
+            double temp_dist = iter->second.cal_similarity(histogram);
+            if (temp_dist < min_dist)
+            {
+                min_dist = temp_dist;
+                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/" + iter->first + ".pt";
+            }
+            iter++;
+        }
+        return true;
+    }
+
+    bool is_reusable(SFC target, double threshold, string &model_path)
+    {
+        double min_dist = 1.0;
+        std::map<string, SFC>::iterator iter;
+        iter = pre_trained_features.begin();
+
+        while (iter != pre_trained_features.end())
+        {
+            double temp_dist = target.cal_similarity(iter->second);
+            if (temp_dist < min_dist)
+            {
+                min_dist = temp_dist;
+                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/" + iter->first + ".pt";
+            }
+            iter++;
+        }
+        return true;
+    }
+
+    // inline static map<string, std::shared_ptr<Net>> pre_trained_models;
+    inline static map<string, SFC> pre_trained_features;
+    inline static map<string, Histogram> pre_trained_histograms;
+
+    inline static void load_pre_trained_model_zm(double threshold)
+    {
+        if (!Constants::IS_MODEL_REUSE)
+        {
+            return;
+        }
+        if (pre_trained_features.size() > 0)
+        {
+            return;
+        }
+        string ppath = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/";
+        cout<< "load_pre_trained_model_zm: ppath:" << ppath << endl;
+        struct dirent *ptr;
+        DIR *dir;
+        dir = opendir(ppath.c_str());
+        while ((ptr = readdir(dir)) != NULL)
+        {
+            if (ptr->d_name[0] == '.')
+                continue;
+            string file_name_s = ptr->d_name;
+            // cout<< "file_name_s: " << file_name_s << endl;
+            int find_result = file_name_s.find(".pt");
+            if (find_result > 0 && find_result <= file_name_s.length())
+            {
+                string prefix = file_name_s.substr(0, file_name_s.find(".pt"));
+                if (prefix == "OSM_100000000_1_2_")
+                    continue;
+                // auto net = std::make_shared<Net>(1);
+                // string model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/" + file_name_s;
+                // torch::load(net, model_path);
+                // net->get_parameters_ZM();
+                string feature_path = Constants::FEATURES_PATH_ZM + "1/" + to_string(threshold) + "/" + prefix + ".csv";
+                FileReader reader;
+
+                // TODO use Histogram to do this!!!
+                string path = Constants::PRE_TRAIN_1D_DATA + to_string(threshold) + "/";
+                vector<float> features = get_features_z(path, prefix + ".csv");
+                Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), features);
+                pre_trained_histograms.insert(pair<string, Histogram>(prefix, histogram));
+            }
+            // break;
+        }
+        cout<< "load finish..." << pre_trained_histograms.size() << endl;
+    }
+
+    inline static vector<long long> get_points_bitnum_h(string folder, string file_name, int bit_num)
+    {
+        FileReader filereader(folder + file_name, ",");
+        vector<Point> points = filereader.get_points();
+        long long N = points.size();
+        long long width = pow(2, bit_num / 2);
+        vector<long long> result;
+        sort(points.begin(), points.end(), sortX());
+        for (int i = 0; i < N; i++)
+        {
+            points[i].x_i = i;
+        }
+        sort(points.begin(), points.end(), sortY());
+        for (int i = 0; i < N; i++)
+        {
+            points[i].y_i = i;
+            long long curve_val = compute_Hilbert_value(points[i].x_i, points[i].y_i, width);
+            points[i].curve_val = curve_val;
+            result.push_back(curve_val);
+        }
+        sort(points.begin(), points.end(), sort_curve_val());
+        return result;
+    }
+
+    inline static vector<float> get_features_z(string folder, string file_name)
+    {
+        FileReader filereader(folder + file_name, ",");
+        vector<float> features = filereader.read_features();
+        return features;
+    }
+
+    inline static vector<long long> get_points_bitnum_z(string folder, string file_name, int bit_num)
+    {
+        FileReader filereader(folder + file_name, ",");
+        vector<Point> points = filereader.get_points();
+        long long N = points.size();
+        int width = pow(2, bit_num / 2);
+        vector<long long> result;
+        for (int i = 0; i < N; i++)
+        {
+            points[i].x_i = points[i].x * width;
+            points[i].y_i = points[i].y * width;
+            long long curve_val = compute_Z_value(points[i].x_i, points[i].y_i, bit_num);
+            result.push_back(curve_val);
+        }
+        sort(result.begin(), result.end());
+        return result;
     }
 
     torch::nn::Linear fc1{nullptr}, fc2{nullptr};

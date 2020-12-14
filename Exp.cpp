@@ -12,6 +12,10 @@
 #include "utils/Constants.h"
 #include "utils/FileWriter.h"
 #include "utils/util.h"
+#include "utils/PreTrainZM.h"
+#include "utils/PreTrainRSMI.h"
+#include "utils/ModelTools.h"
+#include "entities/SFC.h"
 #include <torch/torch.h>
 
 #include <xmmintrin.h>
@@ -22,7 +26,7 @@
 using namespace std;
 
 #ifndef use_gpu
-// #define use_gpu
+#define use_gpu
 
 int ks[] = {1, 5, 25, 125, 625};
 float areas[] = {0.000006, 0.000025, 0.0001, 0.0004, 0.0016};
@@ -65,7 +69,7 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     exp_recorder.clean();
     exp_recorder.structure_name = "RSMI";
     RSMI::model_path_root = model_path;
-    RSMI *partition = new RSMI(0,  Constants::MAX_WIDTH);
+    RSMI *partition = new RSMI(0, Constants::MAX_WIDTH);
     auto start = chrono::high_resolution_clock::now();
     partition->model_path = model_path;
     partition->build(exp_recorder, points);
@@ -91,7 +95,7 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     exp_recorder.accuracy = ((double)exp_recorder.window_query_result_size) / exp_recorder.acc_window_query_qesult_size;
     cout << "window_query time: " << exp_recorder.time << endl;
     cout << "window_query page_access: " << exp_recorder.page_access << endl;
-    cout<< "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
+    cout << "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
     file_writer.write_window_query(exp_recorder);
 
     exp_recorder.clean();
@@ -104,7 +108,7 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     cout << "exp_recorder.time: " << exp_recorder.time << endl;
     cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
     exp_recorder.accuracy = knn_diff(exp_recorder.acc_knn_query_results, exp_recorder.knn_query_results);
-    cout<< "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
+    cout << "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
     file_writer.write_kNN_query(exp_recorder);
     exp_recorder.clean();
 
@@ -117,37 +121,72 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     exp_recorder.clean();
 }
 
+void exp_ZM(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, vector<Point> insert_points, string model_path)
+{
+    pre_train_zm::pre_train_1d_Z(1, Constants::MODEL_REUSE_THRESHOLD);
+    Net::load_pre_trained_model_zm(Constants::MODEL_REUSE_THRESHOLD);
+    exp_recorder.clean();
+    exp_recorder.structure_name = "ZM";
+    string model_root_path = Constants::TORCH_MODELS_ZM + distribution + "_" + to_string(cardinality) + "/";
+    file_utils::check_dir(model_root_path);
+    cout<< "points.size(): " << points.size() << endl;
+    ZM *zm = new ZM(model_root_path);
+    zm->threshold = Constants::MODEL_REUSE_THRESHOLD;
+    // zm->pre_train();
+    zm->build(exp_recorder, points, 1);
+    file_writer.write_build(exp_recorder);
+    exp_recorder.clean();
+    zm->point_query(exp_recorder, points);
+    file_writer.write_point_query(exp_recorder);
+    exp_recorder.clean();
+}
+
+void test_SFC()
+{
+    // SFC sfc_1 = pre_train_zm::test_SFC("/home/liuguanli/Documents/datasets/RLRtree/raw/", "OSM_100000000_1_2_.csv", 16777216);
+    // SFC sfc_3 = pre_train_zm::test_SFC("/home/liuguanli/Documents/datasets/RLRtree/raw/", "OSM_100000000_1_2_.csv", 4194304);
+    // SFC sfc_4 = pre_train_zm::test_SFC("/home/liuguanli/Documents/datasets/RLRtree/raw/", "OSM_100000000_1_2_.csv", 2097152);
+    // SFC sfc_5 = sfc_1.shrink(4);
+    // cout<< sfc_1.cdf << endl;
+    // cout<< sfc_1.pdf << endl;
+    
+    // cout<< sfc_5.cdf << endl;
+    // cout<< sfc_5.pdf << endl;
+
+    // cout<< "similarity: " << sfc_3.cal_similarity(sfc_4) << endl;
+}
+
 string RSMI::model_path_root = "";
 int main(int argc, char **argv)
 {
+
     int c;
     static struct option long_options[] =
-    {
-        {"cardinality", required_argument,NULL,'c'},
-        {"distribution",required_argument,      NULL,'d'},
-        {"skewness", required_argument,      NULL,'s'}
-    };
+        {
+            {"cardinality", required_argument, NULL, 'c'},
+            {"distribution", required_argument, NULL, 'd'},
+            {"skewness", required_argument, NULL, 's'}};
 
-    while(1)
+    while (1)
     {
         int opt_index = 0;
-        c = getopt_long(argc, argv,"c:d:s:", long_options,&opt_index);
-        
-        if(-1 == c)
+        c = getopt_long(argc, argv, "c:d:s:", long_options, &opt_index);
+
+        if (-1 == c)
         {
             break;
         }
-        switch(c)
+        switch (c)
         {
-            case 'c':
-                cardinality = atoll(optarg);
-                break;
-            case 'd':
-                distribution = optarg;
-                break;
-            case 's':
-                skewness = atoi(optarg);
-                break;
+        case 'c':
+            cardinality = atoll(optarg);
+            break;
+        case 'd':
+            distribution = optarg;
+            break;
+        case 's':
+            skewness = atoi(optarg);
+            break;
         }
     }
 
@@ -159,28 +198,29 @@ int main(int argc, char **argv)
 
     // TODO change filename
     string dataset_filename = Constants::DATASETS + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv";
+    cout<< "dataset_filename: " << dataset_filename << endl;
     FileReader filereader(dataset_filename, ",");
     vector<Point> points = filereader.get_points();
     exp_recorder.insert_num = inserted_num;
     vector<Point> query_poitns;
     vector<Point> insert_points;
     //***********************write query data*********************
-    FileWriter query_file_writer(Constants::QUERYPROFILES);
-    query_poitns = Point::get_points(points, query_k_num);
-    query_file_writer.write_points(query_poitns, exp_recorder);
-    insert_points = Point::get_inserted_points(exp_recorder.insert_num);
-    query_file_writer.write_inserted_points(insert_points, exp_recorder);
+    // FileWriter query_file_writer(Constants::QUERYPROFILES);
+    // query_poitns = Point::get_points(points, query_k_num);
+    // query_file_writer.write_points(query_poitns, exp_recorder);
+    // insert_points = Point::get_inserted_points(exp_recorder.insert_num);
+    // query_file_writer.write_inserted_points(insert_points, exp_recorder);
 
-    for (size_t i = 0; i < window_length; i++)
-    {
-        for (size_t j = 0; j < ratio_length; j++)
-        {
-            exp_recorder.window_size = areas[i];
-            exp_recorder.window_ratio = ratios[j];
-            vector<Mbr> mbrs = Mbr::get_mbrs(points, exp_recorder.window_size, query_window_num, exp_recorder.window_ratio);
-            query_file_writer.write_mbrs(mbrs, exp_recorder);
-        }
-    }
+    // for (size_t i = 0; i < window_length; i++)
+    // {
+    //     for (size_t j = 0; j < ratio_length; j++)
+    //     {
+    //         exp_recorder.window_size = areas[i];
+    //         exp_recorder.window_ratio = ratios[j];
+    //         vector<Mbr> mbrs = Mbr::get_mbrs(points, exp_recorder.window_size, query_window_num, exp_recorder.window_ratio);
+    //         query_file_writer.write_mbrs(mbrs, exp_recorder);
+    //     }
+    // }
     //**************************prepare knn, window query, and insertion data******************
     FileReader knn_reader((Constants::QUERYPROFILES + Constants::KNN + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.k_num) + ".csv"), ",");
     map<string, vector<Mbr>> mbrs_map;
@@ -203,7 +243,41 @@ int main(int argc, char **argv)
     file_utils::check_dir(model_root_path);
     string model_path = model_root_path + "/";
     FileWriter file_writer(Constants::RECORDS);
-    exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
+    //************************* cannot comment above *************************
+    // vector<int> sfc = pre_train_zm::test_Approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv");
+    // vector<float> result_cdf;
+    // vector<float> z_values;
+    // pre_train_zm::cnn(128, sfc, 100000000, 100000, z_values, result_cdf);
+
+    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 6);
+    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 22);
+    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 38);
+    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 54);
+    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 8);
+    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 10);
+
+    // pre_train_zm::test_errors(dataset_filename, 1);
+    // pre_train_zm::pre_train_1d_Z(1, 0.1);
+    // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
+    exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
+    // int resolutions[] = {1};
+    // int resolutions[] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+    // 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
+    // for (size_t i = 0; i < sizeof(resolutions) / sizeof(resolutions[0]); i++)
+    // {
+    //     cout << "----------resolution = " + to_string(resolutions[i]) + "------------" << endl;
+    //     pre_train_rsmi::test_errors("OSM_100000000_1_2_.csv", resolutions[i]);
+    // }
+
+    // int resolutions[] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
+    // 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
+
+    // for (size_t i = 0; i < sizeof(resolutions) / sizeof(resolutions[0]); i++)
+    // {
+    //     cout << "----------resolution = " + to_string(resolutions[i]) + "------------" << endl;
+    //     pre_train_zm::test_errors("OSM_100000000_1_2_.csv", resolutions[i]);
+    // }
+    // Net::load_pre_trained_model();
 }
 
-#endif  // use_gpu
+#endif // use_gpu

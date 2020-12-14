@@ -11,7 +11,7 @@ using namespace std;
 class FileReader
 {
     string filename;
-    string delimeter;
+    string delimeter=",";
 
 public:
     FileReader();
@@ -22,6 +22,10 @@ public:
     vector<Mbr> get_mbrs();
     vector<Point> get_points(string filename, string delimeter);
     vector<Mbr> get_mbrs(string filename, string delimeter);
+    vector<float> read_features();
+    vector<float> read_features(string filename);
+    vector<int> read_sfc(string filename);
+    void read_sfc(string filename, vector<int> &, vector<float> &);
 };
 
 #endif

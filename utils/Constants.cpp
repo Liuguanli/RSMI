@@ -10,10 +10,10 @@ const string Constants::DATASETS = "./datasets/";
 #else
 // const string Constants::RECORDS = "/home/liuguanli/Dropbox/records/VLDB20/";
 // const string Constants::QUERYPROFILES = "/home/liuguanli/Documents/datasets/RLRtree/queryprofile/";
-// const string Constants::DATASETS = "/home/liuguanli/Documents/datasets/RLRtree/raw/";
+const string Constants::DATASETS = "/home/liuguanli/Documents/datasets/RLRtree/raw/";
 const string Constants::RECORDS = "./files/records/";
 const string Constants::QUERYPROFILES = "./files/queryprofile/";
-const string Constants::DATASETS = "./datasets/";
+// const string Constants::DATASETS = "./datasets/";
 #endif
 const string Constants::DEFAULT_DISTRIBUTION = "skewed";
 const string Constants::BUILD = "build/";
@@ -37,7 +37,23 @@ const string Constants::DELETEKNN= "deleteKnn/";
 const string Constants::DELETEACCKNN= "deleteAccKnn/";
 
 const string Constants::TORCH_MODELS = "./torch_models/";
+const string Constants::TORCH_MODELS_ZM = "./torch_models_zm/";
+
+const string Constants::PRE_TRAIN_DATA = "/home/liuguanli/Documents/pre_train/data/";
+const string Constants::PRE_TRAIN_1D_DATA = "/home/liuguanli/Documents/pre_train/1D_data/";
+
+const string Constants::SYNTHETIC_SFC_Z = "/home/liuguanli/Documents/pre_train/sfc_z/";
+const string Constants::SFC_Z_WEIGHT = "/home/liuguanli/Documents/pre_train/sfc_z_weight/";
+const string Constants::SFC_Z_COUNT = "/home/liuguanli/Documents/pre_train/sfc_z_count/";
+const string Constants::FEATURES_PATH_ZM = "/home/liuguanli/Documents/pre_train/features_zm/";
+const string Constants::PRE_TRAIN_MODEL_PATH_ZM = "/home/liuguanli/Documents/pre_train/models_zm/";
+
+const string Constants::FEATURES_PATH_RSMI = "/home/liuguanli/Documents/pre_train/features_rsmi/";
+const string Constants::PRE_TRAIN_MODEL_PATH_RSMI = "/home/liuguanli/Documents/pre_train/models_rsmi/";
+
 const double Constants::LEARNING_RATE = 0.05;
+
+const double Constants::MODEL_REUSE_THRESHOLD = 0.1;
 Constants::Constants()
 {
 }

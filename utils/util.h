@@ -1,3 +1,6 @@
+#ifndef UTIL_H
+#define UTIL_H
+
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -22,3 +25,5 @@ namespace file_utils
         return 0;
     }
 }
+
+#endif

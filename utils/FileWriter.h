@@ -1,3 +1,6 @@
+#ifndef FILEWRITER_H
+#define FILEWRITER_H
+
 #include <vector>
 #include <iterator>
 #include <string>
@@ -13,6 +16,12 @@ class FileWriter
 
 public:
     FileWriter(string);
+
+    void write_Approximate_SFC(vector<float>, vector<float>, string);
+    void write_weighted_SFC(vector<float>, string);
+    void write_counted_SFC(vector<int>, string);
+    void write_SFC(vector<float>, string);
+
     void write_build(ExpRecorder);
     void write_point_query(ExpRecorder);
     void write_window_query(ExpRecorder);
@@ -38,3 +47,5 @@ public:
     void write_points(vector<Point> points, ExpRecorder expRecorder);
     void write_inserted_points(vector<Point> points, ExpRecorder expRecorder);
 };
+
+#endif

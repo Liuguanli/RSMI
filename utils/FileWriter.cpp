@@ -18,6 +18,73 @@ FileWriter::FileWriter(string filename)
     file_utils::check_dir(filename);
 }
 
+void FileWriter::write_counted_SFC(vector<int> values, string name)
+{
+    ofstream write;
+    file_utils::check_dir(filename);
+    write.open((filename + name), ios::out);
+    int N = values.size();
+    for (size_t i = 0; i < N; i++)
+    {
+        write << values[i] << endl;
+    }
+    write.close();
+}
+
+void FileWriter::write_Approximate_SFC(vector<float> z_values, vector<float> cdf, string name)
+{
+    ofstream write;
+    file_utils::check_dir(filename);
+    write.open((filename + name), ios::out);
+    int N = z_values.size();
+    for (size_t i = 0; i < N; i++)
+    {
+        write << z_values[i] << "," << cdf[i] << endl;
+    }
+    write.close();
+}
+
+void FileWriter::write_weighted_SFC(vector<float> values, string name)
+{
+    ofstream write;
+    file_utils::check_dir(filename);
+    write.open((filename + name), ios::out);
+    int N = values.size();
+    double sum = 0;
+    for (size_t i = 0; i < N; i++)
+    {
+        sum += (double)values[i];
+        write << values[i] << "," << sum << endl;
+    }
+    write.close();
+}
+
+void FileWriter::write_SFC(vector<float> values, string name)
+{
+    ofstream write;
+    file_utils::check_dir(filename);
+    write.open((filename + name), ios::out);
+    int N = values.size();
+    if (N > 1000000)
+    {
+        for (size_t i = 0; i < N; i++)
+        {
+            // if ((i + 1) % 100 == 0)
+            // {
+                write << values[i] << "," << (i + 1.0) / N << endl;
+            // }
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < N; i++)
+        {
+            write << values[i] << "," << (i + 1.0) / N << endl;
+        }
+    }
+    write.close();
+}
+
 void FileWriter::write_mbrs(vector<Mbr> mbrs, ExpRecorder expRecorder)
 {
     ofstream write;

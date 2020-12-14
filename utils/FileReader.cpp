@@ -128,3 +128,59 @@ vector<Mbr> FileReader::get_mbrs(string filename, string delimeter)
 
     return mbrs;
 }
+
+vector<float> FileReader::read_features()
+{
+    return this->read_features(this->filename);
+}
+
+void FileReader::read_sfc(string filename, vector<int> & sfc, vector<float> & cdf)
+{
+    ifstream file(filename);
+
+    string line = "";
+    while (getline(file, line))
+    {
+        vector<string> vec;
+        boost::algorithm::split(vec, line, boost::is_any_of(","));
+        sfc.push_back(stoi(vec[0]));
+        cdf.push_back(stof(vec[1]));
+    }
+    file.close();
+}
+
+vector<int> FileReader::read_sfc(string filename)
+{
+    ifstream file(filename);
+
+    vector<int> sfc;
+
+    string line = "";
+    while (getline(file, line))
+    {
+        vector<string> vec;
+        boost::algorithm::split(vec, line, boost::is_any_of(","));
+        sfc.push_back(stoi(vec[0]));
+    }
+    file.close();
+
+    return sfc;
+}
+
+vector<float> FileReader::read_features(string filename)
+{
+    ifstream file(filename);
+
+    vector<float> features;
+
+    string line = "";
+    while (getline(file, line))
+    {
+        vector<string> vec;
+        boost::algorithm::split(vec, line, boost::is_any_of(","));
+        features.push_back(stof(vec[0]));
+    }
+    file.close();
+
+    return features;
+}

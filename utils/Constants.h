@@ -13,12 +13,28 @@ public:
     static const int EPOCH = 500;
     static const int START_EPOCH = 300;
     static const int EPOCH_ADDED = 100;
-    static const int HIDDEN_LAYER_WIDTH = 50;
+    static const int HIDDEN_LAYER_WIDTH = 16;
     static const int THRESHOLD = 10000;
 
     static const int DEFAULT_SIZE  = 16000000;
     static const int DEFAULT_SKEWNESS  = 4;
 
+    static const int DEFAULT_BIN_NUM  = 10000;
+
+    static const int UNIFIED_Z_BIT_NUM  = 6;
+
+    static const int UNIFIED_H_BIT_NUM  = 10;
+
+    static const bool IS_MODEL_REUSE = false;
+    static const bool IS_AUG_SFC = true;
+    static const bool IS_RL_SFC = true;
+
+    static const int NORMAL = 0;
+    static const int REUSE = 1;
+    static const int AUG_SFC = 2;
+    static const int RL_SFC = 3;
+
+    static const double MODEL_REUSE_THRESHOLD;
     static const double LEARNING_RATE;
     static const string RECORDS;
     static const string QUERYPROFILES;
@@ -47,6 +63,20 @@ public:
     static const string DELETEACCKNN;
 
     static const string TORCH_MODELS;
+    static const string TORCH_MODELS_ZM;
+
+    static const string PRE_TRAIN_DATA;
+    static const string PRE_TRAIN_1D_DATA;
+
+    static const string SYNTHETIC_SFC_Z;
+    static const string SFC_Z_WEIGHT;
+    static const string SFC_Z_COUNT;
+    static const string FEATURES_PATH_ZM;
+    static const string PRE_TRAIN_MODEL_PATH_ZM;
+
+    static const string FEATURES_PATH_RSMI;
+    static const string PRE_TRAIN_MODEL_PATH_RSMI;
+
     Constants();
 };
 

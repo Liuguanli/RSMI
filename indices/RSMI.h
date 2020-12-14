@@ -111,7 +111,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         exp_recorder.last_level_model_num++;
         is_last = true;
         N = points.size();
-        long long side = pow(2, ceil(log(points.size()) / log(2)));
+        long long side = pow(2, ceil(log(N) / log(2)));
         sort(points.begin(), points.end(), sortX());
         for (int i = 0; i < N; i++)
         {
@@ -575,7 +575,6 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                     max = predicted_index_max;
                 }
             }
-
             front = min < 0 ? 0 : min;
             back = max >= leafnodes_size ? leafnodes_size - 1 : max;
         }

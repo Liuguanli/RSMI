@@ -6,3 +6,8 @@ Exp
 files/*
 indices/ZM.h
 datasets/*
+
+pre_train/*
+*.eps
+*.png
+*.txt

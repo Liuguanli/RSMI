@@ -2,14 +2,14 @@ CC=g++ -O3 -std=c++14
 SRCS=$(wildcard *.cpp */*.cpp)
 OBJS=$(patsubst %.cpp, %.o, $(SRCS))
 
-# for MacOs
+# # for MacOs
 # INCLUDE = -I/usr/local/include/libtorch/include -I/usr/local/include/libtorch/include/torch/csrc/api/include
 # LIB +=-L/usr/local/include/libtorch/lib -ltorch -lc10 -lpthread 
 # FLAG = -Xlinker -rpath -Xlinker /usr/local/include/libtorch/lib
 
-TYPE = CPU
-# TYPE = GPU
+# TYPE = CPU
 
+TYPE = GPU
 # for linux
 ifeq ($(TYPE), GPU)
 	INCLUDE = -I/home/liuguanli/Documents/libtorch_gpu/include -I/home/liuguanli/Documents/libtorch_gpu/include/torch/csrc/api/include
