@@ -141,21 +141,6 @@ void exp_ZM(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> poin
     exp_recorder.clean();
 }
 
-void test_SFC()
-{
-    // SFC sfc_1 = pre_train_zm::test_SFC("/home/liuguanli/Documents/datasets/RLRtree/raw/", "OSM_100000000_1_2_.csv", 16777216);
-    // SFC sfc_3 = pre_train_zm::test_SFC("/home/liuguanli/Documents/datasets/RLRtree/raw/", "OSM_100000000_1_2_.csv", 4194304);
-    // SFC sfc_4 = pre_train_zm::test_SFC("/home/liuguanli/Documents/datasets/RLRtree/raw/", "OSM_100000000_1_2_.csv", 2097152);
-    // SFC sfc_5 = sfc_1.shrink(4);
-    // cout<< sfc_1.cdf << endl;
-    // cout<< sfc_1.pdf << endl;
-    
-    // cout<< sfc_5.cdf << endl;
-    // cout<< sfc_5.pdf << endl;
-
-    // cout<< "similarity: " << sfc_3.cal_similarity(sfc_4) << endl;
-}
-
 string RSMI::model_path_root = "";
 int main(int argc, char **argv)
 {
@@ -249,12 +234,14 @@ int main(int argc, char **argv)
     // vector<float> z_values;
     // pre_train_zm::cnn(128, sfc, 100000000, 100000, z_values, result_cdf);
 
-    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 6);
-    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 22);
-    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 38);
-    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 54);
-    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 8);
-    // pre_train_zm::test_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 10);
+    // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 6);
+    // 4004850 2 36208972 3763783, 0 0 0 0, 7909128 32457016 3824323 5417581, 0 1 0 1, 0 0 1 0, 0 0 0 0, 0 0 0 1,0 0 0 0, 
+    // 965933 3765307 3627 1512124, 0 3 0 0, 0 138012 0 29323, 0 0 0 0, 0 0 0 0, 1 0 4 1, 0 0 0 1, 1 0 4 0
+    // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 22);
+    // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 38);
+    // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 54);
+    // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 8);
+    // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", 10);
 
     // pre_train_zm::test_errors(dataset_filename, 1);
     // pre_train_zm::pre_train_1d_Z(1, 0.1);

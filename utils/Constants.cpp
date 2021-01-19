@@ -53,7 +53,7 @@ const string Constants::PRE_TRAIN_MODEL_PATH_RSMI = "/home/liuguanli/Documents/p
 
 const double Constants::LEARNING_RATE = 0.05;
 
-const double Constants::MODEL_REUSE_THRESHOLD = 0.1;
+const double Constants::MODEL_REUSE_THRESHOLD = 0.5;
 Constants::Constants()
 {
 }

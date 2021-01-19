@@ -14,7 +14,6 @@
 
 namespace pre_train_zm
 {
-
     void each_cnn(vector<int> sfc, int threshold, int z_value_begin, vector<int> & result, vector<float> & z_values) 
     {
         int length = sfc.size();
@@ -127,7 +126,7 @@ namespace pre_train_zm
         return sfc;
     }
 
-    void test_SFC(string folder, string file_name, int bit_num)
+    void write_approximate_SFC(string folder, string file_name, int bit_num)
     {
         FileReader filereader(folder + file_name, ",");
         vector<Point> points = filereader.get_points();
@@ -136,7 +135,7 @@ namespace pre_train_zm
         vector<long long> sfcs;
         vector<float> features;
         vector<int> counter;
-        for (int i = 0; i < 64; i++)
+        for (int i = 0; i < pow(side, 2); i++)
         {
             counter.push_back(0);
         }

@@ -25,9 +25,9 @@ public:
 
     static const int UNIFIED_H_BIT_NUM  = 10;
 
-    static const bool IS_MODEL_REUSE = false;
+    static const bool IS_MODEL_REUSE = true;
     static const bool IS_AUG_SFC = true;
-    static const bool IS_RL_SFC = true;
+    static const bool IS_RL_SFC = false;
 
     static const int NORMAL = 0;
     static const int REUSE = 1;
