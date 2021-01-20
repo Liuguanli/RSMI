@@ -39,7 +39,7 @@ const string Constants::DELETEACCKNN= "deleteAccKnn/";
 const string Constants::TORCH_MODELS = "./torch_models/";
 const string Constants::TORCH_MODELS_ZM = "./torch_models_zm/";
 
-const string Constants::PRE_TRAIN_DATA = "/home/liuguanli/Documents/pre_train/data/";
+const string Constants::PRE_TRAIN_DATA = "/home/liuguanli/Documents/pre_train/2D_data/";
 const string Constants::PRE_TRAIN_1D_DATA = "/home/liuguanli/Documents/pre_train/1D_data/";
 
 const string Constants::SYNTHETIC_SFC_Z = "/home/liuguanli/Documents/pre_train/sfc_z/";
@@ -53,7 +53,7 @@ const string Constants::PRE_TRAIN_MODEL_PATH_RSMI = "/home/liuguanli/Documents/p
 
 const double Constants::LEARNING_RATE = 0.05;
 
-const double Constants::MODEL_REUSE_THRESHOLD = 0.5;
+const double Constants::MODEL_REUSE_THRESHOLD = 0.1;
 Constants::Constants()
 {
 }

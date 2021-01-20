@@ -5,6 +5,9 @@
 #include <iostream>
 #include <string.h>
 
+#include <iomanip>
+#include <sstream>
+
 #include "FileReader.h"
 #include "FileWriter.h"
 #include "Constants.h"
@@ -235,7 +238,7 @@ namespace pre_train_zm
         return points;
     }
 
-    void train_model_1d(vector<float> features, string folder, string file_name, int resolution, double threshold)
+    void train_model_1d(vector<float> features, string folder, string file_name, int resolution, string threshold)
     {
         // TODO generate hist according to normalized_curve_val
         auto net = std::make_shared<Net>(1);
@@ -252,11 +255,11 @@ namespace pre_train_zm
 
         file_name = file_name.substr(0, file_name.find(".csv"));
         // cout<< "file_name: " << file_name << endl;
-        string features_path = Constants::FEATURES_PATH_ZM + to_string(resolution) + "/" + to_string(threshold) + "/";
+        string features_path = Constants::FEATURES_PATH_ZM + to_string(resolution) + "/" + threshold + "/";
         file_utils::check_dir(features_path);
         FileWriter SFC_writer(features_path);
         SFC_writer.write_SFC(features, file_name + ".csv");
-        string model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(resolution) + "/" + to_string(threshold) + "/";
+        string model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(resolution) + "/" + threshold + "/";
         file_utils::check_dir(model_path);
         model_path = model_path + file_name + ".pt";
         std::ifstream fin(model_path);
@@ -278,10 +281,10 @@ namespace pre_train_zm
             pred = pred > 1 ? 1 : pred;
             locations1.push_back(pred);
         }
-        SFC_writer.write_SFC(locations1, file_name + "learned.csv");
+        SFC_writer.write_SFC(locations1, file_name + "_learned.csv");
     }
 
-    void train_model(vector<Point> points, string folder, string file_name, int resolution, double threshold)
+    void train_model(vector<Point> points, string folder, string file_name, int resolution, string threshold)
     {
         // TODO generate hist according to normalized_curve_val
         auto net = std::make_shared<Net>(1);
@@ -298,12 +301,12 @@ namespace pre_train_zm
 
         file_name = file_name.substr(0, file_name.find(".csv"));
         // cout<< "file_name: " << file_name << endl;
-        string features_path = Constants::FEATURES_PATH_ZM + to_string(resolution) + "/" + to_string(threshold) + "/";
+        string features_path = Constants::FEATURES_PATH_ZM + to_string(resolution) + "/" + threshold + "/";
         file_utils::check_dir(features_path);
         FileWriter SFC_writer(features_path);
         SFC_writer.write_SFC(locations, file_name + ".csv");
         // cout<< "features_path: " << features_path << endl;
-        string model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(resolution) + "/" + to_string(threshold) + "/";
+        string model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(resolution) + "/" + threshold + "/";
         file_utils::check_dir(model_path);
         // cout<< "model_path: " << model_path << endl;
         model_path = model_path + file_name + ".pt";
@@ -341,9 +344,14 @@ namespace pre_train_zm
         std::ifstream fin(model_path);
         string floder = "/home/liuguanli/Documents/datasets/RLRtree/raw/";
         vector<Point> points = get_points(floder, file_name_t, resolution);
+
+        std::stringstream stream;
+        stream << std::fixed << std::setprecision(1) << Constants::MODEL_REUSE_THRESHOLD;
+        string threshold = stream.str();
+
         if (!fin)
         {
-            pre_train_zm::train_model(points, floder, file_name_t, resolution, 0.1);
+            pre_train_zm::train_model(points, floder, file_name_t, resolution, threshold);
         }
         else
         {
@@ -403,9 +411,12 @@ namespace pre_train_zm
         // }
     }
 
-    void pre_train_1d_Z(int resolution, double threshold)
+    void pre_train_1d_Z(int resolution, string threshold)
     {
-        string ppath = Constants::PRE_TRAIN_1D_DATA + to_string(threshold) + "/";
+        // std::stringstream stream;
+        // stream << std::fixed << std::setprecision(1) << threshold;
+        string ppath = Constants::PRE_TRAIN_1D_DATA + threshold + "/";
+        cout<< "ppath:" << ppath << endl;
         struct dirent *ptr;
         DIR *dir;
         dir = opendir(ppath.c_str());
@@ -424,9 +435,9 @@ namespace pre_train_zm
         }
     }
 
-    void pre_train_multid_Z(int resolution, double threshold)
+    void pre_train_multid_Z(int resolution, string threshold)
     {
-        string ppath = Constants::PRE_TRAIN_DATA + to_string(threshold) + "/";
+        string ppath = Constants::PRE_TRAIN_DATA + threshold + "/";
         struct dirent *ptr;
         DIR *dir;
         dir = opendir(ppath.c_str());

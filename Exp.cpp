@@ -80,7 +80,7 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     file_writer.write_build(exp_recorder);
     exp_recorder.clean();
     partition->point_query(exp_recorder, points);
-    cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
+    // cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
     cout << "finish point_query time: " << exp_recorder.time << endl;
     file_writer.write_point_query(exp_recorder);
     exp_recorder.clean();
@@ -116,15 +116,18 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     cout << "exp_recorder.insert_time: " << exp_recorder.insert_time << endl;
     exp_recorder.clean();
     partition->point_query(exp_recorder, points);
-    cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
+    // cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
     cout << "finish point_query time: " << exp_recorder.time << endl;
     exp_recorder.clean();
 }
 
 void exp_ZM(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, vector<Point> insert_points, string model_path)
 {
-    pre_train_zm::pre_train_1d_Z(1, Constants::MODEL_REUSE_THRESHOLD);
-    Net::load_pre_trained_model_zm(Constants::MODEL_REUSE_THRESHOLD);
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(1) << Constants::MODEL_REUSE_THRESHOLD;
+    string threshold = stream.str();
+    pre_train_zm::pre_train_1d_Z(Constants::RESOLUTION, threshold);
+    Net::load_pre_trained_model_zm(threshold);
     exp_recorder.clean();
     exp_recorder.structure_name = "ZM";
     string model_root_path = Constants::TORCH_MODELS_ZM + distribution + "_" + to_string(cardinality) + "/";

@@ -391,7 +391,7 @@ public:
     // }
 
     // paras SFC target, SFC source , threshold
-    bool is_reusable(SFC target, Histogram histogram, double threshold, string &model_path)
+    bool is_reusable(SFC target, Histogram histogram, string threshold, string &model_path)
     {
         double min_dist = 1.0;
         std::map<string, Histogram>::iterator iter;
@@ -407,7 +407,7 @@ public:
             if (temp_dist < min_dist)
             {
                 min_dist = temp_dist;
-                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/" + iter->first + ".pt";
+                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(Constants::RESOLUTION) + "/" + threshold + "/" + iter->first + ".pt";
             }
             iter++;
         }
@@ -420,7 +420,7 @@ public:
         return true;
     }
 
-    bool is_reusable(Histogram histogram, double threshold, string &model_path)
+    bool is_reusable(Histogram histogram, string threshold, string &model_path)
     {
         double min_dist = 1.0;
         std::map<string, SFC>::iterator iter;
@@ -432,14 +432,14 @@ public:
             if (temp_dist < min_dist)
             {
                 min_dist = temp_dist;
-                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/" + iter->first + ".pt";
+                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(Constants::RESOLUTION) + "/" + threshold + "/" + iter->first + ".pt";
             }
             iter++;
         }
         return true;
     }
 
-    bool is_reusable(SFC target, double threshold, string &model_path)
+    bool is_reusable(SFC target, string threshold, string &model_path)
     {
         double min_dist = 1.0;
         std::map<string, SFC>::iterator iter;
@@ -451,7 +451,7 @@ public:
             if (temp_dist < min_dist)
             {
                 min_dist = temp_dist;
-                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/" + iter->first + ".pt";
+                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(Constants::RESOLUTION) + "/" + threshold + "/" + iter->first + ".pt";
             }
             iter++;
         }
@@ -462,7 +462,7 @@ public:
     inline static map<string, SFC> pre_trained_features;
     inline static map<string, Histogram> pre_trained_histograms;
 
-    inline static void load_pre_trained_model_zm(double threshold)
+    inline static void load_pre_trained_model_zm(string threshold)
     {
         if (!Constants::IS_MODEL_REUSE)
         {
@@ -472,7 +472,7 @@ public:
         {
             return;
         }
-        string ppath = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/";
+        string ppath = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(Constants::RESOLUTION) + "/" + threshold + "/";
         cout<< "load_pre_trained_model_zm: ppath:" << ppath << endl;
         struct dirent *ptr;
         DIR *dir;
@@ -482,22 +482,20 @@ public:
             if (ptr->d_name[0] == '.')
                 continue;
             string file_name_s = ptr->d_name;
-            // cout<< "file_name_s: " << file_name_s << endl;
             int find_result = file_name_s.find(".pt");
             if (find_result > 0 && find_result <= file_name_s.length())
             {
                 string prefix = file_name_s.substr(0, file_name_s.find(".pt"));
-                if (prefix == "OSM_100000000_1_2_")
-                    continue;
+                // if (prefix == "OSM_100000000_1_2_")
+                //     continue;
                 // auto net = std::make_shared<Net>(1);
                 // string model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + "1/" + to_string(threshold) + "/" + file_name_s;
                 // torch::load(net, model_path);
                 // net->get_parameters_ZM();
-                string feature_path = Constants::FEATURES_PATH_ZM + "1/" + to_string(threshold) + "/" + prefix + ".csv";
+                string feature_path = Constants::FEATURES_PATH_ZM + to_string(Constants::RESOLUTION) + "/" + threshold + "/" + prefix + ".csv";
                 FileReader reader;
-
-                // TODO use Histogram to do this!!!
-                string path = Constants::PRE_TRAIN_1D_DATA + to_string(threshold) + "/";
+                // TODO use Histogram!!!
+                string path = Constants::PRE_TRAIN_1D_DATA + threshold + "/";
                 vector<float> features = get_features_z(path, prefix + ".csv");
                 Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), features);
                 pre_trained_histograms.insert(pair<string, Histogram>(prefix, histogram));
