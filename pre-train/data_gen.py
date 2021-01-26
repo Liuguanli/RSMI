@@ -31,7 +31,7 @@ def getUniformPoints(num, filename, dim):
             val = random.uniform(0, 1)
             node_string = node_string + str(val) + ","
             if j >= 1:
-                all_result[j + 1].append(node_string + str(i) + "\n")
+                all_result[j + 1].append(node_string + str(i*1.0/num) + "\n")
         # node_string = node_string + str(i) + "\n"
         # all_result.append(node_string)
 
@@ -66,7 +66,7 @@ def getNormalPoints(num, filename, dim, mean=0.5, stddev=0.125):
                             break
                         node_string = node_string + str(locations[j][index][0]) + ","
                     if iswritable:
-                        node_string = node_string + str(i) + "\n"
+                        node_string = node_string + str(i*1.0/num) + "\n"
                         fo.write(node_string)
                         i += 1
                         index += 1
@@ -89,7 +89,7 @@ def getSkewedPoints(num, a, filename, dim):
             node_string = ''
             for j in range(dim - 1):
                 node_string = node_string + str(locations[j][i][0]) + ","
-            node_string = node_string + str(locations[dim - 1][i][0] ** a) + "," + str(i) + "\n"
+            node_string = node_string + str(locations[dim - 1][i][0] ** a) + "," + str(i*1.0/num) + "\n"
             fo.write(node_string)
     # all_result = {}
     # for i in range(dim - 1):
@@ -138,19 +138,18 @@ def parser(argv):
 
 def gen(distribution, size, dim):
     if distribution == 'uniform':
-        filename = "pre_train/data/uniform_%d_1_%d_.csv"
+        filename = "/home/liuguanli/Documents/pre_train/2D_data/uniform_%d_1_%d_.csv"
         getUniformPoints(size, filename, dim)
     elif distribution == 'normal':
         means = [0.0, 0.25, 0.5, 0.75, 1.0]
         stddevs = [0.125, 0.25, 0.5]
-        filename = "pre_train/data/normal_%d_1_%d_%f_%f_.csv"
+        filename = "/home/liuguanli/Documents/pre_train/2D_data/normal_%d_1_%d_%f_%f_.csv"
         for mean in means:
             for stddev in stddevs:
                 getNormalPoints(size, filename, dim, mean, stddev)
-
     elif distribution == 'skewed':
-        filename = "pre_train/data/skewed_%d_%d_%d_.csv"
-        skewnesses = [2,3,4,5,6,7,8,9,10,11,12]
+        filename = "/home/liuguanli/Documents/pre_train/2D_data/skewed_%d_%d_%d_.csv"
+        skewnesses = [2,3,4,5,6,7,8,9]
         for skewness in  skewnesses:
             getSkewedPoints(size, skewness, filename, dim)
 
