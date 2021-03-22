@@ -13,8 +13,9 @@ class ExpRecorder
 {
 
 public:
+    priority_queue<Point, vector<Point>, sortForKNN2> pq;
 
-    priority_queue<Point , vector<Point>, sortForKNN2> pq;
+    long long point_not_found = 0;
 
     long long index_high;
     long long index_low;
@@ -22,8 +23,8 @@ public:
     long long leaf_node_num;
     long long non_leaf_node_num;
 
-    int max_error = 0;
-    int min_error = 0;
+    long long max_error = 0;
+    long long min_error = 0;
 
     int depth = 0;
 
@@ -31,8 +32,9 @@ public:
 
     int N = Constants::THRESHOLD;
 
-    long long average_max_error = 0;
-    long long average_min_error = 0;
+    long long top_error = 0;
+    long long bottom_error = 0;
+    float loss = 0;
 
     int last_level_model_num = 0;
 
@@ -48,6 +50,8 @@ public:
     int skewness = 1;
 
     long time;
+    long top_level_time;
+    long bottom_level_time;
     long insert_time;
     long delete_time;
     long long rebuild_time;
@@ -55,6 +59,21 @@ public:
     double page_access = 1.0;
     double accuracy;
     long size;
+    long top_rl_time;
+
+    long prediction_time = 0;
+    long search_time = 0;
+    long sfc_cal_time = 0;
+
+    long search_steps = 0;
+
+    float sampling_rate = 1.0;
+
+    int representative_threshold_m = 64;
+    double model_reuse_threshold = 0.1;
+
+    string cluster_method = "kmeans";
+    int cluster_size = 10000;
 
     int window_query_result_size;
     int acc_window_query_qesult_size;
@@ -62,6 +81,14 @@ public:
     vector<Point> acc_knn_query_results;
 
     vector<Point> window_query_results;
+
+    bool is_sp = false;
+    bool is_sp_first = false;
+    bool is_model_reuse = false;
+    bool is_rl = false;
+    bool is_cluster = false;
+    bool is_rs = false;
+
     ExpRecorder();
     string get_time();
     string get_time_pageaccess();
@@ -71,11 +98,26 @@ public:
     string get_size();
     string get_time_size();
     string get_time_size_errors();
+    // string get_time_size_errors_sp();
+    // string get_time_size_errors_mr();
 
     string get_insert_time_pageaccess();
     string get_delete_time_pageaccess();
     void cal_size();
     void clean();
+    string get_file_name();
+    string get_dataset_name();
+    void set_structure_name(string prefix);
+
+    ExpRecorder* test_sp();
+    ExpRecorder* test_sp_first();
+    ExpRecorder* test_model_reuse();
+    ExpRecorder* test_rl();
+    ExpRecorder* test_cluster();
+    ExpRecorder* test_rs();
+    void test_reset();
+
+
 };
 
 #endif

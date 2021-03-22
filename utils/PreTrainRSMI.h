@@ -30,7 +30,8 @@ namespace pre_train_rsmi
             points[i].y_i = i / resolution;
             if (type == "Z")
             {
-                points[i].curve_val = compute_Z_value(points[i].x_i, points[i].y_i, side);
+                long long xs[2] = {(long long)points[i].x * N, (long long)points[i].y * N};
+                points[i].curve_val = compute_Z_value(xs, 2, side);
             }
             if (type == "H")
             {
@@ -60,9 +61,9 @@ namespace pre_train_rsmi
     {
         // TODO generate hist according to normalized_curve_val
         auto net = std::make_shared<Net>(2);
-        #ifdef use_gpu
-            net->to(torch::kCUDA);
-        #endif
+#ifdef use_gpu
+        net->to(torch::kCUDA);
+#endif
         vector<float> locations;
         vector<float> labels;
         for (Point point : points)
@@ -77,7 +78,7 @@ namespace pre_train_rsmi
         string features_path = Constants::FEATURES_PATH_RSMI + to_string(resolution) + "/" + type + "/";
         FileWriter SFC_writer(features_path);
         SFC_writer.write_SFC(locations, file_name + ".csv");
-        
+
         string model_path = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(resolution) + "/" + type + "/" + file_name + ".pt";
         std::ifstream fin(model_path);
         if (!fin)
@@ -126,7 +127,7 @@ namespace pre_train_rsmi
             FileWriter SFC_writer(features_path);
             SFC_writer.write_SFC(locations, file_name + ".csv");
         }
-        
+
         string ppath = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(1) + "/";
         struct dirent *ptr;
         DIR *dir;
@@ -175,7 +176,7 @@ namespace pre_train_rsmi
 
     void pre_train_2d_H(int resolution, string threshold)
     {
-        string ppath = Constants::PRE_TRAIN_DATA;
+        string ppath = Constants::PRE_TRAIN_DATA + "H/";
         struct dirent *ptr;
         DIR *dir;
         dir = opendir(ppath.c_str());
@@ -194,7 +195,7 @@ namespace pre_train_rsmi
 
     void pre_train_2d_Z(int resolution, string threshold)
     {
-        string ppath = Constants::PRE_TRAIN_DATA;
+        string ppath = Constants::PRE_TRAIN_DATA + "H/";
         struct dirent *ptr;
         DIR *dir;
         dir = opendir(ppath.c_str());

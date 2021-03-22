@@ -36,7 +36,7 @@ private:
     int min_error = 0;
     int width = 0;
     int leaf_node_num;
-    
+
     bool is_last;
     Mbr mbr;
     std::shared_ptr<Net> net;
@@ -52,6 +52,7 @@ public:
     static string model_path_root;
     map<int, RSMI> children;
     vector<LeafNode> leafnodes;
+    float sampling_rate = 1.0;
 
     RSMI();
     RSMI(int index, int max_partition_num);
@@ -108,11 +109,12 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
     int page_size = Constants::PAGESIZE;
     auto start = chrono::high_resolution_clock::now();
     std::stringstream stream;
-    stream << std::fixed << std::setprecision(1) << Constants::MODEL_REUSE_THRESHOLD;
+    stream << std::fixed << std::setprecision(1) << exp_recorder.model_reuse_threshold;
     string threshold = stream.str();
     int bit_num = ceil((log(N / Constants::RESOLUTION)) / log(2)) * 2;
 
-    if (points.size() <= exp_recorder.N)
+    // if (points.size() <= exp_recorder.N)
+    if (points.size() <= 256 * 100)
     {
         this->model_path += "_" + to_string(level) + "_" + to_string(index);
         if (exp_recorder.depth < level)
@@ -178,7 +180,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             leaf_node_num++;
         }
         exp_recorder.leaf_node_num += leaf_node_num;
-        if (Constants::IS_MODEL_REUSE)
+        if (exp_recorder.is_model_reuse)
         {
             net = std::make_shared<Net>(2);
         }
@@ -186,21 +188,49 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         {
             net = std::make_shared<Net>(2, leaf_node_num / 2 + 2);
         }
-        
-        // #ifdef use_gpu
-        // #endif
+
+#ifdef use_gpu
         net->to(torch::kCUDA);
+#endif
         vector<float> locations;
         vector<float> labels;
         vector<long long> features;
-        for (Point point : points)
+        if (exp_recorder.is_sp)
         {
-            locations.push_back(point.x);
-            locations.push_back(point.y);
-            labels.push_back(point.index);
-            features.push_back(point.curve_val);
+            int sample_gap = 1 / sampling_rate;
+            long long counter = 0;
+            for (Point point : points)
+            {
+                if (counter % sample_gap == 0)
+                {
+                    locations.push_back(point.x);
+                    locations.push_back(point.y);
+                    labels.push_back(point.index);
+                    features.push_back(point.curve_val);
+                }
+                counter++;
+            }
+            if (sample_gap >= N)
+            {
+                Point last_point = points[N - 1];
+                features.push_back(last_point.curve_val);
+                locations.push_back(last_point.x);
+                locations.push_back(last_point.y);
+                labels.push_back(last_point.index);
+            }
         }
-        if (Constants::IS_MODEL_REUSE)
+        else
+        {
+            for (Point point : points)
+            {
+                locations.push_back(point.x);
+                locations.push_back(point.y);
+                labels.push_back(point.index);
+                features.push_back(point.curve_val);
+            }
+        }
+
+        if (exp_recorder.is_model_reuse)
         {
             SFC sfc(bit_num, features);
             sfc.gen_CDF(Constants::UNIFIED_Z_BIT_NUM);
@@ -222,25 +252,31 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         }
         else
         {
-            net->train_model(locations, labels);
+            // net->train_model(locations, labels);
+            // net->get_parameters();
+            // torch::save(net, this->model_path);
+            if (exp_recorder.is_sp)
+            {
+                net->train_model(locations, labels);
+            }
+            else
+            {
+                std::ifstream fin(this->model_path);
+                if (!fin)
+                {
+                    net->train_model(locations, labels);
+                    torch::save(net, this->model_path);
+                }
+                else
+                {
+                    torch::load(net, this->model_path);
+                }
+            }
             net->get_parameters();
-            torch::save(net, this->model_path);
         }
-        
-        
-        // std::ifstream fin(this->model_path);
-        // if (!fin)
-        // {
-        //     net->train_model(locations, labels);
-        //     torch::save(net, this->model_path);
-        // }
-        // else
-        // {
-        //     torch::load(net, this->model_path);
-        // }
-        // net->get_parameters();
 
         exp_recorder.non_leaf_node_num++;
+        int total_errors = 0;
         for (int i = 0; i < N; i++)
         {
             Point point = points[i];
@@ -257,7 +293,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             predicted_index = predicted_index >= leaf_node_num ? leaf_node_num - 1 : predicted_index;
 
             int error = i / page_size - predicted_index;
-
+            total_errors += abs(error);
             if (error > 0)
             {
                 if (error > max_error)
@@ -273,8 +309,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 }
             }
         }
-        exp_recorder.average_max_error += max_error;
-        exp_recorder.average_min_error += min_error;
+        exp_recorder.bottom_error += total_errors;
         if ((max_error - min_error) > (exp_recorder.max_error - exp_recorder.min_error))
         {
             exp_recorder.max_error = max_error;
@@ -287,7 +322,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         N = (long long)points.size();
         int bit_num = max_partition_num;
         int partition_size = ceil(points.size() * 1.0 / pow(bit_num, 2));
-        if (Constants::IS_MODEL_REUSE)
+        if (exp_recorder.is_model_reuse)
         {
             sort(points.begin(), points.end(), sortY());
             y_gap = 1.0 / (points[N - 1].y - points[0].y);
@@ -342,11 +377,17 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 auto sub_bn = vec.begin() + sub_bn_index;
                 auto sub_en = vec.begin() + sub_end_index;
                 vector<Point> sub_vec(sub_bn, sub_en);
-                int Z_value = compute_Z_value(i, j, side);
+                long long xs[2] = {(long long)i, (long long)j};
+                int Z_value = compute_Z_value(xs, 2, side);
                 int sub_point_index = 1;
                 long sub_size = sub_vec.size();
+                int counter = 0;
                 for (Point point : sub_vec)
                 {
+                    // if (level == 0 && counter % 10000 == 0)
+                    // {
+                    //     continue;
+                    // }
                     point.index = Z_value * 1.0 / width;
                     locations[point_index * 2] = point.x;
                     locations[point_index * 2 + 1] = point.y;
@@ -365,58 +406,103 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         bool is_retrain = false;
         do
         {
+            long long total_errors = 0;
             //TODO solve build
             net = std::make_shared<Net>(2);
-            // #ifdef use_gpu
-            // #endif
+#ifdef use_gpu
             net->to(torch::kCUDA);
+#endif
             if (!is_retrain)
             {
                 this->model_path += "_" + to_string(level) + "_" + to_string(index);
             }
-            
-            // std::ifstream fin(this->model_path);
-            // if (!fin)
-            // {
-            //     net->train_model(locations, labels);
-            //     torch::save(net, this->model_path);
-            // }
-            // else
-            // {
-            //     torch::load(net, this->model_path);
-            // }
-            // net->get_parameters();
 
-            if (Constants::IS_MODEL_REUSE)
+            if (exp_recorder.is_model_reuse)
             {
-                SFC sfc(bit_num, features);
-                sfc.gen_CDF(Constants::UNIFIED_Z_BIT_NUM);
-                // TODO change it for two dimensional data
-                Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), locations);
-                if (net->is_reusable_rsmi_Z(sfc, histogram, threshold, this->model_path) && !is_retrain)
+                if (level == 0 && exp_recorder.is_rl)
                 {
-                    is_reused = true;
-                    // cout<< "nonleaf model_path: " << model_path << endl;
-                    torch::load(net, this->model_path);
+                    cout << "RL_SFC begin" << endl;
+                    int bit_num = 10;
+                    pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
+                    string commandStr = "python /home/liuguanli/Documents/pre_train/rl_4_sfc/RL_4_SFC_RSMI.py -d " +
+                                        exp_recorder.distribution + " -s " + to_string(exp_recorder.dataset_cardinality) + " -n " +
+                                        to_string(exp_recorder.skewness) + " -m 2 -b " + to_string(bit_num) +
+                                        " -f /home/liuguanli/Documents/pre_train/sfc_z_weight/bit_num_%d/%s_%d_%d_%d_.csv";
+                    char command[1024];
+                    strcpy(command, commandStr.c_str());
+                    int res = system(command);
+                    // todo save data
+                    vector<int> sfc;
+                    vector<float> cdf;
+                    FileReader RL_SFC_reader("", ",");
+                    int bit_num_shrinked = 6;
+                    vector<float> features;
+                    RL_SFC_reader.read_sfc_2d("/home/liuguanli/Documents/pre_train/sfc_z/" + to_string(bit_num_shrinked) + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", features, cdf);
+                    cout << "features.size(): " << features.size() << endl;
+                    cout << "cdf.size(): " << cdf.size() << endl;
+                    net->train_model(features, cdf);
                     net->get_parameters();
-                    // cout<< "nonleaf load finish: " << endl;
+                    torch::save(net, this->model_path);
+                    // cout << "RL_SFC finish" << endl;
                 }
                 else
                 {
-                    // cout<< "train model 1" << endl;
-                    net->train_model(locations, labels);
-                    net->get_parameters();
-                    torch::save(net, this->model_path);
+                    SFC sfc(bit_num, features);
+                    sfc.gen_CDF(Constants::UNIFIED_Z_BIT_NUM);
+                    // TODO change it for two dimensional data
+                    Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), locations);
+                    if (net->is_reusable_rsmi_Z(sfc, histogram, threshold, this->model_path) && !is_retrain)
+                    {
+                        is_reused = true;
+                        // cout<< "nonleaf model_path: " << model_path << endl;
+                        torch::load(net, this->model_path);
+                        net->get_parameters();
+                        // cout<< "nonleaf load finish: " << endl;
+                    }
+                    else
+                    {
+                        // cout<< "train model 1" << endl;
+                        net->train_model(locations, labels);
+                        net->get_parameters();
+                        torch::save(net, this->model_path);
+                    }
                 }
             }
             else
             {
                 // cout<< "train model 1" << endl;
-                net->train_model(locations, labels);
+                // net->train_model(locations, labels);
+                // net->get_parameters();
+                // torch::save(net, this->model_path);
+                std::ifstream fin(this->model_path);
+                if (exp_recorder.is_sp)
+                {
+                    int sample_gap = 1 / sampling_rate;
+                    long long counter = 0;
+                    vector<float> locations_sp;
+                    vector<float> labels_sp;
+                    for (size_t i = 0; i < labels.size(); i += sample_gap)
+                    {
+                        locations_sp.push_back(locations[2 * i]);
+                        locations_sp.push_back(locations[2 * i + 1]);
+                        labels_sp.push_back(labels[i]);
+                    }
+                    cout << "labels_sp size: " << labels_sp.size() << " sampling_rate: " << sampling_rate << endl;
+                    net->train_model(locations_sp, labels_sp);
+                    // torch::save(net, this->model_path);
+                }
+                else if (!fin)
+                {
+                    net->train_model(locations, labels);
+                    torch::save(net, this->model_path);
+                }
+                else
+                {
+                    torch::load(net, this->model_path);
+                }
                 net->get_parameters();
-                torch::save(net, this->model_path);
             }
-            
+
             for (Point point : points)
             {
                 int predicted_index;
@@ -434,8 +520,17 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 predicted_index = predicted_index < 0 ? 0 : predicted_index;
                 predicted_index = predicted_index >= width ? width - 1 : predicted_index;
                 points_map[predicted_index].push_back(point);
-            }
 
+                if (level == 0)
+                {
+                    total_errors += abs((int)(predicted_index - point.index * width));
+                }
+            }
+            if (level == 0)
+            {
+                exp_recorder.top_error = total_errors / points.size();
+                exp_recorder.loss = net->total_loss;
+            }
             map<int, vector<Point>>::iterator iter1;
             iter1 = points_map.begin();
             int map_size = 0;
@@ -451,17 +546,19 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             // cout << "x_gap: " << x_gap << endl;
             // cout << "y_gap: " << y_gap << endl;
             // cout << "N: " << N << endl;
-            if (map_size < 4)
+            if (map_size < 2)
             {
                 int predicted_index;
                 if (is_reused)
                 {
-                    predicted_index = (int)(net->predict(points[0], x_gap, y_gap, x_0, y_0) * leaf_node_num);
+                    predicted_index = (int)(net->predict(points[0], x_gap, y_gap, x_0, y_0) * width);
                 }
                 else
                 {
-                    predicted_index = (int)(net->predict(points[0]) * leaf_node_num);
+                    predicted_index = (int)(net->predict(points[0]) * width);
                 }
+                // cout<< "net->predict(points[0]): " << net->predict(points[0]) << endl;
+                // cout << "predicted_index: " << predicted_index << endl;
                 predicted_index = predicted_index < 0 ? 0 : predicted_index;
                 predicted_index = predicted_index >= width ? width - 1 : predicted_index;
                 points_map[predicted_index].clear();
@@ -476,7 +573,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
 
         } while (is_retrain);
         auto finish = chrono::high_resolution_clock::now();
-        
+
         exp_recorder.non_leaf_node_num++;
 
         points.clear();
@@ -491,6 +588,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             {
                 RSMI partition(iter->first, level + 1, max_partition_num);
                 partition.model_path = model_path;
+                partition.sampling_rate = sampling_rate;
                 partition.build(exp_recorder, iter->second);
                 iter->second.clear();
                 iter->second.shrink_to_fit();
@@ -505,8 +603,8 @@ void RSMI::print_index_info(ExpRecorder &exp_recorder)
 {
     cout << "finish point_query max_error: " << exp_recorder.max_error << endl;
     cout << "finish point_query min_error: " << exp_recorder.min_error << endl;
-    cout << "finish point_query average_max_error: " << exp_recorder.average_max_error << endl;
-    cout << "finish point_query average_min_error: " << exp_recorder.average_min_error << endl;
+    cout << "finish point_query top_error: " << exp_recorder.top_error << endl;
+    cout << "finish point_query bottom_error: " << exp_recorder.bottom_error << endl;
     cout << "last_level_model_num: " << exp_recorder.last_level_model_num << endl;
     cout << "leaf_node_num: " << exp_recorder.leaf_node_num << endl;
     cout << "non_leaf_node_num: " << exp_recorder.non_leaf_node_num << endl;
@@ -528,7 +626,6 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
         {
             predicted_index = (int)(net->predict(query_point) * leaf_node_num);
         }
-
 
         predicted_index = predicted_index < 0 ? 0 : predicted_index;
         predicted_index = predicted_index >= leaf_node_num ? leaf_node_num - 1 : predicted_index;
@@ -627,7 +724,7 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
             gap++;
             predicted_index_right = predicted_index + gap;
         }
-        cout<< "not find" << endl;
+        cout << "not find" << endl;
         // query_point.print();
         return false;
     }
@@ -649,7 +746,7 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
         predicted_index = predicted_index >= width ? width - 1 : predicted_index;
         if (children.count(predicted_index) == 0)
         {
-            cout<< "not find" << endl;
+            cout << "not find" << endl;
             return false;
         }
         return children[predicted_index].point_query(exp_recorder, query_point);
@@ -659,7 +756,7 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
 void RSMI::point_query(ExpRecorder &exp_recorder, vector<Point> &query_points)
 {
     long size = query_points.size();
-    cout<< "size: " << size << endl;
+    cout << "size: " << size << endl;
     for (long i = 0; i < size; i++)
     {
         auto start = chrono::high_resolution_clock::now();
@@ -667,7 +764,7 @@ void RSMI::point_query(ExpRecorder &exp_recorder, vector<Point> &query_points)
         auto finish = chrono::high_resolution_clock::now();
         exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     }
-    cout<< "time: " << exp_recorder.time << endl;
+    cout << "time: " << exp_recorder.time << endl;
     exp_recorder.time /= size;
     exp_recorder.page_access = exp_recorder.page_access / size;
 }
@@ -951,7 +1048,7 @@ void RSMI::kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int 
     // length = 2;
     for (int i = 0; i < length; i++)
     {
-        priority_queue<Point , vector<Point>, sortForKNN2> temp_pq;
+        priority_queue<Point, vector<Point>, sortForKNN2> temp_pq;
         exp_recorder.pq = temp_pq;
         auto start = chrono::high_resolution_clock::now();
         vector<Point> knnresult = kNN_query(exp_recorder, query_points[i], k);

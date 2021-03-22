@@ -21,7 +21,6 @@
 #include <torch/types.h>
 #include <torch/utils.h>
 
-
 #include <xmmintrin.h> //SSE指令集需包含词头文件
 // #include <immintrin.h>
 
@@ -63,6 +62,7 @@ public:
     float *w1__ = (float *)_mm_malloc(Constants::HIDDEN_LAYER_WIDTH * sizeof(float), 32);
 
     float b2 = 0.0;
+    float total_loss = 0;
 
     Net(int input_width)
     {
@@ -72,10 +72,15 @@ public:
         fc2 = register_module("fc2", torch::nn::Linear(width, 1));
         torch::nn::init::uniform_(fc1->weight, 0, 1);
         torch::nn::init::uniform_(fc2->weight, 0, 1);
+        // torch::nn::init::uniform_(fc1->weight, 0, sqrt(2/input_width));
+        // torch::nn::init::uniform_(fc2->weight, 0, sqrt(2/width));
+        torch::nn::init::constant_(fc1->bias, 0);
+        torch::nn::init::constant_(fc2->bias, 0);
+        // torch::nn::init::uniform_(fc1->weight, 0, 1 / width);
+        // torch::nn::init::uniform_(fc2->weight, 0, 1 / width);
         // torch::nn::init::uniform_(fc1->weight, 0, 1.0 / width);
         // torch::nn::init::uniform_(fc1->bias, 0, 1.0 / width);
-        // torch::nn::init::uniform_(fc1->bias, 0, 1.0 / width);
-        // torch::nn::init::uniform_(fc2->bias, 0, 1.0 / width);
+        // torch::nn::init::uniform_(fc2->bias, 0, 1);
         // torch::nn::init::normal_(fc1->weight, 0, 1);
         // torch::nn::init::normal_(fc2->weight, 0, 1);
     }
@@ -90,14 +95,18 @@ public:
         this->input_width = input_width;
         fc1 = register_module("fc1", torch::nn::Linear(input_width, this->width));
         fc2 = register_module("fc2", torch::nn::Linear(this->width, 1));
+        torch::nn::init::uniform_(fc1->weight, 0, 1);
+        torch::nn::init::uniform_(fc2->weight, 0, 1);
+        // torch::nn::init::uniform_(fc1->weight, 0, sqrt(2/input_width));
+        // torch::nn::init::uniform_(fc2->weight, 0, sqrt(2/width));
         // torch::nn::init::uniform_(fc1->weight, 0, 0.1);
         // torch::nn::init::uniform_(fc2->weight, 0, 0.1);
         // torch::nn::init::uniform_(fc1->weight, 0, 1.0 / width);
         // torch::nn::init::uniform_(fc2->weight, 0, 1.0 / width);
-        // torch::nn::init::uniform_(fc1->bias, 0, 1.0 / width);
-        // torch::nn::init::uniform_(fc2->bias, 0, 1.0 / width);
-        torch::nn::init::normal_(fc1->weight, 0, 1);
-        torch::nn::init::normal_(fc2->weight, 0, 1);
+        torch::nn::init::constant_(fc1->bias, 0);
+        torch::nn::init::constant_(fc2->bias, 0);
+        // torch::nn::init::normal_(fc1->weight, 0, 1);
+        // torch::nn::init::normal_(fc2->weight, 0, 1);
     }
 
     void get_parameters_ZM()
@@ -395,35 +404,38 @@ public:
     void train_model(vector<float> locations, vector<float> labels)
     {
         long long N = labels.size();
-        torch::Tensor x = torch::tensor(locations, at::kCUDA).reshape({N, this->input_width});
-        torch::Tensor y = torch::tensor(labels, at::kCUDA).reshape({N, 1});
-        // #ifdef use_gpu
-            
-        // #else
-        //     torch::Tensor x = torch::tensor(locations).reshape({N, this->input_width});
-        //     torch::Tensor y = torch::tensor(labels).reshape({N, 1});
-        // #endif
+        #ifdef use_gpu
+            torch::Tensor x = torch::tensor(locations, at::kCUDA).reshape({N, this->input_width});
+            torch::Tensor y = torch::tensor(labels, at::kCUDA).reshape({N, 1});
+        #else
+            torch::Tensor x = torch::tensor(locations).reshape({N, this->input_width});
+            torch::Tensor y = torch::tensor(labels).reshape({N, 1});
+        #endif
         // torch::Tensor x = torch::tensor(locations).reshape({N, this->input_width});
         // torch::Tensor y = torch::tensor(labels).reshape({N, 1});
         // auto net = isRetrain ? this->net : std::make_shared<Net>(2, width);
         // auto net = std::make_shared<Net>(this->input_width, this->width);
         torch::optim::Adam optimizer(this->parameters(), torch::optim::AdamOptions(this->learning_rate));
-        if (N > 64000000)
+        if (N > 16000000)
         {
-            int batch_num = 12;
+            int batch_num = N / 1000000;
+            // int batch_num = N / 30000000;
+            // int batch_num = N / 10000000;
 
             auto x_chunks = x.chunk(batch_num, 0);
             auto y_chunks = y.chunk(batch_num, 0);
             for (size_t epoch = 0; epoch < Constants::EPOCH; epoch++)
             {
+                total_loss = 0;
                 for (size_t i = 0; i < batch_num; i++)
                 {
                     optimizer.zero_grad();
                     torch::Tensor loss = torch::l1_loss(this->forward(x_chunks[i]), y_chunks[i]);
-                    // #ifdef use_gpu
-                    // #endif
-                    loss.to(torch::kCUDA);
+                    #ifdef use_gpu
+                        loss.to(torch::kCUDA);
+                    #endif
                     loss.backward();
+                    total_loss += loss.item().toFloat();
                     optimizer.step();
                 }
             }
@@ -434,10 +446,11 @@ public:
             {
                 optimizer.zero_grad();
                 torch::Tensor loss = torch::l1_loss(this->forward(x), y);
-                // #ifdef use_gpu
-                // #endif
-                loss.to(torch::kCUDA);
+                #ifdef use_gpu
+                    loss.to(torch::kCUDA);
+                #endif
                 loss.backward();
+                total_loss = loss.item().toFloat();
                 optimizer.step();
             }
         }
@@ -457,6 +470,11 @@ public:
             // {
             //     cout<< iter->second.hist << endl;
             // }
+            if (temp_dist < std::stof(threshold))
+            {
+                model_path = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(Constants::RESOLUTION) + "/Z/" + iter->first + ".pt";
+                return true;
+            }
             if (temp_dist < min_dist)
             {
                 min_dist = temp_dist;
@@ -488,6 +506,11 @@ public:
             // {
             //     cout<< iter->second.hist << endl;
             // }
+            if (temp_dist < std::stof(threshold))
+            {
+                model_path = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(Constants::RESOLUTION) + "/H/" + iter->first + ".pt";
+                return true;
+            }
             if (temp_dist < min_dist)
             {
                 min_dist = temp_dist;
@@ -506,7 +529,7 @@ public:
     }
 
     // in use
-    bool is_reusable_zm(SFC target, Histogram histogram, string threshold, string &model_path)
+    bool is_reusable_zm(Histogram histogram, string threshold, string &model_path)
     {
         double min_dist = 1.0;
         std::map<string, Histogram>::iterator iter;
@@ -515,35 +538,6 @@ public:
         while (iter != pre_trained_histograms.end())
         {
             double temp_dist = iter->second.cal_similarity(histogram);
-            // if (iter->first == "uniform_1000_scale_1")
-            // {
-            //     cout<< iter->second.hist << endl;
-            // }
-            if (temp_dist < min_dist)
-            {
-                min_dist = temp_dist;
-                model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(Constants::RESOLUTION) + "/" + threshold + "/" + iter->first + ".pt";
-            }
-            iter++;
-        }
-        // cout<< "min_dist: " << min_dist << endl;
-        // if (min_dist > 0.9)
-        // {
-        //     cout<< "hist: " << histogram.hist << endl;
-        //     cout<< "data: " << histogram.data << endl;
-        // }
-        return true;
-    }
-
-    bool is_reusable_zm(Histogram histogram, string threshold, string &model_path)
-    {
-        double min_dist = 1.0;
-        std::map<string, SFC>::iterator iter;
-        iter = pre_trained_features.begin();
-
-        while (iter != pre_trained_features.end())
-        {
-            double temp_dist = iter->second.cal_similarity(histogram);
             if (temp_dist < min_dist)
             {
                 min_dist = temp_dist;
@@ -553,6 +547,26 @@ public:
         }
         return true;
     }
+
+    // bool is_reusable_zm(Histogram histogram, string threshold, string &model_path)
+    // {
+    //     double min_dist = 1.0;
+    //     std::map<string, SFC>::iterator iter;
+    //     iter = pre_trained_histograms.begin();
+    //     cout<< "pre_trained_features siz: " << pre_trained_histograms.size() << endl;
+
+    //     while (iter != pre_trained_histograms.end())
+    //     {
+    //         double temp_dist = iter->second.cal_similarity(histogram);
+    //         if (temp_dist < min_dist)
+    //         {
+    //             min_dist = temp_dist;
+    //             model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(Constants::RESOLUTION) + "/" + threshold + "/" + iter->first + ".pt";
+    //         }
+    //         iter++;
+    //     }
+    //     return true;
+    // }
 
     bool is_reusable_zm(SFC target, string threshold, string &model_path)
     {
@@ -584,10 +598,10 @@ public:
 
     inline static void load_pre_trained_model_rsmi(string threshold)
     {
-        if (!Constants::IS_MODEL_REUSE)
-        {
-            return;
-        }
+        // if (!Constants::IS_MODEL_REUSE)
+        // {
+        //     return;
+        // }
         if (pre_trained_features.size() > 0)
         {
             return;
@@ -646,10 +660,6 @@ public:
 
     inline static void load_pre_trained_model_zm(string threshold)
     {
-        if (!Constants::IS_MODEL_REUSE)
-        {
-            return;
-        }
         if (pre_trained_features.size() > 0)
         {
             return;

@@ -64,6 +64,7 @@ void FileWriter::write_SFC(vector<float> values, string name)
     ofstream write;
     file_utils::check_dir(filename);
     write.open((filename + name), ios::out);
+    // cout<< "filename + name: " << filename + name << endl;
     int N = values.size();
     if (N > 1000000)
     {
@@ -71,7 +72,7 @@ void FileWriter::write_SFC(vector<float> values, string name)
         {
             // if ((i + 1) % 100 == 0)
             // {
-                write << values[i] << "," << (i + 1.0) / N << endl;
+            write << values[i] << "," << (i + 1.0) / N << endl;
             // }
         }
     }
@@ -132,10 +133,27 @@ void FileWriter::write_build(ExpRecorder expRecorder)
     {
         write << expRecorder.get_time_size_errors();
     }
-    else
+    if (expRecorder.structure_name == "ZM-MR" || expRecorder.structure_name == "RSMI-MR" || expRecorder.structure_name == "ZM-RL" || expRecorder.structure_name == "RSMI-RL")
+    {
+        write << expRecorder.get_time_size_errors();
+    }
+    if (expRecorder.structure_name == "ZM-SPF" || expRecorder.structure_name == "ZM-SP" || expRecorder.structure_name == "RSMI-SP" || expRecorder.structure_name == "ZM-RS" || expRecorder.structure_name == "RSMI-RS")
+    {
+        write << expRecorder.get_time_size_errors();
+    }
+    if (expRecorder.structure_name == "ZM-CL" || expRecorder.structure_name == "RSMI-CL")
+    {
+        write << expRecorder.get_time_size_errors();
+    }
+    if (expRecorder.structure_name == "Grid" || expRecorder.structure_name == "HRR" || expRecorder.structure_name == "KDB")
     {
         write << expRecorder.get_time_size();
     }
+
+    // else
+    // {
+    //     write << expRecorder.get_time_size();
+    // }
     write.close();
 }
 
@@ -195,7 +213,7 @@ void FileWriter::write_insert(ExpRecorder expRecorder)
     string folder = Constants::INSERT;
     file_utils::check_dir(filename + folder);
     write.open((filename + folder + expRecorder.structure_name + "_" + expRecorder.distribution + "_" + to_string(expRecorder.dataset_cardinality) + "_" + to_string(expRecorder.skewness) + "_" + to_string(expRecorder.insert_num) + "_" + to_string(expRecorder.N) + ".txt"), ios::app);
-    if (expRecorder.structure_name == "RSMI")
+    if (expRecorder.structure_name == "RSMI" || expRecorder.structure_name == "RSMI-MR")
     {
         write << expRecorder.get_insert_time_pageaccess_rebuild();
     }

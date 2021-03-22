@@ -13,31 +13,48 @@ public:
     static const int EPOCH = 500;
     static const int START_EPOCH = 300;
     static const int EPOCH_ADDED = 100;
-    // static const int HIDDEN_LAYER_WIDTH = 16;
-    static const int HIDDEN_LAYER_WIDTH = 50;
-    static const int THRESHOLD = 20000;
+
+    static const int THRESHOLD = 10000;
 
     static const int DEFAULT_SIZE  = 16000000;
     static const int DEFAULT_SKEWNESS  = 4;
 
     static const int DEFAULT_BIN_NUM  = 10000;
 
-    static const int UNIFIED_Z_BIT_NUM  = 6;
+    static const int UNIFIED_Z_BIT_NUM  = 4;
+    // static const int UNIFIED_Z_BIT_NUM  = 6;
 
-    static const int UNIFIED_H_BIT_NUM  = 10;
+    static const int UNIFIED_H_BIT_NUM  = 4;
+    // static const int UNIFIED_H_BIT_NUM  = 10;
 
     static const int RESOLUTION = 1;
 
-    static const bool IS_MODEL_REUSE = false;
-    static const bool IS_AUG_SFC = false;
-    static const bool IS_RL_SFC = false;
+    // static const int HIDDEN_LAYER_WIDTH = 16;
+    // static const bool IS_MODEL_REUSE = true;
+    // static const bool IS_SAMPLING = false;
+    // static const bool IS_RL_SFC = true;
+    
+    // static const bool IS_SAMPLING = false;
+    // static const int HIDDEN_LAYER_WIDTH = 50;
+    // static const bool IS_MODEL_REUSE = false;
+    // static const bool IS_RL_SFC = false;
 
-    static const int NORMAL = 0;
-    static const int REUSE = 1;
-    static const int AUG_SFC = 2;
-    static const int RL_SFC = 3;
+    // static const bool IS_SAMPLING_FIRST = false;
 
-    static const double MODEL_REUSE_THRESHOLD;
+    // static const bool IS_SAMPLING = false;
+    // static const bool IS_MODEL_REUSE = false;
+    static const int HIDDEN_LAYER_WIDTH = 8;
+    // static const bool IS_RL_SFC = false;
+
+    // static const bool IS_CLUSTER = true;
+    // static const bool IS_REPRESENTATIVE_SET = false;
+    // static const bool IS_CLUSTER = false;
+    // static const bool IS_REPRESENTATIVE_SET = true;
+    // static const bool IS_REPRESENTATIVE_SET_SPACE = true;
+    // static const bool IS_RL_SFC = false;
+    // static const double MODEL_REUSE_THRESHOLD;
+
+    static const double SAMPLING_RATE;
     static const double LEARNING_RATE;
     static const string RECORDS;
     static const string QUERYPROFILES;

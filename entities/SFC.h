@@ -13,7 +13,6 @@ private:
     // std::vector<double> cdf;
 
 public:
-
     int bit_num;
     std::vector<long long> values;
     std::vector<double> cdf;
@@ -21,7 +20,6 @@ public:
 
     SFC()
     {
-
     }
 
     SFC(int bit_num, std::vector<long long> values)
@@ -29,7 +27,6 @@ public:
         this->bit_num = bit_num;
         this->values = values;
     }
-
 
     // SFC shrink(int to_bit_num)
     // {
@@ -74,7 +71,7 @@ public:
         for (size_t i = 0; i <= max; i++)
         {
             int each_index = 0;
-            while(values[index] == i && index < N)
+            while (values[index] == i && index < N)
             {
                 index++;
                 each_index++;
@@ -99,7 +96,7 @@ public:
         for (size_t i = 0; i <= max; i++)
         {
             int each_index = 0;
-            while(values[index] == i && index < N)
+            while (values[index] == i && index < N)
             {
                 index++;
                 each_index++;
@@ -111,7 +108,7 @@ public:
         {
             sum += weighted_curve_value[i];
         }
-        // cout<< "weighted sum: " << sum << endl;
+        cout << "weighted sum: " << sum << endl;
         return weighted_curve_value;
     }
 
@@ -125,7 +122,7 @@ public:
         {
 
             int index = 0;
-            while(values[index] / gap == i && index < N)
+            while (values[index] / gap == i && index < N)
             {
                 index++;
             }
@@ -141,7 +138,7 @@ public:
         int index = 0;
         for (size_t i = 0; i <= max; i++)
         {
-            while(values[index] == i)
+            while (values[index] == i)
             {
                 index++;
             }
@@ -149,19 +146,44 @@ public:
         }
     }
 
+    //TODO to be tested
     void gen_CDF(int to_bit_num)
     {
         long long max = pow(2, to_bit_num) - 1;
         int N = values.size();
         int index = 0;
         long long gap = pow(2, bit_num - to_bit_num);
+        cout<< "gap1: " << gap << endl;
         for (size_t i = 0; i <= max; i++)
         {
-            while(values[index] / gap == i && index < N)
+            while (values[index] / gap == i && index < N)
             {
                 index++;
             }
             cdf.push_back(index * 1.0 / N);
+        }
+        cout<< "cdf: " << cdf << endl;
+        int start_index = max - 1;
+        double start = cdf[start_index];
+        for (size_t i = max - 2; i >= 0; i++)
+        {
+            if (cdf[i] == start)
+            {
+                continue;
+            }
+            else
+            {
+                if ((start_index - i) > 1)
+                {
+                    double gap = (start - cdf[i]) / (start_index - i);
+                    for (size_t j = 1; j < start_index - i; j++)
+                    {
+                        cdf[i + j] += gap * j;
+                    }
+                }
+                start_index = i;
+                start = cdf[start_index];
+            }
         }
     }
 
@@ -229,6 +251,66 @@ public:
         }
         return max_gap;
     }
+
+    // TODO make sure sfc
+    // TODO then different shapes of SFC
+    // TODO Consider h-curve
+    // vector<vector<int>> cells4_sfcs;
+    // vector<vector<int>> synthetic_sfcs;
+    // void enumerate_4cells_sfc(vector<int> sfc, int b0_num, int b1_num, int length)
+    // {
+    //     if (sfc.size() == length)
+    //     {
+    //         cout<< "sfc: " << sfc << endl;
+    //         cells4_sfcs.push_back(sfc);
+    //         return;
+    //     }
+    //     if (b0_num > 0)
+    //     {
+    //         vector<int> sfc_copy(sfc);
+    //         sfc_copy.push_back(0);
+    //         enumerate_4cells_sfc(sfc_copy, b0_num - 1, b1_num, length);
+    //     }
+    //     if (b1_num > 0)
+    //     {
+    //         vector<int> sfc_copy(sfc);
+    //         sfc_copy.push_back(1);
+    //         enumerate_4cells_sfc(sfc_copy, b0_num, b1_num - 1, length);
+    //     }
+    // }
+
+    // void enumerate_synthetic_sfc(vector<int> sfc, int length)
+    // {
+    //     if (length == 4)
+    //     {
+    //         synthetic_sfcs.push_back(sfc);
+    //         cout<< "sfc: " << sfc << endl;
+    //         return;
+    //     }
+    //     for (size_t i = 0; i < cells4_sfcs.size(); i++)
+    //     {
+    //         vector<int> sfc_copy(sfc);
+    //         sfc_copy.insert(sfc_copy.end(), cells4_sfcs[i].begin(), cells4_sfcs[i].end());
+    //         enumerate_synthetic_sfc(sfc_copy, length + 1);
+    //     }
+    // }
+
+    // void gen_4cells_SFC()
+    // {
+    //     int total_points[] = {1, 2, 3, 4};
+    //     vector<int> sfc;
+    //     for (size_t i = 0; i < sizeof(total_points) / sizeof(total_points[0]); i++)
+    //     {
+    //         enumerate_4cells_sfc(sfc, 4 - total_points[i], total_points[i], 4);
+    //     }
+    // }
+
+    // void gen_SFC()
+    // {
+    //     vector<int> sfc;
+    //     enumerate_synthetic_sfc(sfc, 0);
+    //     cout<< "synthetic_sfcs size: " << synthetic_sfcs.size() << endl;
+    // }
 };
 
 #endif

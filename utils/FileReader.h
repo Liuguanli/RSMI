@@ -26,6 +26,7 @@ public:
     vector<float> read_features(string filename);
     vector<int> read_sfc(string filename);
     void read_sfc(string filename, vector<int> &, vector<float> &);
+    void read_sfc_2d(string filename, vector<float> &, vector<float> &);
 };
 
 #endif

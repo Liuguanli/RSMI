@@ -1,10 +1,10 @@
 .vscode/*
 *.o
 torch_models/*
+torch_models_zm/*
 Exp
 *.sh
 files/*
-indices/ZM.h
 datasets/*
 
 pre_train/*

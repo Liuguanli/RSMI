@@ -149,6 +149,22 @@ void FileReader::read_sfc(string filename, vector<int> & sfc, vector<float> & cd
     file.close();
 }
 
+void FileReader::read_sfc_2d(string filename, vector<float> & features, vector<float> & cdf)
+{
+    ifstream file(filename);
+
+    string line = "";
+    while (getline(file, line))
+    {
+        vector<string> vec;
+        boost::algorithm::split(vec, line, boost::is_any_of(","));
+        features.push_back(stoi(vec[0]));
+        features.push_back(stoi(vec[1]));
+        cdf.push_back(stof(vec[2]));
+    }
+    file.close();
+}
+
 vector<int> FileReader::read_sfc(string filename)
 {
     ifstream file(filename);
