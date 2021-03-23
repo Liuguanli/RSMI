@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
-
 #include "curves/z.H"
 
 using namespace std;
@@ -346,13 +345,15 @@ int main(int argc, char **argv)
 {
     ExpRecorder exp_recorder;
     parse(argc, argv, exp_recorder);
+    cout << "exp_recorder.get_dataset_name():" << exp_recorder.get_dataset_name() << endl;
+
     FileReader filereader(exp_recorder.get_dataset_name(), ",");
     vector<Point> points = filereader.get_points();
     vector<Point> query_poitns;
     vector<Point> insert_points;
     map<string, vector<Mbr>> mbrs_map;
-    get_query_points(points, query_poitns, insert_points, exp_recorder);
-    get_query_mbrs(exp_recorder, mbrs_map);
+    // get_query_points(points, query_poitns, insert_points, exp_recorder);
+    // get_query_mbrs(exp_recorder, mbrs_map);
     string model_root_path = Constants::TORCH_MODELS + distribution + "_" + to_string(cardinality);
     file_utils::check_dir(model_root_path);
     string model_path = model_root_path + "/";
@@ -371,23 +372,22 @@ int main(int argc, char **argv)
     // expHRR(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
     // expGrid(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
     // expKDB(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
-    cout<< "points" << points.size() << endl;
-    cout<< "points" << mbrs_map.size() << endl;
-    cout<< "points" << query_poitns.size() << endl;
-    cout<< "points" << points.size() << endl;
-    exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
+
+    // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 0.1);
+
+    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
 
     // exp_binary_search(file_writer, exp_recorder, points);
 
     // // sampling
-    // exp_recorder.test_sp();
-    // cout << "IS_SAMPLING" << endl;
-    // float sampling_rates[] = {0.0001, 0.001};
-    // for (size_t i = 0; i < sizeof(sampling_rates) / sizeof(sampling_rates[0]); i++)
-    // {
-    //     exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i], 1024);
-    //     // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i]);
-    // }
+    exp_recorder.test_sp();
+    cout << "IS_SAMPLING" << endl;
+    float sampling_rates[] = {0.0001, 0.001};
+    for (size_t i = 0; i < sizeof(sampling_rates) / sizeof(sampling_rates[0]); i++)
+    {
+        // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i], 1024);
+        exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i]);
+    }
 
     // // representative set
     // exp_recorder.test_rs();

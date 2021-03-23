@@ -493,7 +493,7 @@ public:
     }
 
     // TODO for 2-dimensional data
-    bool is_reusable_rsmi_H(SFC target, Histogram histogram, string threshold, string &model_path)
+    bool is_reusable_rsmi_H(Histogram histogram, string threshold, string &model_path)
     {
         double min_dist = 1.0;
         std::map<string, Histogram>::iterator iter;

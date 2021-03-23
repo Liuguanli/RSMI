@@ -124,27 +124,27 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         exp_recorder.last_level_model_num++;
         is_last = true;
         N = points.size();
-        long long side = pow(2, ceil(log(N) / log(2)));
-        sort(points.begin(), points.end(), sortX());
-        x_gap = 1.0 / (points[N - 1].x - points[0].x);
-        x_0 = points[0].x;
-        for (int i = 0; i < N; i++)
-        {
-            points[i].x_i = i;
-            mbr.update(points[i].x, points[i].y);
-        }
-        sort(points.begin(), points.end(), sortY());
-        y_gap = 1.0 / (points[N - 1].y - points[0].y);
-        y_0 = points[0].y;
-        for (int i = 0; i < N; i++)
-        {
-            points[i].y_i = i;
-            long long xs[2] = {(long long)points[i].x_i, points[i].y_i};
-            // long long curve_val = compute_Hilbert_value(xs, 2, side);
-            long long curve_val = compute_Hilbert_value(points[i].x_i, points[i].y_i, side);
-            points[i].curve_val = curve_val;
-        }
-        sort(points.begin(), points.end(), sort_curve_val());
+        // long long side = pow(2, ceil(log(N) / log(2)));
+        // sort(points.begin(), points.end(), sortX());
+        // x_gap = 1.0 / (points[N - 1].x - points[0].x);
+        // x_0 = points[0].x;
+        // for (int i = 0; i < N; i++)
+        // {
+        //     points[i].x_i = i;
+        //     mbr.update(points[i].x, points[i].y);
+        // }
+        // sort(points.begin(), points.end(), sortY());
+        // y_gap = 1.0 / (points[N - 1].y - points[0].y);
+        // y_0 = points[0].y;
+        // for (int i = 0; i < N; i++)
+        // {
+        //     points[i].y_i = i;
+        //     long long xs[2] = {(long long)points[i].x_i, points[i].y_i};
+        //     // long long curve_val = compute_Hilbert_value(xs, 2, side);
+        //     long long curve_val = compute_Hilbert_value(points[i].x_i, points[i].y_i, side);
+        //     points[i].curve_val = curve_val;
+        // }
+        // sort(points.begin(), points.end(), sort_curve_val());
         width = N - 1;
         if (N == 1)
         {
@@ -197,7 +197,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         vector<float> locations;
         vector<float> labels;
         vector<long long> features;
-
         if (exp_recorder.is_sp)
         {
             int sample_gap = 1 / sampling_rate;
@@ -309,84 +308,55 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
     {
         is_last = false;
         N = (long long)points.size();
-        int bit_num = max_partition_num;
-        int partition_size = ceil(points.size() * 1.0 / pow(bit_num, 2));
-        if (exp_recorder.is_model_reuse)
+        width = N * 16 / exp_recorder.N ;
+        // width = 10000;
+        if (level == 0)
         {
             sort(points.begin(), points.end(), sortY());
             y_gap = 1.0 / (points[N - 1].y - points[0].y);
             y_0 = points[0].y;
+            for (int i = 0; i < N; i++)
+            {
+                points[i].y_i = i;
+            }
+            sort(points.begin(), points.end(), sortX());
+            x_gap = 1.0 / (points[N - 1].x - points[0].x);
+            x_0 = points[0].x;
+            for (int i = 0; i < N; i++)
+            {
+                points[i].x_i = i;
+                long long curve_val = compute_Hilbert_value(points[i].x_i, points[i].y_i, N);
+                points[i].curve_val = curve_val;
+                mbr.update(points[i].x, points[i].y);
+            }
         }
-        sort(points.begin(), points.end(), sortX());
-        x_gap = 1.0 / (points[N - 1].x - points[0].x);
-        x_0 = points[0].x;
-        long long side = pow(bit_num, 2);
-        width = side - 1;
-        map<int, vector<Point>> points_map;
-        int each_item_size = partition_size * bit_num;
-        long long point_index = 0;
-
-        vector<float> locations(N * 2);
-        vector<float> labels(N);
-        vector<long long> features;
-        for (size_t i = 0; i < bit_num; i++)
+        else
         {
-            long long bn_index = i * each_item_size;
-            long long end_index = bn_index + each_item_size;
-            if (bn_index >= N)
-            {
-                break;
-            }
-            else
-            {
-                if (end_index > N)
-                {
-                    end_index = N;
-                }
-            }
-            auto bn = points.begin() + bn_index;
-            auto en = points.begin() + end_index;
-            vector<Point> vec(bn, en);
-            sort(vec.begin(), vec.end(), sortY());
-            for (size_t j = 0; j < bit_num; j++)
-            {
-                long long sub_bn_index = j * partition_size;
-                long long sub_end_index = sub_bn_index + partition_size;
-                if (sub_bn_index >= vec.size())
-                {
-                    break;
-                }
-                else
-                {
-                    if (sub_end_index > vec.size())
-                    {
-                        sub_end_index = vec.size();
-                    }
-                }
-                auto sub_bn = vec.begin() + sub_bn_index;
-                auto sub_en = vec.begin() + sub_end_index;
-                vector<Point> sub_vec(sub_bn, sub_en);
-                long long xs[2] = {(long long)i, (long long)j};
-                int Z_value = compute_Z_value(xs, 2, side);
-                cout << "Z_value: " << Z_value << endl;
-                int sub_point_index = 1;
-                long sub_size = sub_vec.size();
-                int counter = 0;
-                for (Point point : sub_vec)
-                {
-                    point.index = Z_value * 1.0 / width;
-                    locations[point_index * 2] = point.x;
-                    locations[point_index * 2 + 1] = point.y;
-                    labels[point_index] = point.index;
-                    features.push_back(point.curve_val);
-                    point_index++;
-                    mbr.update(point.x, point.y);
-                    sub_point_index++;
-                }
-                // vector<Point> temp;
-                // points_map.insert(pair<int, vector<Point>>(Z_value, temp));
-            }
+            sort(points.begin(), points.end(), sortY());
+            y_gap = 1.0 / (points[N - 1].y - points[0].y);
+            y_0 = points[0].y;
+            sort(points.begin(), points.end(), sortX());
+            x_gap = 1.0 / (points[N - 1].x - points[0].x);
+            x_0 = points[0].x;
         }
+        sort(points.begin(), points.end(), sort_curve_val());
+        for (size_t i = 0; i < N; i++)
+        {
+            points[i].index = i * 1.0 / N;
+        }
+
+        map<int, vector<Point>> points_map;
+        // vector<float> locations();
+        // vector<float> labels();
+        // vector<long long> features;
+        // for (size_t i = 0; i < N; i++)
+        // {
+        //     points[i].index = i * 1.0 / N;
+        //     locations[i * 2] = points[i].x;
+        //     locations[i * 2 + 1] = points[i].y;
+        //     labels[i] = points[i].index;
+        //     features.push_back(points[i].curve_val);
+        // }
 
         int epoch = Constants::START_EPOCH;
         bool is_retrain = false;
@@ -430,21 +400,22 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             else if (exp_recorder.is_rs)
             {
+                
             }
             else if (exp_recorder.is_sp)
             {
+                vector<float> locations();
+                vector<float> labels();
                 int sample_gap = 1 / sampling_rate;
                 long long counter = 0;
-                vector<float> locations_sp;
-                vector<float> labels_sp;
                 for (size_t i = 0; i < labels.size(); i += sample_gap)
                 {
-                    locations_sp.push_back(locations[2 * i]);
-                    locations_sp.push_back(locations[2 * i + 1]);
-                    labels_sp.push_back(labels[i]);
+                    locations.push_back(points[i].x);
+                    locations_sp.push_back(points[i].y);
+                    labels.push_back(labels[i]);
                 }
-                cout << "labels_sp size: " << labels_sp.size() << " sampling_rate: " << sampling_rate << endl;
-                net->train_model(locations_sp, labels_sp);
+                cout << "labels size: " << labels.size() << " sampling_rate: " << sampling_rate << endl;
+                net->train_model(locations, labels);
             }
             else if (exp_recorder.is_model_reuse)
             {
@@ -470,6 +441,15 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             else
             {
+                vector<float> locations(N * 2);
+                vector<float> labels(N);
+                for (size_t i = 0; i < N; i++)
+                {
+                    locations[i * 2] = points[i].x;
+                    locations[i * 2 + 1] = points[i].y;
+                    labels[i] = points[i].index;
+                    features.push_back(points[i].curve_val);
+                }
                 std::ifstream fin(this->model_path);
                 if (!fin)
                 {
@@ -504,7 +484,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 predicted_index = predicted_index < 0 ? 0 : predicted_index;
                 predicted_index = predicted_index >= width ? width - 1 : predicted_index;
                 points_map[predicted_index].push_back(point);
-
                 if (level == 0)
                 {
                     total_errors += abs((int)(predicted_index - point.index * width));
