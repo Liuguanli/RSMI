@@ -129,31 +129,47 @@ void FileWriter::write_build(ExpRecorder expRecorder)
     string folder = Constants::BUILD;
     file_utils::check_dir(filename + folder);
     write.open((filename + folder + expRecorder.structure_name + "_" + expRecorder.distribution + "_" + to_string(expRecorder.dataset_cardinality) + "_" + to_string(expRecorder.skewness) + "_" + to_string(expRecorder.N) + ".txt"), ios::app);
-    if (expRecorder.structure_name == "ZM" || expRecorder.structure_name == "RSMI")
-    {
-        write << expRecorder.get_time_size_errors();
-    }
-    if (expRecorder.structure_name == "ZM-MR" || expRecorder.structure_name == "RSMI-MR" || expRecorder.structure_name == "ZM-RL" || expRecorder.structure_name == "RSMI-RL")
-    {
-        write << expRecorder.get_time_size_errors();
-    }
-    if (expRecorder.structure_name == "ZM-SPF" || expRecorder.structure_name == "ZM-SP" || expRecorder.structure_name == "RSMI-SP" || expRecorder.structure_name == "ZM-RS" || expRecorder.structure_name == "RSMI-RS")
-    {
-        write << expRecorder.get_time_size_errors();
-    }
-    if (expRecorder.structure_name == "ZM-CL" || expRecorder.structure_name == "RSMI-CL")
-    {
-        write << expRecorder.get_time_size_errors();
-    }
-    if (expRecorder.structure_name == "Grid" || expRecorder.structure_name == "HRR" || expRecorder.structure_name == "KDB")
-    {
-        write << expRecorder.get_time_size();
-    }
+    // if (expRecorder.structure_name == "ZM" || expRecorder.structure_name == "RSMI" )
+    // {
+    //     write << expRecorder.get_time_size_errors();
+    // }
+    // if (expRecorder.structure_name == "ZM-MR" || expRecorder.structure_name == "RSMI-MR" || expRecorder.structure_name == "ZM-RL" || expRecorder.structure_name == "RSMI-RL")
+    // {
+    //     write << expRecorder.get_time_size_errors();
+    // }
+    // if (expRecorder.structure_name == "ZM-SPF" || expRecorder.structure_name == "ZM-SP" || expRecorder.structure_name == "RSMI-SP" || expRecorder.structure_name == "ZM-RS" || expRecorder.structure_name == "RSMI-RS")
+    // {
+    //     write << expRecorder.get_time_size_errors();
+    // }
+    // if (expRecorder.structure_name == "ZM-CL" || expRecorder.structure_name == "RSMI-CL")
+    // {
+    //     write << expRecorder.get_time_size_errors();
+    // }
+    // if (expRecorder.structure_name == "Grid" || expRecorder.structure_name == "HRR" || expRecorder.structure_name == "KDB")
+    // {
+    //     write << expRecorder.get_time_size();
+    // }
 
     // else
     // {
     //     write << expRecorder.get_time_size();
     // }
+    write << expRecorder.get_time_size_errors();
+
+    write.close();
+}
+
+void FileWriter::write_learned_cdf(ExpRecorder exp_recorder, vector<float> cdf)
+{
+    ofstream write;
+    string folder = Constants::LEARNED_CDF;
+    file_utils::check_dir(filename + folder);
+    write.open((filename + folder + exp_recorder.structure_name + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_" + to_string(exp_recorder.N) + ".csv"), ios::out);
+    int N = cdf.size();
+    for (size_t i = 0; i < N; i++)
+    {
+        write << cdf[i] << endl;
+    }
     write.close();
 }
 

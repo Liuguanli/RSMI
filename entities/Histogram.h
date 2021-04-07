@@ -41,7 +41,7 @@ public:
         int index = 0;
         for (size_t i = 1; i < bin_num; i++)
         {
-            while(data[index] <= start_x + i * key_gap && index < N)
+            while(index < N && data[index] <= (start_x + i * key_gap))
             {
                 index++;
             }
@@ -111,15 +111,14 @@ public:
         return dist_hist;
     }
 
-    double cal_similarity(Histogram histogram)
+    double cal_similarity(vector<float> target_hist)
     {
         double max_gap = 0.0;
         int length = hist.size();
-        assert(length == histogram.hist.size());
-
+        // assert(length == histogram.hist.size());
         for (size_t i = 0; i < length; i++)
         {
-            double temp_gap = abs(hist[i] - histogram.hist[i]);
+            double temp_gap = abs(hist[i] - target_hist[i]);
             if (max_gap < temp_gap)
             {
                 max_gap = temp_gap;

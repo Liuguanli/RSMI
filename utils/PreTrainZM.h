@@ -385,26 +385,21 @@ namespace pre_train_zm
         return sfc;
     }
 
-    void write_approximate_SFC(string folder, string file_name, int bit_num)
+    // void write_approximate_SFC(string folder, string file_name, int bit_num)
+    void write_approximate_SFC(vector<Point> points, string file_name, int bit_num)
     {
-        FileReader filereader(folder + file_name, ",");
-        vector<Point> points = filereader.get_points();
+        // FileReader filereader(folder + file_name, ",");
+        // vector<Point> points = filereader.get_points();
         long long N = points.size();
         int side = pow(2, bit_num / 2);
         vector<long long> sfcs;
         vector<float> features;
-        vector<int> counter;
-        for (int i = 0; i < pow(side, 2); i++)
-        {
-            counter.push_back(0);
-        }
         for (int i = 0; i < N; i++)
         {
-
-            long long xs[2] = {points[i].x * N, points[i].y * N};
+            long long xs[2] = {points[i].x * side, points[i].y * side};
             long long curve_val = compute_Z_value(xs, 2, bit_num);
+            // long long curve_val = compute_Z_value(points[i].x * side, points[i].y * side, bit_num);
             points[i].curve_val = curve_val;
-            counter[curve_val] += 1;
         }
         sort(points.begin(), points.end(), sort_curve_val());
         long long max_curve_val = points[N - 1].curve_val;
@@ -415,50 +410,14 @@ namespace pre_train_zm
             sfcs.push_back(points[i].curve_val);
             features.push_back((points[i].curve_val - min_curve_val) * 1.0 / gap);
         }
-
-        // A method to record how many curve values are the same
-        long num_of_same = 0;
-        for (int i = 1; i < N; i++)
-        {
-            // sfcs.push_back(points[i].curve_val);
-            if (points[i - 1].curve_val == points[i].curve_val)
-            {
-                num_of_same++;
-            }
-        }
-
-        // num_of_same: 99999975  25
-        // num_of_same: 99776164  223835
-        // num_of_same: 14316443  85683557
-        // num_of_same: 424660
-        cout << "num_of_same: " << num_of_same << endl;
-
         cout << "N: " << N << " min_curve_val: " << min_curve_val << " max_curve_val: " << max_curve_val << endl;
-
-        cout << "counter: " << counter << endl;
-        cout << "counter.size(): " << counter.size() << endl;
         SFC sfc(bit_num, sfcs);
         vector<float> weighted_SFC = sfc.get_weighted_curve();
-        // cout<< "weighted_SFC: " << weighted_SFC << endl;
-
-        // vector<int> counted_SFC = sfc.get_counted_courve();
-        // cout<< "counted_SFC: " << counted_SFC << endl;
-
+        cout<< "file_name: " << file_name << endl;
         string sfc_weight_path = Constants::SFC_Z_WEIGHT + "bit_num_" + to_string(bit_num) + "/";
         FileWriter SFC_writer(sfc_weight_path);
         SFC_writer.write_weighted_SFC(weighted_SFC, file_name);
 
-        // string sfc_count_path = Constants::SFC_Z_COUNT + "bit_num_" + to_string(bit_num) + "/";
-        // FileWriter SFC_writer_count(sfc_count_path);
-        // SFC_writer_count.write_counted_SFC(counted_SFC, file_name);
-
-        // string features_path = Constants::FEATURES_PATH_ZM;
-        // file_utils::check_dir(features_path);
-        // FileWriter SFC_writer_feature(features_path);
-
-        // SFC_writer_feature.write_SFC(features, to_string(bit_num) + "_" + file_name);
-
-        // return sfc;
     }
 
     vector<Point> get_points(string folder, string file_name, int resolution)

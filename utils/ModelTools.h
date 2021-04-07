@@ -171,26 +171,26 @@ public:
 
     void print_parameters()
     {
-        cout<< "W1" << endl;
+        cout << "W1" << endl;
         for (size_t i = 0; i < width; i++)
         {
-            cout<< w1__[i] << " ";
+            cout << w1__[i] << " ";
         }
-        cout<< endl;
-        cout<< "b1" << endl;
+        cout << endl;
+        cout << "b1" << endl;
         for (size_t i = 0; i < width; i++)
         {
-            cout<< b1_[i] << " ";
+            cout << b1_[i] << " ";
         }
-        cout<< endl;
-        cout<< "W2" << endl;
+        cout << endl;
+        cout << "W2" << endl;
         for (size_t i = 0; i < width; i++)
         {
-            cout<< w2_[i] << " ";
+            cout << w2_[i] << " ";
         }
-        cout<< endl;
-        cout<< "b2" << endl;
-        cout<< b2 << endl;
+        cout << endl;
+        cout << "b2" << endl;
+        cout << b2 << endl;
     }
 
     torch::Tensor forward(torch::Tensor x)
@@ -256,7 +256,7 @@ public:
             w2_ += 4;
         }
         result = 0;
-        if(blocks > 0)
+        if (blocks > 0)
         {
             result += fSum0[0] + fSum0[1] + fSum0[2] + fSum0[3];
         }
@@ -270,6 +270,19 @@ public:
         w2_ -= move_back;
         return result;
     }
+
+    // float predict(Point point, float x_gap, float y_gap, float x_0, float y_0)
+    // {
+    //     float x1 = (point.x - x_0) * x_gap + x_0;
+    //     float x2 = (point.y - y_0) * y_gap + y_0;
+    //     float result;
+    //     for (int i = 0; i < width; i++)
+    //     {
+    //         result += activation(x1 * w1_0[i] + x2 * w1_1[i] + b1_[i]) * w2_[i];
+    //     }
+    //     result += b2;
+    //     return result;
+    // }
 
     float predict(Point point, float x_gap, float y_gap, float x_0, float y_0)
     {
@@ -309,7 +322,7 @@ public:
             w2_ += 4;
         }
         result = 0;
-        if(blocks > 0)
+        if (blocks > 0)
         {
             result += fSum0[0] + fSum0[1] + fSum0[2] + fSum0[3];
         }
@@ -324,6 +337,19 @@ public:
         w2_ -= move_back;
         return result;
     }
+
+    // float predict(Point point)
+    // {
+    //     float x1 = point.x;
+    //     float x2 = point.y;
+    //     float result;
+    //     for (int i = 0; i < width; i++)
+    //     {
+    //         result += activation(x1 * w1_0[i] + x2 * w1_1[i] + b1_[i]) * w2_[i];
+    //     }
+    //     result += b2;
+    //     return result;
+    // }
 
     float predict(Point point)
     {
@@ -363,7 +389,7 @@ public:
             w2_ += 4;
         }
         result = 0;
-        if(blocks > 0)
+        if (blocks > 0)
         {
             result += fSum0[0] + fSum0[1] + fSum0[2] + fSum0[3];
         }
@@ -379,19 +405,6 @@ public:
         return result;
     }
 
-    // float predict(Point point)
-    // {
-    //     float x1 = point.x;
-    //     float x2 = point.y;
-    //     float result;
-    //     for (int i = 0; i < width; ++i)
-    //     {
-    //         result += activation(x1 * w1[i * 2] + x2 * w1[i * 2 + 1] + b1[i]) * w2[i];
-    //     }
-    //     result += b2;
-    //     return result;
-    // }
-
     float activation(float val)
     {
         if (val > 0.0)
@@ -403,14 +416,15 @@ public:
 
     void train_model(vector<float> locations, vector<float> labels)
     {
+
         long long N = labels.size();
-        #ifdef use_gpu
-            torch::Tensor x = torch::tensor(locations, at::kCUDA).reshape({N, this->input_width});
-            torch::Tensor y = torch::tensor(labels, at::kCUDA).reshape({N, 1});
-        #else
-            torch::Tensor x = torch::tensor(locations).reshape({N, this->input_width});
-            torch::Tensor y = torch::tensor(labels).reshape({N, 1});
-        #endif
+#ifdef use_gpu
+        torch::Tensor x = torch::tensor(locations, at::kCUDA).reshape({N, this->input_width});
+        torch::Tensor y = torch::tensor(labels, at::kCUDA).reshape({N, 1});
+#else
+        torch::Tensor x = torch::tensor(locations).reshape({N, this->input_width});
+        torch::Tensor y = torch::tensor(labels).reshape({N, 1});
+#endif
         // torch::Tensor x = torch::tensor(locations).reshape({N, this->input_width});
         // torch::Tensor y = torch::tensor(labels).reshape({N, 1});
         // auto net = isRetrain ? this->net : std::make_shared<Net>(2, width);
@@ -431,9 +445,9 @@ public:
                 {
                     optimizer.zero_grad();
                     torch::Tensor loss = torch::l1_loss(this->forward(x_chunks[i]), y_chunks[i]);
-                    #ifdef use_gpu
-                        loss.to(torch::kCUDA);
-                    #endif
+#ifdef use_gpu
+                    loss.to(torch::kCUDA);
+#endif
                     loss.backward();
                     total_loss += loss.item().toFloat();
                     optimizer.step();
@@ -446,9 +460,9 @@ public:
             {
                 optimizer.zero_grad();
                 torch::Tensor loss = torch::l1_loss(this->forward(x), y);
-                #ifdef use_gpu
-                    loss.to(torch::kCUDA);
-                #endif
+#ifdef use_gpu
+                loss.to(torch::kCUDA);
+#endif
                 loss.backward();
                 total_loss = loss.item().toFloat();
                 optimizer.step();
@@ -456,16 +470,15 @@ public:
         }
     }
 
-    // TODO for 2-dimensional data
-    bool is_reusable_rsmi_Z(SFC target, Histogram histogram, string threshold, string &model_path)
+    bool is_reusable_rsmi_Z(Histogram histogram, string threshold, string &model_path)
     {
         double min_dist = 1.0;
         std::map<string, Histogram>::iterator iter;
         iter = pre_trained_histograms_rsmi_Z.begin();
-
+        Histogram temp;
         while (iter != pre_trained_histograms_rsmi_Z.end())
         {
-            double temp_dist = iter->second.cal_similarity(histogram);
+            double temp_dist = iter->second.cal_similarity(histogram.hist);
             // if (iter->first == "uniform_1000_scale_1")
             // {
             //     cout<< iter->second.hist << endl;
@@ -477,13 +490,16 @@ public:
             }
             if (temp_dist < min_dist)
             {
+                temp = iter->second;
                 min_dist = temp_dist;
                 // model_path = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(Constants::RESOLUTION) + "/H" + threshold + "/" + iter->first + ".pt";
                 model_path = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(Constants::RESOLUTION) + "/Z/" + iter->first + ".pt";
             }
             iter++;
         }
-        // cout<< "min_dist: " << min_dist << endl;
+        // cout << "min_dist: " << min_dist << endl;
+        // cout << "temp:" << temp.hist << endl;
+        // cout << "histogram:" << histogram.hist << endl;
         // if (min_dist > 0.9)
         // {
         //     cout<< "hist: " << histogram.hist << endl;
@@ -501,7 +517,7 @@ public:
 
         while (iter != pre_trained_histograms_rsmi_H.end())
         {
-            double temp_dist = iter->second.cal_similarity(histogram);
+            double temp_dist = iter->second.cal_similarity(histogram.hist);
             // if (iter->first == "uniform_1000_scale_1")
             // {
             //     cout<< iter->second.hist << endl;
@@ -534,14 +550,18 @@ public:
         double min_dist = 1.0;
         std::map<string, Histogram>::iterator iter;
         iter = pre_trained_histograms.begin();
-
+        double thres = stod(threshold);
         while (iter != pre_trained_histograms.end())
         {
-            double temp_dist = iter->second.cal_similarity(histogram);
+            double temp_dist = iter->second.cal_similarity(histogram.hist);
             if (temp_dist < min_dist)
             {
                 min_dist = temp_dist;
                 model_path = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(Constants::RESOLUTION) + "/" + threshold + "/" + iter->first + ".pt";
+                if (min_dist < thres)
+                {
+                    break;
+                }
             }
             iter++;
         }
@@ -610,8 +630,8 @@ public:
         // string ppath_z = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(Constants::RESOLUTION) + "/H" + threshold + "/";
         string ppath_z = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(Constants::RESOLUTION) + "/Z/";
         string ppath_h = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(Constants::RESOLUTION) + "/H/";
-        
-        cout<< "load_pre_trained_model_rsmi: ppath_h:" << ppath_h << endl;
+
+        cout << "load_pre_trained_model_rsmi: ppath_h:" << ppath_h << endl;
         struct dirent *ptr;
         DIR *dir;
         dir = opendir(ppath_h.c_str());
@@ -629,13 +649,18 @@ public:
                 // string path = Constants::PRE_TRAIN_1D_DATA + threshold + "/";
                 vector<float> features = get_features_z(feature_path, prefix + ".csv");
                 Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), features);
+                // if (prefix == "dataset_1005_")
+                // {
+                //     cout<< "features:" << features << endl;
+                //     cout<< "histogram.hist:" << histogram.hist << endl;
+                // }
                 pre_trained_histograms_rsmi_H.insert(pair<string, Histogram>(prefix, histogram));
             }
             // break;
         }
-        cout<< "load finish..." << pre_trained_histograms_rsmi_H.size() << endl;
+        cout << "load finish..." << pre_trained_histograms_rsmi_H.size() << endl;
 
-        cout<< "load_pre_trained_model_rsmi: ppath_z:" << ppath_z << endl;
+        cout << "load_pre_trained_model_rsmi: ppath_z:" << ppath_z << endl;
         dir = opendir(ppath_z.c_str());
         while ((ptr = readdir(dir)) != NULL)
         {
@@ -655,7 +680,7 @@ public:
             }
             // break;
         }
-        cout<< "load finish..." << pre_trained_histograms_rsmi_Z.size() << endl;
+        cout << "load finish..." << pre_trained_histograms_rsmi_Z.size() << endl;
     }
 
     inline static void load_pre_trained_model_zm(string threshold)
@@ -665,7 +690,7 @@ public:
             return;
         }
         string ppath = Constants::PRE_TRAIN_MODEL_PATH_ZM + to_string(Constants::RESOLUTION) + "/" + threshold + "/";
-        cout<< "load_pre_trained_model_zm: ppath:" << ppath << endl;
+        cout << "load_pre_trained_model_zm: ppath:" << ppath << endl;
         struct dirent *ptr;
         DIR *dir;
         dir = opendir(ppath.c_str());
@@ -694,7 +719,7 @@ public:
             }
             // break;
         }
-        cout<< "load finish..." << pre_trained_histograms.size() << endl;
+        cout << "load finish..." << pre_trained_histograms.size() << endl;
     }
 
     inline static vector<long long> get_points_bitnum_h(string folder, string file_name, int bit_num)
@@ -747,6 +772,17 @@ public:
     }
 
     torch::nn::Linear fc1{nullptr}, fc2{nullptr};
+
+    // TODO 1 generate attributes (n, type{original, mr, rs, rl, sp}, model width, )
+    // TODO 2 build a training set!!!
+    // TODO 3
+    // TODO cardinality, model,
+    // TODO RL model, model reuse number, sampling, RS k, accuracy: RS sampling
+    // TODO cost for prediction cost for search.
+    // bool model_selection(int cardinality, int model_width, )
+    // {
+
+    // }
 };
 
 #endif

@@ -66,9 +66,10 @@ namespace pre_train_rsmi
 #endif
         vector<float> locations;
         vector<float> labels;
+        vector<float> features;
         for (Point point : points)
         {
-            // locations.push_back(point.normalized_curve_val);
+            features.push_back(point.normalized_curve_val);
             locations.push_back(point.x);
             locations.push_back(point.y);
             labels.push_back(point.index);
@@ -77,7 +78,7 @@ namespace pre_train_rsmi
         // cout<< "file_name: " << file_name << endl;
         string features_path = Constants::FEATURES_PATH_RSMI + to_string(resolution) + "/" + type + "/";
         FileWriter SFC_writer(features_path);
-        SFC_writer.write_SFC(locations, file_name + ".csv");
+        SFC_writer.write_SFC(features, file_name + ".csv");
 
         string model_path = Constants::PRE_TRAIN_MODEL_PATH_RSMI + to_string(resolution) + "/" + type + "/" + file_name + ".pt";
         std::ifstream fin(model_path);
@@ -91,16 +92,16 @@ namespace pre_train_rsmi
             torch::load(net, model_path);
             net->get_parameters();
         }
-        vector<float> locations1;
-        int N = points.size();
-        for (size_t i = 0; i < N; i++)
-        {
-            float pred = net->predict(points[i]);
-            pred = pred < 0 ? 0 : pred;
-            pred = pred > 1 ? 1 : pred;
-            locations1.push_back(pred);
-        }
-        SFC_writer.write_SFC(locations1, file_name + "learned.csv");
+        // vector<float> locations1;
+        // int N = points.size();
+        // for (size_t i = 0; i < N; i++)
+        // {
+        //     float pred = net->predict(points[i]);
+        //     pred = pred < 0 ? 0 : pred;
+        //     pred = pred > 1 ? 1 : pred;
+        //     locations1.push_back(pred);
+        // }
+        // SFC_writer.write_SFC(locations1, file_name + "learned.csv");
     }
 
     void test_errors(string file_name_t, int resolution)

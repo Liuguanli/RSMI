@@ -16,8 +16,13 @@ string ExpRecorder::get_time()
 string ExpRecorder::get_time_size_errors()
 {
     string result = "time:" + to_string(time) + "\n";
+    result += "level:" + to_string(level) + "\n";
     result += "top_level_time:" + to_string(top_level_time) + "\n";
     result += "bottom_level_time:" + to_string(bottom_level_time) + "\n";
+    result += "sfc_cal_time:" + to_string(sfc_cal_time) + "\n";
+    result += "ordering_cost:" + to_string(ordering_cost) + "\n";
+    result += "training_cost:" + to_string(training_cost) + "\n";
+    result += "extra_time:" + to_string(extra_time) + "\n";
     result += "size:" + to_string(size) + "\n";
     result += "maxError:" + to_string(max_error) + "\n";
     result += "min_error:" + to_string(min_error) + "\n";
@@ -25,6 +30,8 @@ string ExpRecorder::get_time_size_errors()
     result += "bottom_error:" + to_string(bottom_error) + "\n";
     result += "loss:" + to_string(loss) + "\n";
     result += "leaf_node_num:" + to_string(leaf_node_num) + "\n";
+    result += "last_level_model_num:" + to_string(last_level_model_num) + "\n";
+    result += "non_leaf_model_num:" + to_string(non_leaf_model_num) + "\n";
     result += "depth:" + to_string(depth) + "\n";
     // if (structure_name == "ZM" || structure_name == "RSMI")
     // {
@@ -65,6 +72,10 @@ string ExpRecorder::get_time_size_errors()
     loss = 0;
     representative_threshold_m = 0;
     top_rl_time = 0;
+    extra_time = 0;
+    ordering_cost = 0;
+    sfc_cal_time = 0;
+    training_cost = 0;
     return result;
 }
 
@@ -97,6 +108,7 @@ string ExpRecorder::get_time_pageaccess_accuracy()
 string ExpRecorder::get_time_pageaccess()
 {
     string result = "time:" + to_string(time) + "\n";
+    result += "level:" + to_string(level) + "\n";
     result += "prediction_time:" + to_string(prediction_time) + "\n";
     result += "sfc_cal_time:" + to_string(sfc_cal_time) + "\n";
     result += "search_time:" + to_string(search_time) + "\n";
@@ -210,6 +222,10 @@ void ExpRecorder::clean()
     top_level_time = 0;
     search_steps = 0;
     search_time = 0;
+    extra_time = 0;
+    point_not_found = 0;
+
+    sfc_cal_time = 0;
 }
 
 string ExpRecorder::get_file_name()
@@ -225,15 +241,7 @@ string ExpRecorder::get_dataset_name()
 void ExpRecorder::set_structure_name(string prefix)
 {
     string name = "";
-    if (is_model_reuse)
-    {
-        name = "-MR";
-    }
-    else if (is_rl)
-    {
-        name = "-RL";
-    }
-    else if (is_sp)
+    if (is_sp)
     {
         if (is_sp_first)
         {
@@ -243,6 +251,14 @@ void ExpRecorder::set_structure_name(string prefix)
         {
             name = "-SP";
         }
+    }
+    else if (is_rl)
+    {
+        name = "-RL";
+    }
+    else if (is_model_reuse)
+    {
+        name = "-MR";
     }
     else if (is_rs)
     {
@@ -255,14 +271,22 @@ void ExpRecorder::set_structure_name(string prefix)
     structure_name = prefix + name;
 }
 
-ExpRecorder* ExpRecorder::test_sp()
+ExpRecorder *ExpRecorder::test_sp()
 {
     test_reset();
     is_sp = true;
     return this;
 }
 
-ExpRecorder* ExpRecorder::test_sp_first()
+ExpRecorder *ExpRecorder::test_sp_mr()
+{
+    test_reset();
+    is_sp = true;
+    is_model_reuse = true;
+    return this;
+}
+
+ExpRecorder *ExpRecorder::test_sp_first()
 {
     test_reset();
     is_sp = true;
@@ -270,31 +294,53 @@ ExpRecorder* ExpRecorder::test_sp_first()
     return this;
 }
 
-ExpRecorder* ExpRecorder::test_model_reuse()
+ExpRecorder *ExpRecorder::test_model_reuse()
 {
     test_reset();
     is_model_reuse = true;
     return this;
 }
 
-ExpRecorder* ExpRecorder::test_rl()
+ExpRecorder *ExpRecorder::test_rl()
 {
     test_reset();
     is_rl = true;
     return this;
 }
 
-ExpRecorder* ExpRecorder::test_cluster()
+ExpRecorder *ExpRecorder::test_rl_mr()
+{
+    test_reset();
+    is_model_reuse = true;
+    is_rl = true;
+    return this;
+}
+
+ExpRecorder *ExpRecorder::test_cluster()
 {
     test_reset();
     is_cluster = true;
     return this;
 }
 
-ExpRecorder* ExpRecorder::test_rs()
+ExpRecorder *ExpRecorder::test_rs_mr()
 {
     test_reset();
     is_rs = true;
+    is_model_reuse = true;
+    return this;
+}
+
+ExpRecorder *ExpRecorder::test_rs()
+{
+    test_reset();
+    is_rs = true;
+    return this;
+}
+
+ExpRecorder *ExpRecorder::set_level(int level)
+{
+    this->level = level;
     return this;
 }
 

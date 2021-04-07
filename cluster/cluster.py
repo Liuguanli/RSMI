@@ -115,7 +115,7 @@ def parser(argv):
 if __name__ == "__main__":
     distribution, size, skewness, dim, k, filename = parser(sys.argv[1:])
     print(distribution, size, skewness, dim, k, filename)
-    X = load_data("/home/research/datasets/%s_%d_%d_%d_.csv" % (distribution, size, skewness, dim))
+    X = load_data("/home/liuguanli/Documents/datasets/RLRtree/raw/%s_%d_%d_%d_.csv" % (distribution, size, skewness, dim))
     # test_mini_batch_kmeans_manual(X)
     test_mini_batch_kmeans_auto(X, k, filename % (distribution, size, skewness, dim))
     # for i in range(4):

@@ -10,6 +10,7 @@
 #include "utils/FileReader.h"
 #include "indices/ZM.h"
 #include "indices/RSMI.h"
+#include "indices/RMRT.h"
 #include "indices/HRR.h"
 #include "indices/Grid.h"
 #include "indices/KDBTree.h"
@@ -172,6 +173,78 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     // exp_recorder.clean();
 }
 
+void exp_RMRT(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, vector<Point> insert_points, string model_path, float sampling_rate)
+{
+    cout << "exp_RMRT: " << endl;
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(1) << exp_recorder.model_reuse_threshold;
+    string threshold = stream.str();
+    if (exp_recorder.is_model_reuse)
+    {
+        auto start = chrono::high_resolution_clock::now();
+        pre_train_rsmi::pre_train_2d_H(Constants::RESOLUTION, threshold);
+        pre_train_rsmi::pre_train_2d_Z(Constants::RESOLUTION, threshold);
+        Net::load_pre_trained_model_rsmi(threshold);
+        auto finish = chrono::high_resolution_clock::now();
+        cout << "load time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
+    }
+    exp_recorder.clean();
+    exp_recorder.set_structure_name("RMRT");
+    RMRT::model_path_root = model_path;
+    RMRT *partition = new RMRT(0, Constants::MAX_WIDTH);
+    auto start = chrono::high_resolution_clock::now();
+    partition->model_path = model_path;
+    partition->sampling_rate = sampling_rate;
+    partition->build(exp_recorder, points);
+    auto finish = chrono::high_resolution_clock::now();
+    exp_recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+    cout << "build time: " << exp_recorder.time << endl;
+    exp_recorder.sampling_rate = sampling_rate;
+    exp_recorder.size = (2 * Constants::HIDDEN_LAYER_WIDTH + Constants::HIDDEN_LAYER_WIDTH * 1 + Constants::HIDDEN_LAYER_WIDTH * 1 + 1) * Constants::EACH_DIM_LENGTH * exp_recorder.non_leaf_node_num + (Constants::DIM * Constants::PAGESIZE + Constants::PAGESIZE + Constants::DIM * Constants::DIM) * Constants::EACH_DIM_LENGTH * exp_recorder.leaf_node_num;
+    file_writer.write_build(exp_recorder);
+    exp_recorder.clean();
+    partition->point_query(exp_recorder, points);
+    // cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
+    cout << "finish point_query time: " << exp_recorder.time << endl;
+    file_writer.write_point_query(exp_recorder);
+    exp_recorder.clean();
+
+    // exp_recorder.window_size = areas[2];
+    // exp_recorder.window_ratio = ratios[2];
+    // partition->acc_window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
+    // cout << "RSMI::acc_window_query time: " << exp_recorder.time << endl;
+    // cout << "RSMI::acc_window_query page_access: " << exp_recorder.page_access << endl;
+    // file_writer.write_acc_window_query(exp_recorder);
+    // partition->window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
+    // exp_recorder.accuracy = ((double)exp_recorder.window_query_result_size) / exp_recorder.acc_window_query_qesult_size;
+    // cout << "window_query time: " << exp_recorder.time << endl;
+    // cout << "window_query page_access: " << exp_recorder.page_access << endl;
+    // cout << "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
+    // file_writer.write_window_query(exp_recorder);
+
+    // exp_recorder.clean();
+    // exp_recorder.k_num = ks[2];
+    // partition->acc_kNN_query(exp_recorder, query_poitns, ks[2]);
+    // cout << "exp_recorder.time: " << exp_recorder.time << endl;
+    // cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
+    // file_writer.write_acc_kNN_query(exp_recorder);
+    // partition->kNN_query(exp_recorder, query_poitns, ks[2]);
+    // cout << "exp_recorder.time: " << exp_recorder.time << endl;
+    // cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
+    // exp_recorder.accuracy = knn_diff(exp_recorder.acc_knn_query_results, exp_recorder.knn_query_results);
+    // cout << "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
+    // file_writer.write_kNN_query(exp_recorder);
+    // exp_recorder.clean();
+
+    // partition->insert(exp_recorder, insert_points);
+    // cout << "exp_recorder.insert_time: " << exp_recorder.insert_time << endl;
+    // exp_recorder.clean();
+    // partition->point_query(exp_recorder, points);
+    // // cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
+    // cout << "finish point_query time: " << exp_recorder.time << endl;
+    // exp_recorder.clean();
+}
+
 void exp_ZM(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, vector<Point> insert_points, string model_path, float sampling_rate, int m)
 {
     cout << "exp_ZM: " << endl;
@@ -195,6 +268,8 @@ void exp_ZM(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> poin
     exp_recorder.sampling_rate = sampling_rate;
     zm->build(exp_recorder, points, Constants::RESOLUTION, m);
     file_writer.write_build(exp_recorder);
+    exp_recorder.clean();
+    file_writer.write_learned_cdf(exp_recorder, zm->predict_cdf());
     exp_recorder.clean();
     zm->point_query(exp_recorder, points);
     file_writer.write_point_query(exp_recorder);
@@ -341,8 +416,10 @@ map<string, vector<Mbr>> get_query_mbrs(ExpRecorder &exp_recorder, map<string, v
 }
 
 string RSMI::model_path_root = "";
+string RMRT::model_path_root = "";
 int main(int argc, char **argv)
 {
+    torch::manual_seed(0);
     ExpRecorder exp_recorder;
     parse(argc, argv, exp_recorder);
     cout << "exp_recorder.get_dataset_name():" << exp_recorder.get_dataset_name() << endl;
@@ -359,78 +436,71 @@ int main(int argc, char **argv)
     string model_path = model_root_path + "/";
     FileWriter file_writer(Constants::RECORDS);
 
-    //************************* cannot comment above *************************
-    // vector<int> sfc = pre_train_zm::test_Approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv");
-    // vector<float> result_cdf;
-    // vector<float> z_values;
-    // pre_train_zm::cnn(128, sfc, 100000000, 100000, z_values, result_cdf);
-    // auto start = chrono::high_resolution_clock::now();
-    // pre_train_zm::train_top_level(points);
-    // auto finish = chrono::high_resolution_clock::now();
-    // cout << "load time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
-
     // expHRR(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
     // expGrid(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
     // expKDB(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
-
-    // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 0.1);
-
-    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
-
     // exp_binary_search(file_writer, exp_recorder, points);
 
+    // exp_recorder.set_level(1);
+    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
+    // exp_recorder->set_level(2);
+    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
+    // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 0.1);
+
     // // sampling
-    exp_recorder.test_sp();
-    cout << "IS_SAMPLING" << endl;
-    float sampling_rates[] = {0.0001, 0.001};
-    for (size_t i = 0; i < sizeof(sampling_rates) / sizeof(sampling_rates[0]); i++)
-    {
-        // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i], 1024);
-        exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i]);
-    }
+    // cout << "IS_SAMPLING" << endl;
+    // exp_recorder.test_sp_mr()->set_level(1);
+    // float sampling_rates[] = {0.0001};
+    // for (size_t i = 0; i < sizeof(sampling_rates) / sizeof(sampling_rates[0]); i++)
+    // {
+    //     // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i], 1024);
+    //     exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i]);
+    //     // exp_RMRT(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i]);
+    // }
+    // TODO sampling level 2 error
+    // exp_recorder.test_sp()->set_level(2);
+    // for (size_t i = 0; i < sizeof(sampling_rates) / sizeof(sampling_rates[0]); i++)
+    // {
+    //     exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i], 1024);
+    // }
 
     // // representative set
-    // exp_recorder.test_rs();
+    // exp_recorder.test_rs()->set_level(1);
     // cout << "IS_REPRESENTATIVE_SET" << endl;
     // int ms[] = {8192};
     // for (size_t i = 0; i < sizeof(ms) / sizeof(ms[0]); i++)
     // {
     //     exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, ms[i]);
     // }
+    // exp_recorder.test_rs()->set_level(2);
+    // for (size_t i = 0; i < sizeof(ms) / sizeof(ms[0]); i++)
+    // {
+    //     exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, ms[i]);
+    // }
 
     // // reinforcement learning
-    // exp_recorder.test_rl();
+    // exp_recorder.test_rl()->set_level(1);
+    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
+    // TODO rl level 2 error
+    // exp_recorder.test_rl()->set_level(2);
     // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
 
+    // // model reuse
+    exp_recorder.test_model_reuse()->set_level(1);
+    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
+    // TODO mr level 2 error
+    // exp_recorder.test_model_reuse()->set_level(2);
+    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
+    // exp_RMRT(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 0.1);
+    // TODO skewed killed
+    exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 0.1);
+
     // cluster
-    // exp_recorder.test_cluster();
+    // exp_recorder.test_cluster()->set_level(1);
     // cout << "IS_CLUSTER" << endl;
     // exp_recorder.cluster_method = "kmeans";
     // exp_recorder.cluster_size = 10000;
     // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
-
-    // // model reuse
-    // exp_recorder.test_model_reuse();
-    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
-
-    // int resolutions[] = {1};
-    // int resolutions[] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-    // 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
-    // for (size_t i = 0; i < sizeof(resolutions) / sizeof(resolutions[0]); i++)
-    // {
-    //     cout << "----------resolution = " + to_string(resolutions[i]) + "------------" << endl;
-    //     pre_train_rsmi::test_errors("OSM_100000000_1_2_.csv", resolutions[i]);
-    // }
-
-    // int resolutions[] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-    // 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216};
-
-    // for (size_t i = 0; i < sizeof(resolutions) / sizeof(resolutions[0]); i++)
-    // {
-    //     cout << "----------resolution = " + to_string(resolutions[i]) + "------------" << endl;
-    //     pre_train_zm::test_errors("OSM_100000000_1_2_.csv", resolutions[i]);
-    // }
-    // Net::load_pre_trained_model();
 }
 
 #endif // use_gpu

@@ -36,6 +36,8 @@ const string Constants::DELETEWINDOW= "deleteWindow/";
 const string Constants::DELETEACCWINDOW= "deleteAccWindow/";
 const string Constants::DELETEKNN= "deleteKnn/";
 const string Constants::DELETEACCKNN= "deleteAccKnn/";
+const string Constants::LEARNED_CDF= "learned_cdf/";
+
 
 const string Constants::TORCH_MODELS = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/torch_models/";
 const string Constants::TORCH_MODELS_ZM = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/torch_models_zm/";

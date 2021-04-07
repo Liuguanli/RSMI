@@ -37,6 +37,7 @@ public:
     float loss = 0;
 
     int last_level_model_num = 0;
+    long long non_leaf_model_num = 0;
 
     string structure_name;
     string distribution;
@@ -60,10 +61,13 @@ public:
     double accuracy;
     long size;
     long top_rl_time;
+    long extra_time;
 
     long prediction_time = 0;
     long search_time = 0;
     long sfc_cal_time = 0;
+    long ordering_cost = 0;
+    long training_cost = 0;
 
     long search_steps = 0;
 
@@ -89,6 +93,8 @@ public:
     bool is_cluster = false;
     bool is_rs = false;
 
+    int level = 1;
+
     ExpRecorder();
     string get_time();
     string get_time_pageaccess();
@@ -110,13 +116,17 @@ public:
     void set_structure_name(string prefix);
 
     ExpRecorder* test_sp();
+    ExpRecorder* test_sp_mr();
     ExpRecorder* test_sp_first();
     ExpRecorder* test_model_reuse();
     ExpRecorder* test_rl();
+    ExpRecorder* test_rl_mr();
     ExpRecorder* test_cluster();
     ExpRecorder* test_rs();
+    ExpRecorder* test_rs_mr();
     void test_reset();
 
+    ExpRecorder* set_level(int level);
 
 };
 

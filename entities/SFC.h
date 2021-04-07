@@ -93,16 +93,27 @@ public:
         vector<float> weighted_curve_value;
         int N = values.size();
         int index = 0;
-        for (size_t i = 0; i <= max; i++)
+        // TODO use map to get
+        map<long long, int> values_map;
+        for (size_t i = 0; i < N; i++)
         {
-            int each_index = 0;
-            while (values[index] == i && index < N)
-            {
-                index++;
-                each_index++;
-            }
-            weighted_curve_value.push_back(each_index * 1.0 / N);
+            values_map[values[i]]++;
         }
+        vector<long long> keys;
+        int keys_size = values_map.size();
+        keys.reserve(keys_size);
+        for (const auto &[key, value] : values_map)
+        {
+            keys.push_back(key);
+        }
+        sort(keys.begin(), keys.end());
+        int temp_sum = 0;
+        for (size_t i = 0; i < keys_size; i++)
+        {
+            // temp_sum += values_map[keys[i]];
+            weighted_curve_value.push_back(values_map[keys[i]] * 1.0 / N);
+        }
+        cout << "weighted_curve_value: " << weighted_curve_value << endl;
         float sum = 0;
         for (size_t i = 0; i <= max; i++)
         {
@@ -153,7 +164,7 @@ public:
         int N = values.size();
         int index = 0;
         long long gap = pow(2, bit_num - to_bit_num);
-        cout<< "gap1: " << gap << endl;
+        cout << "gap1: " << gap << endl;
         for (size_t i = 0; i <= max; i++)
         {
             while (values[index] / gap == i && index < N)
@@ -162,7 +173,7 @@ public:
             }
             cdf.push_back(index * 1.0 / N);
         }
-        cout<< "cdf: " << cdf << endl;
+        cout << "cdf: " << cdf << endl;
         int start_index = max - 1;
         double start = cdf[start_index];
         for (size_t i = max - 2; i >= 0; i++)
