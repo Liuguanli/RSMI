@@ -9,15 +9,12 @@ class Histogram
 {
 private:
     // long long binary_search(float);
-    
 
     std::vector<float>::iterator begin;
     float data_size;
     int bin_num = Constants::DEFAULT_BIN_NUM;
 
-
 public:
-
     std::vector<float> hist;
     std::vector<float> data;
 
@@ -29,11 +26,11 @@ public:
     {
         this->bin_num = bin_num;
     }
-    
+
     Histogram(int bin_num, std::vector<float> data)
     {
-        this->data = data;
-        float N = data.size();
+        // this->data = data;
+        long N = data.size();
         float start_x = data[0];
         float end_x = data[N - 1];
         float key_gap = (end_x - start_x) * 1.0 / bin_num;
@@ -41,7 +38,7 @@ public:
         int index = 0;
         for (size_t i = 1; i < bin_num; i++)
         {
-            while(index < N && data[index] <= (start_x + i * key_gap))
+            while (index < N && data[index] <= (start_x + i * key_gap))
             {
                 index++;
             }
@@ -63,7 +60,7 @@ public:
         //             {
         //                 break;
         //             }
-                    
+
         //         }
         //         hist.push_back(float(num) / N);
         //     }
@@ -132,15 +129,16 @@ public:
         long long begin = 0;
         long long end = data.size() - 1;
         long long mid = (begin + end) / 2;
-        while(data[mid] != key) {
-            if (data[mid] < key) 
+        while (data[mid] != key)
+        {
+            if (data[mid] < key)
             {
-                if (data[mid + 1] >= key) 
+                if (data[mid + 1] >= key)
                 {
                     break;
                 }
                 begin = mid;
-            } 
+            }
             else if (data[mid] > key)
             {
                 if (data[mid - 1] <= key)
@@ -154,7 +152,6 @@ public:
         }
         return mid;
     }
-    
 };
 
 #endif

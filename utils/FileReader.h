@@ -16,6 +16,7 @@ class FileReader
 public:
     FileReader();
     FileReader(string, string);
+    FileReader(string);
     vector<vector<string>> get_data(); 
     vector<vector<string>> get_data(string); 
     vector<Point> get_points();
@@ -27,6 +28,7 @@ public:
     vector<int> read_sfc(string filename);
     void read_sfc(string filename, vector<int> &, vector<float> &);
     void read_sfc_2d(string filename, vector<float> &, vector<float> &);
+    void get_cost_model_data(string, vector<float> &, vector<float> &, vector<float> &);
 };
 
 #endif

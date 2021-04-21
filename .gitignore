@@ -11,3 +11,5 @@ pre_train/*
 *.eps
 *.png
 *.txt
+
+costmodel/

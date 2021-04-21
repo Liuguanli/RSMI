@@ -103,8 +103,8 @@ public:
         // torch::nn::init::uniform_(fc2->weight, 0, 0.1);
         // torch::nn::init::uniform_(fc1->weight, 0, 1.0 / width);
         // torch::nn::init::uniform_(fc2->weight, 0, 1.0 / width);
-        torch::nn::init::constant_(fc1->bias, 0);
-        torch::nn::init::constant_(fc2->bias, 0);
+        // torch::nn::init::constant_(fc1->bias, 0);
+        // torch::nn::init::constant_(fc2->bias, 0);
         // torch::nn::init::normal_(fc1->weight, 0, 1);
         // torch::nn::init::normal_(fc2->weight, 0, 1);
     }
@@ -120,13 +120,11 @@ public:
         {
             w1__[i] = p1.select(0, i).item().toFloat();
         }
-
         p2 = p2.reshape({width, 1});
         for (size_t i = 0; i < width; i++)
         {
             b1_[i] = p2.select(0, i).item().toFloat();
         }
-
         p3 = p3.reshape({width, 1});
         for (size_t i = 0; i < width; i++)
         {
@@ -678,7 +676,6 @@ public:
                 Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), features);
                 pre_trained_histograms_rsmi_Z.insert(pair<string, Histogram>(prefix, histogram));
             }
-            // break;
         }
         cout << "load finish..." << pre_trained_histograms_rsmi_Z.size() << endl;
     }

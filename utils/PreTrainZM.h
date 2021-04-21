@@ -413,11 +413,11 @@ namespace pre_train_zm
         cout << "N: " << N << " min_curve_val: " << min_curve_val << " max_curve_val: " << max_curve_val << endl;
         SFC sfc(bit_num, sfcs);
         vector<float> weighted_SFC = sfc.get_weighted_curve();
-        cout<< "file_name: " << file_name << endl;
+        cout << "file_name: " << file_name << endl;
+        cout << "weighted_SFC size: " << weighted_SFC.size() << endl;
         string sfc_weight_path = Constants::SFC_Z_WEIGHT + "bit_num_" + to_string(bit_num) + "/";
         FileWriter SFC_writer(sfc_weight_path);
         SFC_writer.write_weighted_SFC(weighted_SFC, file_name);
-
     }
 
     vector<Point> get_points(string folder, string file_name, int resolution)
@@ -665,6 +665,107 @@ namespace pre_train_zm
     //         }
     //     }
     // }
+
+    // std::shared_ptr<Net>
+    auto query_cost_model = std::make_shared<Net>(10, 64);
+    auto build_cost_model = std::make_shared<Net>(10, 64);
+
+    // TODO read train_set_formatted.csv
+    // TODO build pytorch model to do prediction !!!
+    void cost_model_build()
+    {
+        FileReader filereader(",");
+        string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted.csv";
+        string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/build_time_model.pt";
+        string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/query_time_model.pt";
+
+        // std::ifstream fin_build(build_time_model_path);
+        // std::ifstream fin_query(query_time_model_path);
+        // if (!fin_build && !fin_query)
+        // {
+        vector<float> parameters;
+        vector<float> build_time_labels;
+        vector<float> query_time_labels;
+        filereader.get_cost_model_data(path, parameters, build_time_labels, query_time_labels);
+#ifdef use_gpu
+        query_cost_model->to(torch::kCUDA);
+        build_cost_model->to(torch::kCUDA);
+#endif
+        build_cost_model->train_model(parameters, build_time_labels);
+        query_cost_model->train_model(parameters, query_time_labels);
+        // }
+        // else
+        // {
+        //     torch::load(build_cost_model, build_time_model_path);
+        //     torch::load(query_cost_model, query_time_model_path);
+        // }
+    }
+
+    string get_distribution(Histogram hist)
+    {
+        Histogram uniform = Net::pre_trained_histograms["index_446"];
+        Histogram normal = Net::pre_trained_histograms["index_446"];
+
+        double distance = 0;
+        distance = hist.cal_similarity(uniform.hist);
+        if (distance < 0.1)
+        {
+            return "uniform";
+        }
+        distance = hist.cal_similarity(normal.hist);
+        if (distance < 0.1)
+        {
+            return "normal";
+        }
+        return "skewed";
+    }
+
+    string cost_model_predict(float lambda, long cardinality, string distribution)
+    {
+        cout << "cardinality: " << cardinality << endl;
+        cout << "distribution: " << distribution << endl;
+
+        map<string, vector<float>> distributions = {
+            {"normal", {1, 0, 0}}, {"skewed", {0, 1, 0}}, {"uniform", {0, 0, 1}}};
+
+        vector<float> distribution_list = distributions[distribution];
+        // {"cl", {1, 0, 0, 0, 0, 0}},
+        map<string, vector<float>> methods = {
+            {"mr", {0, 1, 0, 0, 0, 0}}, {"or", {0, 0, 1, 0, 0, 0}}, {"rl", {0, 0, 0, 1, 0, 0}}, {"rs", {0, 0, 0, 0, 1, 0}}, {"sp", {0, 0, 0, 0, 0, 1}}};
+
+        float score = 0;
+        vector<float> parameters;
+
+        parameters.push_back(cardinality * 1.0 / 6400);
+        parameters.insert(parameters.end(), distribution_list.begin(), distribution_list.end());
+
+        map<string, vector<float>>::iterator iter;
+        iter = methods.begin();
+
+        auto start = chrono::high_resolution_clock::now();
+        float max_score = 0;
+        string result = "";
+        while (iter != methods.end())
+        {
+            vector<float> temp = parameters;
+            temp.insert(temp.end(), iter->second.begin(), iter->second.end());
+            torch::Tensor x = torch::tensor(temp, at::kCUDA).reshape({1, 10});
+            float build_score = build_cost_model->predict(x).item().toFloat();
+            float query_score = query_cost_model->predict(x).item().toFloat();
+            score = lambda * build_score + (1 - lambda) * query_score;
+            if (score > max_score)
+            {
+                max_score = score;
+                result = iter->first;
+            }
+            cout << "iter->first: " << iter->first << " build_score: " << build_score << " query_score: " << query_score << " score: " << score << endl;
+            iter++;
+        }
+
+        auto finish = chrono::high_resolution_clock::now();
+        cout << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
+        return result;
+    }
 
 }; // namespace pre_train
 

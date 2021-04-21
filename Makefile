@@ -21,15 +21,12 @@ else
 	FLAG = -Wl,-rpath=/home/liuguanli/Documents/libtorch/lib
 endif
 
-
-
 # INCLUDE = -I/home/liuguanli/Documents/libtorch/include -I/home/liuguanli/Documents/libtorch/include/torch/csrc/api/include
 # LIB +=-L/home/liuguanli/Documents/libtorch/lib -ltorch -lc10 -lpthread
 # FLAG = -Wl,-rpath=/home/liuguanli/Documents/libtorch/lib
 
 NAME=$(wildcard *.cpp)
 TARGET=$(patsubst %.cpp, %, $(NAME))
-
 
 $(TARGET):$(OBJS)
 	$(CC) -o $@ $^ $(INCLUDE) $(LIB) $(FLAG)

@@ -12,7 +12,6 @@
 #include "../entities/Mbr.h"
 using namespace std;
 
-
 FileReader::FileReader()
 {
 }
@@ -20,6 +19,11 @@ FileReader::FileReader()
 FileReader::FileReader(string filename, string delimeter)
 {
     this->filename = filename;
+    this->delimeter = delimeter;
+}
+
+FileReader::FileReader(string delimeter)
+{
     this->delimeter = delimeter;
 }
 
@@ -41,6 +45,29 @@ vector<vector<string>> FileReader::get_data(string path)
     file.close();
 
     return data_list;
+}
+
+void FileReader::get_cost_model_data(string path, vector<float> &parameters, vector<float> &build_time_labels, vector<float> &query_time_labels)
+{
+    ifstream file(path);
+    string line = "";
+    while (getline(file, line))
+    {
+        vector<string> vec;
+        boost::algorithm::split(vec, line, boost::is_any_of(delimeter));
+        int length = vec.size();
+        parameters.push_back(stod(vec[0]) / 6400);
+        for (size_t i = 1; i < length - 2; i++)
+        {
+            // std::cout << "vec[i]: " << vec[i] << std::endl;
+            parameters.push_back(stod(vec[i]));
+        }
+        // std::cout << "vec[length - 2]: " << vec[length - 2] << std::endl;
+        build_time_labels.push_back(stod(vec[length - 2]));
+        // std::cout << "vec[length - 1]: " << vec[length - 1] << std::endl;
+        query_time_labels.push_back(stod(vec[length - 1]));
+    }
+    file.close();
 }
 
 vector<vector<string>> FileReader::get_data()
@@ -83,7 +110,7 @@ vector<Mbr> FileReader::get_mbrs()
         Mbr mbr(stod(vec[0]), stod(vec[1]), stod(vec[2]), stod(vec[3]));
         mbrs.push_back(mbr);
     }
-    
+
     file.close();
 
     return mbrs;
@@ -123,7 +150,7 @@ vector<Mbr> FileReader::get_mbrs(string filename, string delimeter)
         Mbr mbr(stod(vec[0]), stod(vec[1]), stod(vec[2]), stod(vec[3]));
         mbrs.push_back(mbr);
     }
-    
+
     file.close();
 
     return mbrs;
@@ -134,7 +161,7 @@ vector<float> FileReader::read_features()
     return this->read_features(this->filename);
 }
 
-void FileReader::read_sfc(string filename, vector<int> & sfc, vector<float> & cdf)
+void FileReader::read_sfc(string filename, vector<int> &sfc, vector<float> &cdf)
 {
     ifstream file(filename);
 
@@ -149,7 +176,7 @@ void FileReader::read_sfc(string filename, vector<int> & sfc, vector<float> & cd
     file.close();
 }
 
-void FileReader::read_sfc_2d(string filename, vector<float> & features, vector<float> & cdf)
+void FileReader::read_sfc_2d(string filename, vector<float> &features, vector<float> &cdf)
 {
     ifstream file(filename);
 

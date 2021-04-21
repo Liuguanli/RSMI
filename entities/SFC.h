@@ -90,8 +90,10 @@ public:
     vector<float> get_weighted_curve()
     {
         long long max = pow(2, bit_num) - 1;
+        cout<< "max: " << max << endl;
         vector<float> weighted_curve_value;
         int N = values.size();
+        cout<< "N: " << N << endl;
         int index = 0;
         // TODO use map to get
         map<long long, int> values_map;
@@ -101,6 +103,7 @@ public:
         }
         vector<long long> keys;
         int keys_size = values_map.size();
+        cout<< "keys_size: " << keys_size << endl;
         keys.reserve(keys_size);
         for (const auto &[key, value] : values_map)
         {

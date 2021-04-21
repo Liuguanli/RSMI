@@ -179,24 +179,26 @@ void exp_RMRT(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     std::stringstream stream;
     stream << std::fixed << std::setprecision(1) << exp_recorder.model_reuse_threshold;
     string threshold = stream.str();
-    if (exp_recorder.is_model_reuse)
-    {
-        auto start = chrono::high_resolution_clock::now();
-        pre_train_rsmi::pre_train_2d_H(Constants::RESOLUTION, threshold);
-        pre_train_rsmi::pre_train_2d_Z(Constants::RESOLUTION, threshold);
-        Net::load_pre_trained_model_rsmi(threshold);
-        auto finish = chrono::high_resolution_clock::now();
-        cout << "load time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
-    }
+    // if (exp_recorder.is_model_reuse)
+    // {
+    // }
+    auto start = chrono::high_resolution_clock::now();
+    pre_train_rsmi::pre_train_2d_H(Constants::RESOLUTION, threshold);
+    pre_train_rsmi::pre_train_2d_Z(Constants::RESOLUTION, threshold);
+    Net::load_pre_trained_model_rsmi(threshold);
+    auto finish = chrono::high_resolution_clock::now();
+    pre_train_rsmi::cost_model_build();
+
+    cout << "load time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
     exp_recorder.clean();
     exp_recorder.set_structure_name("RMRT");
     RMRT::model_path_root = model_path;
     RMRT *partition = new RMRT(0, Constants::MAX_WIDTH);
-    auto start = chrono::high_resolution_clock::now();
+    start = chrono::high_resolution_clock::now();
     partition->model_path = model_path;
     partition->sampling_rate = sampling_rate;
     partition->build(exp_recorder, points);
-    auto finish = chrono::high_resolution_clock::now();
+    finish = chrono::high_resolution_clock::now();
     exp_recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     cout << "build time: " << exp_recorder.time << endl;
     exp_recorder.sampling_rate = sampling_rate;
@@ -251,11 +253,13 @@ void exp_ZM(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> poin
     std::stringstream stream;
     stream << std::fixed << std::setprecision(1) << exp_recorder.model_reuse_threshold;
     string threshold = stream.str();
-    if (exp_recorder.is_model_reuse)
-    {
-        pre_train_zm::pre_train_1d_Z(Constants::RESOLUTION, threshold);
-        Net::load_pre_trained_model_zm(threshold);
-    }
+    // if (exp_recorder.is_model_reuse)
+    // {
+    // }
+    pre_train_zm::pre_train_1d_Z(Constants::RESOLUTION, threshold);
+    Net::load_pre_trained_model_zm(threshold);
+    pre_train_zm::cost_model_build();
+
     exp_recorder.clean();
     exp_recorder.set_structure_name("ZM");
     exp_recorder.representative_threshold_m = m;
@@ -419,6 +423,14 @@ string RSMI::model_path_root = "";
 string RMRT::model_path_root = "";
 int main(int argc, char **argv)
 {
+
+    // pre_train_rsmi::pre_train_cost_model("or");
+    // pre_train_rsmi::pre_train_cost_model("rs");
+    // pre_train_rsmi::pre_train_cost_model("sp");
+    // pre_train_rsmi::pre_train_cost_model("rl");
+    // pre_train_rsmi::pre_train_cost_model("cl");
+    // pre_train_rsmi::pre_train_cost_model("mr");
+
     torch::manual_seed(0);
     ExpRecorder exp_recorder;
     parse(argc, argv, exp_recorder);
@@ -448,15 +460,18 @@ int main(int argc, char **argv)
     // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 0.1);
 
     // // sampling
-    // cout << "IS_SAMPLING" << endl;
-    // exp_recorder.test_sp_mr()->set_level(1);
-    // float sampling_rates[] = {0.0001};
-    // for (size_t i = 0; i < sizeof(sampling_rates) / sizeof(sampling_rates[0]); i++)
-    // {
-    //     // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i], 1024);
-    //     exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i]);
-    //     // exp_RMRT(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i]);
-    // }
+    cout << "IS_SAMPLING" << endl;
+    exp_recorder.test_sp_mr()->set_level(1);
+    float sampling_rates[] = {0.0001};
+    for (size_t i = 0; i < sizeof(sampling_rates) / sizeof(sampling_rates[0]); i++)
+    {
+        exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i], 1024);
+        // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i]);
+        // exp_RMRT(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i]);
+    }
+    // Net::load_pre_trained_model_rsmi("0.1");
+    // pre_train_rsmi::cost_model_build();
+    // pre_train_rsmi::cost_model_predict(0.5, 10000, "normal");
     // TODO sampling level 2 error
     // exp_recorder.test_sp()->set_level(2);
     // for (size_t i = 0; i < sizeof(sampling_rates) / sizeof(sampling_rates[0]); i++)
@@ -486,14 +501,14 @@ int main(int argc, char **argv)
     // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
 
     // // model reuse
-    exp_recorder.test_model_reuse()->set_level(1);
+    // exp_recorder.test_model_reuse()->set_level(1);
     // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
     // TODO mr level 2 error
     // exp_recorder.test_model_reuse()->set_level(2);
     // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, 1);
     // exp_RMRT(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 0.1);
     // TODO skewed killed
-    exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 0.1);
+    // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 0.1);
 
     // cluster
     // exp_recorder.test_cluster()->set_level(1);

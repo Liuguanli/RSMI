@@ -349,3 +349,11 @@ void FileWriter::write_delete_kNN_query(ExpRecorder expRecorder)
     write << expRecorder.get_time_pageaccess_accuracy();
     write.close();
 }
+
+void FileWriter::write_cost_model_data(int cardinality, string distribution, string method, double build_time, double query_time)
+{
+    ofstream write;
+    file_utils::check_dir(filename);
+    write.open((filename + "train_set.csv"), ios::app);
+    write << cardinality << "," << distribution << "," << method << "," << build_time << "," << query_time << endl;
+}

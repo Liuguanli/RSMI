@@ -973,7 +973,6 @@ int RSMI::predict(ExpRecorder &exp_recorder, Point query_point, int width)
 void RSMI::point_query(ExpRecorder &exp_recorder, vector<Point> &query_points)
 {
     long size = query_points.size();
-    cout << "size: " << size << endl;
     // size = 100;
     // for (long i = 19890; i <= 19890; i++)
     for (long i = 0; i < size; i++)

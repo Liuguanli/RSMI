@@ -49,6 +49,8 @@ public:
 
     void write_learned_cdf(ExpRecorder, vector<float> cdf);
 
+    void write_cost_model_data(int cardinality, string distribution, string method, double build_time, double query_time);
+
 };
 
 #endif

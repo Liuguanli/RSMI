@@ -290,6 +290,17 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution, 
                 vector<long long> features;
                 // auto rng = std::default_random_engine{};
                 // std::shuffle(std::begin(points), std::end(points), rng);
+
+                vector<float> locations_;
+                for (Point point : tmp_records[i][j])
+                {
+                    locations_.push_back(point.normalized_curve_val);
+                }
+
+                Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), locations_);
+                float lambda = 0.9;
+                string build_method = pre_train_zm::cost_model_predict(lambda, locations_.size() * 1.0 / 10000, pre_train_zm::get_distribution(histogram));
+                cout << "build_method: " << build_method << endl;
                 if (i == 0)
                 {
                     if (exp_recorder.is_sp)
@@ -409,7 +420,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution, 
                         int bit_num = 6;
                         // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
                         pre_train_zm::write_approximate_SFC(points, exp_recorder.get_file_name(), bit_num);
-                        string commandStr = "python /home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/pre-train/rl_4_sfc/RL_4_SFC.py -d " +
+                        string commandStr = "python /home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/pre_train/rl_4_sfc/RL_4_SFC.py -d " +
                                             exp_recorder.distribution + " -s " + to_string(exp_recorder.dataset_cardinality) + " -n " +
                                             to_string(exp_recorder.skewness) + " -m 2 -b " + to_string(bit_num) +
                                             " -f /home/liuguanli/Documents/pre_train/sfc_z_weight/bit_num_%d/%s_%d_%d_%d_.csv";
