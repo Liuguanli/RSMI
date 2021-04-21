@@ -7,9 +7,9 @@ Exp
 files/*
 datasets/*
 
-pre_train/*
+# pre_train/*
 *.eps
 *.png
 *.txt
 
-costmodel/
+# costmodel/
