@@ -69,6 +69,8 @@ public:
     long ordering_cost = 0;
     long training_cost = 0;
 
+    long cost_model_time = 0;
+
     long search_steps = 0;
 
     float sampling_rate = 1.0;
@@ -92,8 +94,13 @@ public:
     bool is_rl = false;
     bool is_cluster = false;
     bool is_rs = false;
+    bool is_cost_model = false;
 
     int level = 1;
+
+    double upper_level_lambda = 0.8;
+    double lower_level_lambda = 0.6;
+
 
     ExpRecorder();
     string get_time();
@@ -124,6 +131,7 @@ public:
     ExpRecorder* test_cluster();
     ExpRecorder* test_rs();
     ExpRecorder* test_rs_mr();
+    ExpRecorder* set_cost_model(bool);
     void test_reset();
 
     ExpRecorder* set_level(int level);

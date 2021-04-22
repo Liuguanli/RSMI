@@ -23,6 +23,7 @@ string ExpRecorder::get_time_size_errors()
     result += "ordering_cost:" + to_string(ordering_cost) + "\n";
     result += "training_cost:" + to_string(training_cost) + "\n";
     result += "extra_time:" + to_string(extra_time) + "\n";
+    result += "cost_model_time:" + to_string(cost_model_time) + "\n";
     result += "size:" + to_string(size) + "\n";
     result += "maxError:" + to_string(max_error) + "\n";
     result += "min_error:" + to_string(min_error) + "\n";
@@ -226,6 +227,7 @@ void ExpRecorder::clean()
     point_not_found = 0;
 
     sfc_cal_time = 0;
+    cost_model_time = 0;
 }
 
 string ExpRecorder::get_file_name()
@@ -341,6 +343,12 @@ ExpRecorder *ExpRecorder::test_rs()
 ExpRecorder *ExpRecorder::set_level(int level)
 {
     this->level = level;
+    return this;
+}
+
+ExpRecorder *ExpRecorder::set_cost_model(bool is_cost_model)
+{
+    this->is_cost_model = is_cost_model;
     return this;
 }
 

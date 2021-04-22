@@ -770,16 +770,6 @@ public:
 
     torch::nn::Linear fc1{nullptr}, fc2{nullptr};
 
-    // TODO 1 generate attributes (n, type{original, mr, rs, rl, sp}, model width, )
-    // TODO 2 build a training set!!!
-    // TODO 3
-    // TODO cardinality, model,
-    // TODO RL model, model reuse number, sampling, RS k, accuracy: RS sampling
-    // TODO cost for prediction cost for search.
-    // bool model_selection(int cardinality, int model_width, )
-    // {
-
-    // }
 };
 
 #endif

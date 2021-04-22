@@ -19,6 +19,8 @@
 #include <torch/types.h>
 #include <torch/utils.h>
 
+#include "../utils/PreTrainRSMI.h"
+
 using namespace at;
 using namespace torch::nn;
 using namespace torch::optim;
@@ -115,7 +117,7 @@ RSMI::RSMI(int index, int level, int max_partition_num)
 
 void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
 {
-    // cout<< "build" << endl;
+    // cout << "build" << endl;
     int page_size = Constants::PAGESIZE;
     auto start = chrono::high_resolution_clock::now();
     std::stringstream stream;
@@ -140,11 +142,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         x_0 = points[0].x;
         for (int i = 0; i < N; i++)
         {
-            if (points[i].x == 0.249824)
-            {
-                cout << "x=0.249824: " << i << endl;
-            }
-
             points[i].x_i = i;
             points_x.push_back(points[i].x);
             mbr.update(points[i].x, points[i].y);
@@ -154,11 +151,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         y_0 = points[0].y;
         for (int i = 0; i < N; i++)
         {
-            if (points[i].y == 0.395326)
-            {
-                cout << "y=0.395326: " << i << endl;
-            }
-
             points[i].y_i = i;
             points_y.push_back(points[i].y);
             auto start_sfc = chrono::high_resolution_clock::now();
@@ -172,7 +164,14 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         long long h_min = points[0].curve_val;
         long long h_max = points[N - 1].curve_val;
         long long h_gap = h_max - h_min + 1;
-        // cout << "h_gap: " << h_gap << " N:" << N << endl;
+        vector<float> locations_;
+        for (Point point : points)
+        {
+            locations_.push_back((point.curve_val - h_min) * 1.0 / h_gap);
+        }
+        Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), locations_);
+        pre_train_rsmi::cost_model_predict(exp_recorder, exp_recorder.lower_level_lambda, locations_.size() * 1.0 / 10000, pre_train_rsmi::get_distribution(histogram, "H"));
+
         width = N - 1;
         if (N == 1)
         {
@@ -293,16 +292,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 // features.push_back(point.curve_val);
             }
             net->train_model(locations, labels);
-            // std::ifstream fin(this->model_path);
-            // if (!fin)
-            // {
-            //     net->train_model(locations, labels);
-            //     torch::save(net, this->model_path);
-            // }
-            // else
-            // {
-            //     torch::load(net, this->model_path);
-            // }
         }
         net->get_parameters();
         exp_recorder.non_leaf_node_num++;
@@ -440,6 +429,10 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
         }
 
+        Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), labels);
+        float lambda = 0.7;
+        pre_train_rsmi::cost_model_predict(exp_recorder, exp_recorder.upper_level_lambda, labels.size() * 1.0 / 10000, pre_train_rsmi::get_distribution(histogram, "H"));
+
         int epoch = Constants::START_EPOCH;
         bool is_retrain = false;
         do
@@ -454,10 +447,10 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             {
                 this->model_path += "_" + to_string(level) + "_" + to_string(index);
             }
-            if (level == 0 && exp_recorder.is_rl)
+            if (exp_recorder.is_rl)
             {
-                auto start_rl = chrono::high_resolution_clock::now();
                 cout << "RL_SFC begin" << endl;
+                auto start_rl = chrono::high_resolution_clock::now();
                 int bit_num = 6;
                 // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
                 pre_train_zm::write_approximate_SFC(points, exp_recorder.get_file_name(), bit_num);
@@ -486,6 +479,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             else if (exp_recorder.is_rs)
             {
+                // cout << "is_rs" << endl;
                 auto start_rs = chrono::high_resolution_clock::now();
 
                 auto finish_rs = chrono::high_resolution_clock::now();
@@ -493,6 +487,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             else if (exp_recorder.is_sp)
             {
+                // cout << "is_sp" << endl;
                 auto start_sp = chrono::high_resolution_clock::now();
                 int sample_gap = 1 / sampling_rate;
                 long long counter = 0;
@@ -511,6 +506,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             else if (exp_recorder.is_model_reuse)
             {
+                // cout << "is_model_reuse" << endl;
                 // SFC sfc(bit_num, features);
                 // sfc.gen_CDF(Constants::UNIFIED_Z_BIT_NUM);
                 auto start_mr = chrono::high_resolution_clock::now();
@@ -527,7 +523,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 }
                 else
                 {
-                    // cout<< "train model 1" << endl;
                     net->train_model(locations, labels);
                     // net->get_parameters();
                     torch::save(net, this->model_path);
@@ -535,21 +530,8 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             else
             {
+                cout << "or" << endl;
                 net->train_model(locations, labels);
-                // std::ifstream fin(this->model_path);
-                // if (!fin)
-                // {
-                //     cout << "train_model this->model_path: " << this->model_path << endl;
-                //     net->train_model(locations, labels);
-                //     torch::save(net, this->model_path);
-                // }
-                // else
-                // {
-                //     cout << "load this->model_path: " << this->model_path << endl;
-                //     torch::load(net, this->model_path);
-                // }
-                // net->train_model(locations, labels);
-                // torch::save(net, this->model_path);
             }
             net->get_parameters();
 
@@ -616,7 +598,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                     predicted_index = (int)(net->predict(points[0]) * width);
                 }
                 // cout<< "net->predict(points[0]): " << net->predict(points[0]) << endl;
-                // cout << "predicted_index: " << predicted_index << endl;
+                cout << "need rebuild !!!!!! predicted_index: " << predicted_index << endl;
                 predicted_index = predicted_index < 0 ? 0 : predicted_index;
                 predicted_index = predicted_index >= width ? width - 1 : predicted_index;
                 points_map[predicted_index].clear();

@@ -298,9 +298,8 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution, 
                 }
 
                 Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), locations_);
-                float lambda = 0.9;
-                string build_method = pre_train_zm::cost_model_predict(lambda, locations_.size() * 1.0 / 10000, pre_train_zm::get_distribution(histogram));
-                cout << "build_method: " << build_method << endl;
+                float lambda = i == 0 ? exp_recorder.upper_level_lambda : exp_recorder.lower_level_lambda;
+                pre_train_zm::cost_model_predict(exp_recorder, lambda, locations_.size() * 1.0 / 10000, pre_train_zm::get_distribution(histogram));
                 if (i == 0)
                 {
                     if (exp_recorder.is_sp)
@@ -718,8 +717,8 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution, 
     exp_recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     exp_recorder.size = (1 * Constants::HIDDEN_LAYER_WIDTH + 1 * Constants::HIDDEN_LAYER_WIDTH + Constants::HIDDEN_LAYER_WIDTH * 1 + 1) * Constants::EACH_DIM_LENGTH * exp_recorder.non_leaf_node_num + (Constants::DIM * Constants::PAGESIZE * Constants::EACH_DIM_LENGTH + Constants::PAGESIZE * Constants::INFO_LENGTH + Constants::DIM * Constants::DIM * Constants::EACH_DIM_LENGTH) * exp_recorder.leaf_node_num;
     cout << "build time: " << exp_recorder.time << endl;
-    cout << "max_error: " << index[0][0]->max_error << endl;
-    cout << "min_error: " << index[0][0]->min_error << endl;
+    // cout << "max_error: " << index[0][0]->max_error << endl;
+    // cout << "min_error: " << index[0][0]->min_error << endl;
 }
 
 void ZM::binary_search(ExpRecorder &exp_recorder, Point query_point, long long curve_val, int front, int back)
@@ -1163,13 +1162,15 @@ void ZM::get_range(ExpRecorder &exp_recorder, Point query_point, long long &curv
 
 vector<float> ZM::predict_cdf()
 {
+    cout << "predict_cdf: " << endl;
+
     int num = 64;
     vector<float> cdf;
-    int predicted_index = 0;
     float predicted_result = 0;
     int next_stage_length = 1;
     for (size_t j = 1; j <= num; j++)
     {
+        int predicted_index = 0;
         float key = j * 1.0 / num;
         for (int i = 0; i < stages.size(); i++)
         {

@@ -17,8 +17,9 @@ namespace pre_train_rsmi
         FileReader filereader(folder + file_name, ",");
         vector<Point> points = filereader.get_points();
         long long N = points.size();
-        long long side = ceil(log(N / resolution) / log(2));
-        cout << "side: " << side << endl;
+        // long long side = ceil(log(N / resolution) / log(2));
+        long long side = pow(2, ceil(log(N / resolution) / log(2)));
+        // cout << "side: " << side << endl;
         sort(points.begin(), points.end(), sortX());
         for (int i = 0; i < N; i++)
         {
@@ -601,21 +602,27 @@ namespace pre_train_rsmi
     }
 
     // std::shared_ptr<Net>
-    auto query_cost_model = std::make_shared<Net>(10, 64);
-    auto build_cost_model = std::make_shared<Net>(10, 64);
+    auto query_cost_model = std::make_shared<Net>(10, 32);
+    auto build_cost_model = std::make_shared<Net>(10, 32);
 
     // TODO read train_set_formatted.csv
     // TODO build pytorch model to do prediction !!!
     void cost_model_build()
     {
+        cout << "cost_model_build" << endl;
         FileReader filereader(",");
         string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted.csv";
-        string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/build_time_model.pt";
-        string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/query_time_model.pt";
+        string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/build_time_model_rsmi.pt";
+        string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/query_time_model_rsmi.pt";
 
         std::ifstream fin_build(build_time_model_path);
         std::ifstream fin_query(query_time_model_path);
-        if (!fin_build && !fin_query)
+        if (fin_build && fin_query)
+        {
+            torch::load(build_cost_model, build_time_model_path);
+            torch::load(query_cost_model, query_time_model_path);
+        }
+        else
         {
             vector<float> parameters;
             vector<float> build_time_labels;
@@ -627,19 +634,15 @@ namespace pre_train_rsmi
 #endif
             build_cost_model->train_model(parameters, build_time_labels);
             query_cost_model->train_model(parameters, query_time_labels);
-        }
-        else
-        {
-            torch::load(build_cost_model, build_time_model_path);
-            torch::load(query_cost_model, query_time_model_path);
+            torch::save(build_cost_model, build_time_model_path);
+            torch::save(query_cost_model, query_time_model_path);
         }
     }
 
-    string test_distribution(Histogram hist, string type)
+    string get_distribution(Histogram hist, string type)
     {
         Histogram uniform = type == "Z" ? Net::pre_trained_histograms_rsmi_Z["uniform_1000_1_2_"] : Net::pre_trained_histograms_rsmi_H["uniform_1000_1_2_"];
         Histogram normal = type == "Z" ? Net::pre_trained_histograms_rsmi_Z["uniform_1000_1_2_"] : Net::pre_trained_histograms_rsmi_H["normal_1000_1_2_0.500000_0.125000_"];
-
         double distance = 0;
         distance = hist.cal_similarity(uniform.hist);
         if (distance < 0.1)
@@ -654,37 +657,44 @@ namespace pre_train_rsmi
         return "skewed";
     }
 
-    void cost_model_predict(float lambda, int cardinality, string distribution)
+    void cost_model_predict(ExpRecorder &exp_recorder, float lambda, float cardinality, string distribution)
     {
-        vector<float> normal = {1, 0, 0};
-        vector<float> skewed = {0, 1, 0};
-        vector<float> uniform = {0, 0, 1};
-
+        // cout << "cardinality: " << cardinality << endl;
+        // cout << "distribution: " << distribution << endl;
         map<string, vector<float>> distributions = {
             {"normal", {1, 0, 0}}, {"skewed", {0, 1, 0}}, {"uniform", {0, 0, 1}}};
 
         vector<float> distribution_list = distributions[distribution];
-        // {"cl", {1, 0, 0, 0, 0, 0}}, 
-        map<string, vector<float>> methods = {
-            {"mr", {0, 1, 0, 0, 0, 0}}, {"original", {0, 0, 1, 0, 0, 0}}, {"rl", {0, 0, 0, 1, 0, 0}}, {"rs", {0, 0, 0, 0, 1, 0}}, {"sp", {0, 0, 0, 0, 0, 1}}};
+        // {"cl", {1, 0, 0, 0, 0, 0}},
+        // mr = 1
+        // or = 2
+        // rl = 3
+        // rs = 4
+        // sp = 5
+        map<int, vector<float>> methods = {
+            {1, {0, 1, 0, 0, 0, 0}}, {2, {0, 0, 1, 0, 0, 0}}, {3, {0, 0, 0, 1, 0, 0}}, {4, {0, 0, 0, 0, 1, 0}}, {5, {0, 0, 0, 0, 0, 1}}};
 
         float score = 0;
         vector<float> parameters;
 
-        parameters.push_back(cardinality);
+        parameters.push_back(cardinality * 1.0 / 6400);
         parameters.insert(parameters.end(), distribution_list.begin(), distribution_list.end());
 
-        map<string, vector<float>>::iterator iter;
+        map<int, vector<float>>::iterator iter;
         iter = methods.begin();
 
         auto start = chrono::high_resolution_clock::now();
         float max_score = 0;
-        string result = "";
+        int result = 0;
         while (iter != methods.end())
         {
             vector<float> temp = parameters;
             temp.insert(temp.end(), iter->second.begin(), iter->second.end());
+#ifdef use_gpu
             torch::Tensor x = torch::tensor(temp, at::kCUDA).reshape({1, 10});
+#else
+            torch::Tensor x = torch::tensor(temp).reshape({1, 10});
+#endif
             float build_score = build_cost_model->predict(x).item().toFloat();
             float query_score = query_cost_model->predict(x).item().toFloat();
             score = lambda * build_score + (1 - lambda) * query_score;
@@ -693,12 +703,32 @@ namespace pre_train_rsmi
                 max_score = score;
                 result = iter->first;
             }
+            // cout << "iter->first: " << iter->first << " build_score: " << build_score << " query_score: " << query_score << " score: " << score << endl;
             iter++;
         }
-
+        switch (result)
+        {
+        case 1: // mr = 1
+            exp_recorder.test_model_reuse();
+            break;
+        case 2: // or = 2
+            exp_recorder.test_reset();
+            break;
+        case 3: // rl = 3
+            exp_recorder.test_rl();
+            break;
+        case 4: // rs = 4
+            exp_recorder.test_rs();
+            break;
+        case 5: // sp = 5
+            exp_recorder.test_sp();
+            break;
+        default:
+            exp_recorder.test_reset();
+            break;
+        }
         auto finish = chrono::high_resolution_clock::now();
-        cout << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
-        cout << result << endl;
+        exp_recorder.cost_model_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     }
 
 }; // namespace pre_train

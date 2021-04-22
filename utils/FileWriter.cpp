@@ -161,6 +161,7 @@ void FileWriter::write_build(ExpRecorder expRecorder)
 
 void FileWriter::write_learned_cdf(ExpRecorder exp_recorder, vector<float> cdf)
 {
+    cout<< "write_learned_cdf: " << endl;
     ofstream write;
     string folder = Constants::LEARNED_CDF;
     file_utils::check_dir(filename + folder);
