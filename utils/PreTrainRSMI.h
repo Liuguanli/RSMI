@@ -316,99 +316,99 @@ namespace pre_train_rsmi
         }
     }
 
-    vector<Point> get_rep_set_space(long long m, double start_x, double start_y, double edge_length, vector<Point> all_points)
-    {
-        long long N = all_points.size();
-        vector<Point> rs;
-        if (all_points.size() == 0)
-        {
-            return rs;
-        }
-        int key_num = 4;
-        map<int, vector<Point>> points_map;
-        for (size_t i = 0; i < N; i++)
-        {
-            int key = 0;
-            if (all_points[i].x - start_x <= edge_length)
-            {
-                if (all_points[i].y - start_y <= edge_length)
-                {
-                    key = 0;
-                }
-                else
-                {
-                    key = 2;
-                }
-            }
-            else
-            {
-                if (all_points[i].y - start_y <= edge_length)
-                {
-                    key = 1;
-                }
-                else
-                {
-                    key = 3;
-                }
-            }
-            points_map[key].push_back(all_points[i]);
-        }
-        all_points.clear();
-        all_points.shrink_to_fit();
+    // vector<Point> get_rep_set_space(long long m, double start_x, double start_y, double edge_length, vector<Point> all_points)
+    // {
+    //     long long N = all_points.size();
+    //     vector<Point> rs;
+    //     if (all_points.size() == 0)
+    //     {
+    //         return rs;
+    //     }
+    //     int key_num = 4;
+    //     map<int, vector<Point>> points_map;
+    //     for (size_t i = 0; i < N; i++)
+    //     {
+    //         int key = 0;
+    //         if (all_points[i].x - start_x <= edge_length)
+    //         {
+    //             if (all_points[i].y - start_y <= edge_length)
+    //             {
+    //                 key = 0;
+    //             }
+    //             else
+    //             {
+    //                 key = 2;
+    //             }
+    //         }
+    //         else
+    //         {
+    //             if (all_points[i].y - start_y <= edge_length)
+    //             {
+    //                 key = 1;
+    //             }
+    //             else
+    //             {
+    //                 key = 3;
+    //             }
+    //         }
+    //         points_map[key].push_back(all_points[i]);
+    //     }
+    //     all_points.clear();
+    //     all_points.shrink_to_fit();
 
-        map<int, vector<Point>>::iterator iter;
-        iter = points_map.begin();
-        // while(iter != points_map.end()) {
-        //     cout << "map: " << iter->first << " : " << iter->second.size() << endl;
-        //     iter++;
-        // }
-        for (size_t i = 0; i < key_num; i++)
-        {
-            vector<Point> temp = points_map[i];
-            double start_x_temp = start_x;
-            double start_y_temp = start_y;
-            if (temp.size() > 2 * m)
-            {
-                if (i == 1)
-                {
-                    start_x_temp = start_x + edge_length;
-                }
-                if (i == 2)
-                {
-                    start_y_temp = start_y + edge_length;
-                }
-                if (i == 3)
-                {
-                    start_x_temp = start_x + edge_length;
-                    start_y_temp = start_y + edge_length;
-                }
-                vector<Point> res = get_rep_set_space(m, start_x_temp, start_y_temp, edge_length / 2, temp);
-                rs.insert(rs.end(), res.begin(), res.end());
-            }
-            else if (temp.size() > 0)
-            {
-                // TODO use fake points!!!
-                double x = start_x + edge_length / 2;
-                double y = start_y + edge_length / 2;
-                if (i == 1)
-                {
-                    x += edge_length;
-                }
-                if (i == 2)
-                {
-                    y += edge_length;
-                }
-                if (i == 3)
-                {
-                    x += edge_length;
-                    y += edge_length;
-                }
-                Point point(x, y);
-                rs.push_back(point);
-            }
-        }
-        return rs;
-    }
+    //     map<int, vector<Point>>::iterator iter;
+    //     iter = points_map.begin();
+    //     // while(iter != points_map.end()) {
+    //     //     cout << "map: " << iter->first << " : " << iter->second.size() << endl;
+    //     //     iter++;
+    //     // }
+    //     for (size_t i = 0; i < key_num; i++)
+    //     {
+    //         vector<Point> temp = points_map[i];
+    //         double start_x_temp = start_x;
+    //         double start_y_temp = start_y;
+    //         if (temp.size() > 2 * m)
+    //         {
+    //             if (i == 1)
+    //             {
+    //                 start_x_temp = start_x + edge_length;
+    //             }
+    //             if (i == 2)
+    //             {
+    //                 start_y_temp = start_y + edge_length;
+    //             }
+    //             if (i == 3)
+    //             {
+    //                 start_x_temp = start_x + edge_length;
+    //                 start_y_temp = start_y + edge_length;
+    //             }
+    //             vector<Point> res = get_rep_set_space(m, start_x_temp, start_y_temp, edge_length / 2, temp);
+    //             rs.insert(rs.end(), res.begin(), res.end());
+    //         }
+    //         else if (temp.size() > 0)
+    //         {
+    //             // TODO use fake points!!!
+    //             double x = start_x + edge_length / 2;
+    //             double y = start_y + edge_length / 2;
+    //             if (i == 1)
+    //             {
+    //                 x += edge_length;
+    //             }
+    //             if (i == 2)
+    //             {
+    //                 y += edge_length;
+    //             }
+    //             if (i == 3)
+    //             {
+    //                 x += edge_length;
+    //                 y += edge_length;
+    //             }
+    //             Point point(x, y);
+    //             rs.push_back(point);
+    //         }
+    //     }
+    //     return rs;
+    // }
 
     void pre_train_cost_model(string method)
     {
@@ -464,7 +464,7 @@ namespace pre_train_rsmi
                 else if (method == "rs")
                 {
                     start = chrono::high_resolution_clock::now();
-                    vector<Point> rs_points = get_rep_set_space(sqrt(N), 0, 0, 0.5, all_points);
+                    vector<Point> rs_points = pre_train_zm::get_rep_set_space(sqrt(N), 0, 0, 0.5, 0.5, all_points);
                     train_for_cost_model(rs_points, ppath, path, 1, "Z");
                     test_errors(all_points, model_path, "Z", max_error, min_error);
                     cout << "max_error: " << max_error << endl;

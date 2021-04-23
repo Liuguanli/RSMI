@@ -257,7 +257,7 @@ namespace pre_train_zm
     }
 
     // get_rep_set_space(m, 0,0,0.5,all_points);
-    vector<Point> get_rep_set_space(long long m, double start_x, double start_y, double edge_length, vector<Point> all_points)
+    vector<Point> get_rep_set_space(long long m, double start_x, double start_y, double x_edge_length, double y_edge_length, vector<Point> all_points)
     {
         long long N = all_points.size();
         vector<Point> rs;
@@ -270,9 +270,9 @@ namespace pre_train_zm
         for (size_t i = 0; i < N; i++)
         {
             int key = 0;
-            if (all_points[i].x - start_x <= edge_length)
+            if (all_points[i].x - start_x <= x_edge_length)
             {
-                if (all_points[i].y - start_y <= edge_length)
+                if (all_points[i].y - start_y <= y_edge_length)
                 {
                     key = 0;
                 }
@@ -283,7 +283,7 @@ namespace pre_train_zm
             }
             else
             {
-                if (all_points[i].y - start_y <= edge_length)
+                if (all_points[i].y - start_y <= y_edge_length)
                 {
                     key = 1;
                 }
@@ -312,39 +312,40 @@ namespace pre_train_zm
             {
                 if (i == 1)
                 {
-                    start_x_temp = start_x + edge_length;
+                    start_x_temp = start_x + x_edge_length;
                 }
                 if (i == 2)
                 {
-                    start_y_temp = start_y + edge_length;
+                    start_y_temp = start_y + y_edge_length;
                 }
                 if (i == 3)
                 {
-                    start_x_temp = start_x + edge_length;
-                    start_y_temp = start_y + edge_length;
+                    start_x_temp = start_x + x_edge_length;
+                    start_y_temp = start_y + y_edge_length;
                 }
-                vector<Point> res = get_rep_set_space(m, start_x_temp, start_y_temp, edge_length / 2, temp);
+                vector<Point> res = get_rep_set_space(m, start_x_temp, start_y_temp, x_edge_length / 2, y_edge_length / 2, temp);
                 rs.insert(rs.end(), res.begin(), res.end());
             }
             else if (temp.size() > 0)
             {
                 // TODO use fake points!!!
-                double x = start_x + edge_length / 2;
-                double y = start_y + edge_length / 2;
+                double x = start_x + x_edge_length / 2;
+                double y = start_y + y_edge_length / 2;
                 if (i == 1)
                 {
-                    x += edge_length;
+                    x += x_edge_length;
                 }
                 if (i == 2)
                 {
-                    y += edge_length;
+                    y += y_edge_length;
                 }
                 if (i == 3)
                 {
-                    x += edge_length;
-                    y += edge_length;
+                    x += x_edge_length;
+                    y += y_edge_length;
                 }
                 Point point(x, y);
+                point.index = temp[temp.size() / 2].index;
                 rs.push_back(point);
             }
         }
@@ -729,11 +730,6 @@ namespace pre_train_zm
 
         vector<float> distribution_list = distributions[distribution];
         // {"cl", {1, 0, 0, 0, 0, 0}},
-        // mr = 1
-        // or = 2
-        // rl = 3
-        // rs = 4
-        // sp = 5
         map<int, vector<float>> methods = {
             {1, {0, 1, 0, 0, 0, 0}}, {2, {0, 0, 1, 0, 0, 0}}, {3, {0, 0, 0, 1, 0, 0}}, {4, {0, 0, 0, 0, 1, 0}}, {5, {0, 0, 0, 0, 0, 1}}};
 
@@ -749,6 +745,16 @@ namespace pre_train_zm
         auto start = chrono::high_resolution_clock::now();
         float max_score = 0;
         int result = 0;
+        // mr = 1
+        // or = 2
+        // rl = 3
+        // rs = 4
+        // sp = 5
+        // iter->first: 1 build_score: 5.98972 query_score: 1.05207 score: 4.01466
+        // iter->first: 2 build_score: 2.95342 query_score: 2.76243 score: 2.87702
+        // iter->first: 3 build_score: 1.70991 query_score: 4.97592 score: 3.01632
+        // iter->first: 4 build_score: 4.05757 query_score: 5.58559 score: 4.66878
+        // iter->first: 5 build_score: 4.99554 query_score: 3.02659 score: 4.20796
         while (iter != methods.end())
         {
             vector<float> temp = parameters;
@@ -766,7 +772,7 @@ namespace pre_train_zm
                 max_score = score;
                 result = iter->first;
             }
-            // cout << "iter->first: " << iter->first << " build_score: " << build_score << " query_score: " << query_score << " score: " << score << endl;
+            cout << "iter->first: " << iter->first << " build_score: " << build_score << " query_score: " << query_score << " score: " << score << endl;
             iter++;
         }
         switch (result)

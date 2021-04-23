@@ -85,7 +85,6 @@ public:
     int acc_window_query_qesult_size;
     vector<Point> knn_query_results;
     vector<Point> acc_knn_query_results;
-
     vector<Point> window_query_results;
 
     bool is_sp = false;
@@ -101,6 +100,7 @@ public:
     double upper_level_lambda = 0.8;
     double lower_level_lambda = 0.6;
 
+    int rs_threshold_m = 10000;
 
     ExpRecorder();
     string get_time();

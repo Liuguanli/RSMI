@@ -47,8 +47,10 @@ private:
 
     float x_gap = 1.0;
     float x_0 = 0;
+    float x_1 = 0;
     float y_gap = 1.0;
     float y_0 = 0;
+    float y_1 = 0;
     bool is_reused = false;
     long long side = 0;
 
@@ -140,6 +142,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         sort(points.begin(), points.end(), sortX());
         x_gap = 1.0 / (points[N - 1].x - points[0].x);
         x_0 = points[0].x;
+        x_1 = points[N - 1].x;
         for (int i = 0; i < N; i++)
         {
             points[i].x_i = i;
@@ -149,6 +152,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         sort(points.begin(), points.end(), sortY());
         y_gap = 1.0 / (points[N - 1].y - points[0].y);
         y_0 = points[0].y;
+        y_1 = points[N - 1].y;
         for (int i = 0; i < N; i++)
         {
             points[i].y_i = i;
@@ -164,13 +168,17 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         long long h_min = points[0].curve_val;
         long long h_max = points[N - 1].curve_val;
         long long h_gap = h_max - h_min + 1;
-        vector<float> locations_;
-        for (Point point : points)
+
+        if (exp_recorder.is_cost_model)
         {
-            locations_.push_back((point.curve_val - h_min) * 1.0 / h_gap);
+            vector<float> locations_;
+            for (Point point : points)
+            {
+                locations_.push_back((point.curve_val - h_min) * 1.0 / h_gap);
+            }
+            Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), locations_);
+            pre_train_rsmi::cost_model_predict(exp_recorder, exp_recorder.lower_level_lambda, locations_.size() * 1.0 / 10000, pre_train_rsmi::get_distribution(histogram, "H"));
         }
-        Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), locations_);
-        pre_train_rsmi::cost_model_predict(exp_recorder, exp_recorder.lower_level_lambda, locations_.size() * 1.0 / 10000, pre_train_rsmi::get_distribution(histogram, "H"));
 
         width = N - 1;
         if (N == 1)
@@ -223,9 +231,9 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
 #endif
         vector<float> locations;
         vector<float> labels;
-        vector<float> features;
         if (exp_recorder.is_model_reuse)
         {
+            vector<float> features;
             auto start_mr = chrono::high_resolution_clock::now();
             for (Point point : points)
             {
@@ -246,7 +254,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             else
             {
                 net->train_model(locations, labels);
-                // torch::save(net, this->model_path);
             }
         }
         else if (exp_recorder.is_sp)
@@ -275,13 +282,77 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_sp - start_sp).count();
             net->train_model(locations, labels);
         }
-        else if (exp_recorder.is_cluster)
+        else if (exp_recorder.is_rs)
         {
-            auto start_rs = chrono::high_resolution_clock::now();
-
-            auto finish_rs = chrono::high_resolution_clock::now();
-            exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_rs - start_rs).count();
+            if (N < 10 * sqrt(exp_recorder.rs_threshold_m))
+            {
+                auto start_train = chrono::high_resolution_clock::now();
+                net->train_model(locations, labels);
+                auto end_train = chrono::high_resolution_clock::now();
+                exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
+            }
+            else
+            {
+                cout << "exp_recorder.is_rs" << endl;
+                auto start_rs = chrono::high_resolution_clock::now();
+                vector<Point> rs_points = pre_train_zm::get_rep_set_space(sqrt(exp_recorder.rs_threshold_m), x_0, y_0, x_gap / 2, y_gap / 2, points);
+                int temp_N = rs_points.size();
+                cout << "temp_N: " << temp_N << endl;
+                vector<float> rs_locations;
+                vector<float> rs_labels;
+                for (Point point : rs_points)
+                {
+                    rs_locations.push_back(point.x);
+                    rs_locations.push_back(point.y);
+                    rs_labels.push_back(point.index);
+                }
+                auto finish_rs = chrono::high_resolution_clock::now();
+                exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_rs - start_rs).count();
+                auto start_train = chrono::high_resolution_clock::now();
+                net->train_model(rs_locations, rs_labels);
+                auto end_train = chrono::high_resolution_clock::now();
+                exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
+            }
+            
+            
         }
+        else if (exp_recorder.is_rl)
+        {
+            cout << "RL_SFC begin" << endl;
+            auto start_rl = chrono::high_resolution_clock::now();
+            int bit_num = 6;
+            // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
+            pre_train_zm::write_approximate_SFC(points, exp_recorder.get_file_name(), bit_num);
+            string commandStr = "python /home/liuguanli/Documents/pre_train/rl_4_sfc/RL_4_SFC_RSMI.py -d " +
+                                exp_recorder.distribution + " -s " + to_string(exp_recorder.dataset_cardinality) + " -n " +
+                                to_string(exp_recorder.skewness) + " -m 2 -b " + to_string(bit_num) +
+                                " -f /home/liuguanli/Documents/pre_train/sfc_z_weight/bit_num_%d/%s_%d_%d_%d_.csv";
+            char command[1024];
+            strcpy(command, commandStr.c_str());
+            int res = system(command);
+
+            vector<int> sfc;
+            vector<float> cdf;
+            FileReader RL_SFC_reader("", ",");
+            int bit_num_shrinked = 6;
+            vector<float> features;
+            RL_SFC_reader.read_sfc_2d("/home/liuguanli/Documents/pre_train/sfc_z/" + to_string(bit_num_shrinked) + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", features, cdf);
+            cout << "features.size(): " << features.size() << endl;
+            cout << "cdf.size(): " << cdf.size() << endl;
+            auto finish_rl = chrono::high_resolution_clock::now();
+            exp_recorder.top_rl_time = chrono::duration_cast<chrono::nanoseconds>(finish_rl - start_rl).count();
+            exp_recorder.extra_time += exp_recorder.top_rl_time;
+            net->train_model(features, cdf);
+            // torch::save(net, this->model_path);
+            cout << "RL_SFC finish" << endl;
+        }
+        // else if (exp_recorder.is_cluster)
+        // {
+        //     auto start_rs = chrono::high_resolution_clock::now();
+
+        //     auto finish_rs = chrono::high_resolution_clock::now();
+        //     exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_rs - start_rs).count();
+        // }
         else
         {
             for (Point point : points)
@@ -289,7 +360,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 locations.push_back(point.x);
                 locations.push_back(point.y);
                 labels.push_back(point.index);
-                // features.push_back(point.curve_val);
             }
             net->train_model(locations, labels);
         }
@@ -344,15 +414,14 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         N = (long long)points.size();
         bit_num = max_partition_num;
         int partition_size = ceil(points.size() * 1.0 / pow(bit_num, 2));
-        if (exp_recorder.is_model_reuse)
-        {
-            sort(points.begin(), points.end(), sortY());
-            y_gap = 1.0 / (points[N - 1].y - points[0].y);
-            y_0 = points[0].y;
-        }
+        sort(points.begin(), points.end(), sortY());
+        y_gap = 1.0 / (points[N - 1].y - points[0].y);
+        y_0 = points[0].y;
+        y_1 = points[N - 1].y;
         sort(points.begin(), points.end(), sortX());
         x_gap = 1.0 / (points[N - 1].x - points[0].x);
         x_0 = points[0].x;
+        x_1 = points[N - 1].x;
         long long side = pow(bit_num, 2);
         width = side - 1;
         map<int, vector<Point>> points_map;
@@ -361,7 +430,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
 
         vector<float> locations(N * 2);
         vector<float> labels(N);
-        vector<long long> features;
+        // vector<long long> features;
         long long xs_min[2] = {0, 0};
         long long z_min = compute_Z_value(xs_min, 2, side);
         long long xs_max[2] = {bit_num - 1, bit_num - 1};
@@ -420,6 +489,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                     locations[point_index * 2 + 1] = point.y;
                     labels[point_index] = point.index;
                     // features.push_back(point.index);
+                    points[point_index].index = point.index;
                     point_index++;
                     mbr.update(point.x, point.y);
                     sub_point_index++;
@@ -429,9 +499,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
         }
 
-        Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), labels);
-        float lambda = 0.7;
-        pre_train_rsmi::cost_model_predict(exp_recorder, exp_recorder.upper_level_lambda, labels.size() * 1.0 / 10000, pre_train_rsmi::get_distribution(histogram, "H"));
+        if (exp_recorder.is_cost_model)
+        {
+            Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), labels);
+            pre_train_rsmi::cost_model_predict(exp_recorder, exp_recorder.upper_level_lambda, labels.size() * 1.0 / 10000, pre_train_rsmi::get_distribution(histogram, "H"));
+        }
 
         int epoch = Constants::START_EPOCH;
         bool is_retrain = false;
@@ -479,10 +551,28 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             else if (exp_recorder.is_rs)
             {
-                // cout << "is_rs" << endl;
+                cout << "is_rs" << endl;
                 auto start_rs = chrono::high_resolution_clock::now();
-
+                int m = N > 100 * exp_recorder.rs_threshold_m ? exp_recorder.rs_threshold_m : sqrt(exp_recorder.rs_threshold_m);
+                // cout << "m: " << m << " x_0: " << x_0 << " y_0: " << y_0 << " x_gap: " << x_gap << " y_gap: " << y_gap << endl;
+                vector<Point> rs_points = pre_train_zm::get_rep_set_space(m, x_0, y_0, x_gap / 2, y_gap / 2, points);
+                int temp_N = rs_points.size();
+                cout << "temp_N: " << temp_N << endl;
+                vector<float> rs_locations;
+                vector<float> rs_labels;
+                for (Point point : rs_points)
+                {
+                    rs_locations.push_back(point.x);
+                    rs_locations.push_back(point.y);
+                    rs_labels.push_back(point.index);
+                }
+                // cout << "rs_labels: " << rs_labels << endl;
                 auto finish_rs = chrono::high_resolution_clock::now();
+                exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_rs - start_rs).count();
+                auto start_train = chrono::high_resolution_clock::now();
+                net->train_model(rs_locations, rs_labels);
+                auto end_train = chrono::high_resolution_clock::now();
+                exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
                 exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_rs - start_rs).count();
             }
             else if (exp_recorder.is_sp)
