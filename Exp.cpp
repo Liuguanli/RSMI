@@ -117,7 +117,6 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> p
     cout << "load time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
     Net::load_pre_trained_model_rsmi(threshold);
     pre_train_rsmi::cost_model_build();
-
     // }
     exp_recorder.clean();
     exp_recorder.set_structure_name("RSMI");
@@ -396,11 +395,11 @@ int main(int argc, char **argv)
     // pre_train_rsmi::pre_train_cost_model("cl");
     // pre_train_rsmi::pre_train_cost_model("mr");
 
+    //----------------------------------------------------
     torch::manual_seed(0);
     ExpRecorder exp_recorder;
     parse(argc, argv, exp_recorder);
     cout << "exp_recorder.get_dataset_name():" << exp_recorder.get_dataset_name() << endl;
-
     FileReader filereader(exp_recorder.get_dataset_name(), ",");
     vector<Point> points = filereader.get_points();
     vector<Point> query_poitns;
@@ -412,7 +411,7 @@ int main(int argc, char **argv)
     file_utils::check_dir(model_root_path);
     string model_path = model_root_path + "/";
     FileWriter file_writer(Constants::RECORDS);
-
+    //----------------------------------------------------
     // expHRR(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
     // expGrid(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
     // expKDB(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
@@ -445,21 +444,31 @@ int main(int argc, char **argv)
     //     exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, sampling_rates[i], 1024);
     // }
 
+    // pre_train_rsmi::cost_model_build();
+    // pre_train_rsmi::evaluate_cost_model(1.0);
+
     // // representative set
-    exp_recorder.test_rs()->set_level(1)->set_cost_model(false);
+    exp_recorder.set_level(1)->set_cost_model(true);
     cout << "IS_REPRESENTATIVE_SET" << endl;
-    int ms[] = {8192};
+    int ms[] = {8192, 10000};
+    exp_recorder.sampling_rate = 0.0001;
     for (size_t i = 0; i < sizeof(ms) / sizeof(ms[0]); i++)
     {
-        // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, ms[i]);
         exp_recorder.rs_threshold_m = ms[i];
+        exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, ms[i]);
+        exp_recorder.clean();
         exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
+        exp_recorder.clean();
     }
-    // exp_recorder.test_rs()->set_level(2);
-    // for (size_t i = 0; i < sizeof(ms) / sizeof(ms[0]); i++)
-    // {
-    //     exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, ms[i]);
-    // }
+    exp_recorder.set_level(2)->set_cost_model(true);
+    for (size_t i = 0; i < sizeof(ms) / sizeof(ms[0]); i++)
+    {
+        exp_recorder.rs_threshold_m = ms[i];
+        exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path, 1.0, ms[i]);
+        exp_recorder.clean();
+        exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
+        exp_recorder.clean();
+    }
 
     // // reinforcement learning
     // exp_recorder.test_rl()->set_level(1);

@@ -24,6 +24,11 @@ string ExpRecorder::get_time_size_errors()
     result += "training_cost:" + to_string(training_cost) + "\n";
     result += "extra_time:" + to_string(extra_time) + "\n";
     result += "cost_model_time:" + to_string(cost_model_time) + "\n";
+    result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
+    result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
+    result += "sampling_rate:" + to_string(sampling_rate) + "\n";
+    result += "representative_threshold_m:" + to_string(representative_threshold_m) + "\n";
+    result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
     result += "size:" + to_string(size) + "\n";
     result += "maxError:" + to_string(max_error) + "\n";
     result += "min_error:" + to_string(min_error) + "\n";
@@ -110,6 +115,11 @@ string ExpRecorder::get_time_pageaccess()
 {
     string result = "time:" + to_string(time) + "\n";
     result += "level:" + to_string(level) + "\n";
+    result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
+    result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
+    result += "sampling_rate:" + to_string(sampling_rate) + "\n";
+    result += "representative_threshold_m:" + to_string(representative_threshold_m) + "\n";
+    result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
     result += "prediction_time:" + to_string(prediction_time) + "\n";
     result += "sfc_cal_time:" + to_string(sfc_cal_time) + "\n";
     result += "search_time:" + to_string(search_time) + "\n";
@@ -228,6 +238,7 @@ void ExpRecorder::clean()
 
     sfc_cal_time = 0;
     cost_model_time = 0;
+    test_reset();
 }
 
 string ExpRecorder::get_file_name()

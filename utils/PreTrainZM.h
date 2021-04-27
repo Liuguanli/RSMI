@@ -702,6 +702,10 @@ namespace pre_train_zm
         }
     }
 
+    void evaluate_cost_model()
+    {
+    }
+
     string get_distribution(Histogram hist)
     {
         Histogram uniform = Net::pre_trained_histograms["index_446"];
@@ -772,7 +776,7 @@ namespace pre_train_zm
                 max_score = score;
                 result = iter->first;
             }
-            cout << "iter->first: " << iter->first << " build_score: " << build_score << " query_score: " << query_score << " score: " << score << endl;
+            // cout << "iter->first: " << iter->first << " build_score: " << build_score << " query_score: " << query_score << " score: " << score << endl;
             iter++;
         }
         switch (result)

@@ -605,8 +605,6 @@ namespace pre_train_rsmi
     auto query_cost_model = std::make_shared<Net>(10, 32);
     auto build_cost_model = std::make_shared<Net>(10, 32);
 
-    // TODO read train_set_formatted.csv
-    // TODO build pytorch model to do prediction !!!
     void cost_model_build()
     {
         cout << "cost_model_build" << endl;
@@ -637,6 +635,77 @@ namespace pre_train_rsmi
             torch::save(build_cost_model, build_time_model_path);
             torch::save(query_cost_model, query_time_model_path);
         }
+    }
+
+    // TODO use test file and one real case to test it.
+    // first use all data from
+
+    // use osm as a test case.
+    void evaluate_cost_model(float lambda)
+    {
+        cout << "evaluate_cost_model " << endl;
+        // read file
+        string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted_test.csv";
+        FileReader filereader(",");
+        vector<float> parameters;
+        vector<float> build_time_labels;
+        vector<float> query_time_labels;
+        vector<float> distribution = {0, 0, 1};
+        float cardinality = 1.0 / 6400;
+        filereader.get_cost_model_data(path, parameters, build_time_labels, query_time_labels);
+        int max_exp_index;
+        int max_pred_index;
+
+        float max_exp_score;
+        float max_pred_score;
+        int n = build_time_labels.size();
+
+        int correct_num = 0;
+        int total_num = 0;
+        for (size_t i = 0; i < n; i++)
+        {
+            std::vector<float> temp(parameters.begin() + i * 10, parameters.begin() + i * 10 + 10);
+            std::vector<float> temp_distribution(parameters.begin() + i * 10 + 1, parameters.begin() + i * 10 + 4);
+#ifdef use_gpu
+            torch::Tensor x = torch::tensor(temp, at::kCUDA).reshape({1, 10});
+#else
+            torch::Tensor x = torch::tensor(temp).reshape({1, 10});
+#endif
+            // cout << "temp: " << temp << endl;
+            float build_score = build_cost_model->predict(x).item().toFloat();
+            float query_score = query_cost_model->predict(x).item().toFloat();
+            float score = lambda * build_score + (1 - lambda) * query_score;
+            float expected_score = lambda * build_time_labels[i] + (1 - lambda) * query_time_labels[i];
+            // cout << "cardinality: " << temp[0] << endl;
+            // cout << "expected score: " << expected_score << "\treal score: " << score << endl;
+            if (cardinality == temp[0] && distribution == temp_distribution)
+            {
+                if (max_exp_score < expected_score)
+                {
+                    max_exp_index = i;
+                }
+
+                if (max_pred_score < score)
+                {
+                    max_pred_index = i;
+                }
+            }
+            else
+            {
+                cardinality = temp[0];
+                distribution = temp_distribution;
+                total_num++;
+                if (max_pred_index == max_exp_index)
+                {
+                    correct_num++;
+                }
+                max_exp_score = expected_score;
+                max_pred_score = score;
+            }
+        }
+        cout << "lambda: " << lambda << endl;
+        cout << "accuracy: " << correct_num * 100.0 / total_num << "%" << endl;
+        // prepare osm train time and query time according to the result in experiment
     }
 
     string get_distribution(Histogram hist, string type)

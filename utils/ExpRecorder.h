@@ -98,7 +98,7 @@ public:
     int level = 1;
 
     double upper_level_lambda = 0.8;
-    double lower_level_lambda = 0.6;
+    double lower_level_lambda = 0.8;
 
     int rs_threshold_m = 10000;
 

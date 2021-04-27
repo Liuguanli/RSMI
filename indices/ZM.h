@@ -572,7 +572,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     else if (exp_recorder.is_rs)
                     {
                         auto start_rs = chrono::high_resolution_clock::now();
-                        cout << "tmp_records[i][j].size(): " << tmp_records[i][j].size() << endl;
+                        // cout << "tmp_records[i][j].size(): " << tmp_records[i][j].size() << endl;
                         // vector<Point> tmp_records_i_j = pre_train_zm::get_rep_set(sqrt(m), bit_num, 0, tmp_records[i][j]);
                         vector<Point> tmp_records_i_j = pre_train_zm::get_rep_set_space(sqrt(exp_recorder.rs_threshold_m), 0, 0, 0.5, 0.5, tmp_records[i][j]);
                         // for (Point point : tmp_records_i_j)
