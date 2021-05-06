@@ -45,10 +45,9 @@ def test_mini_batch_kmeans_manual(X):
 
 
 @clock
-def test_mini_batch_kmeans_auto(X, k, save_path):
+def test_mini_batch_kmeans_auto(X, save_path, n_clusters = 10000):
     batch_size = 100000
-    n_clusters = 10000
-    kmeans = MiniBatchKMeans(n_clusters=n_clusters, random_state=0, batch_size=batch_size, max_iter=10).fit(X)
+    kmeans = MiniBatchKMeans(n_clusters=n_clusters, random_state=0, batch_size=batch_size).fit(X)
     # print(kmeans.cluster_centers_)
     np.savetxt(save_path, kmeans.cluster_centers_, delimiter=",")
 
@@ -115,9 +114,9 @@ def parser(argv):
 if __name__ == "__main__":
     distribution, size, skewness, dim, k, filename = parser(sys.argv[1:])
     print(distribution, size, skewness, dim, k, filename)
-    X = load_data("/home/liuguanli/Documents/datasets/RLRtree/raw/%s_%d_%d_%d_.csv" % (distribution, size, skewness, dim))
+    X = load_data("/home/research/datasets/%s_%d_%d_%d_.csv" % (distribution, size, skewness, dim))
     # test_mini_batch_kmeans_manual(X)
-    test_mini_batch_kmeans_auto(X, k, filename % (distribution, size, skewness, dim))
+    test_mini_batch_kmeans_auto(X, filename, k)
     # for i in range(4):
     # 23854
     # 99457101

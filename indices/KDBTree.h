@@ -33,8 +33,8 @@ public:
     void build(ExpRecorder &expRecorder, vector<Point> points);
     void split(ExpRecorder &expRecorder, NonLeafNode *root, vector<Point> points, bool splitX, int level);
 
-    void pointQuery(ExpRecorder &expRecorder, Point queryPoint);
-    void pointQuery(ExpRecorder &expRecorder, vector<Point> queryPoints);
+    void point_query(ExpRecorder &expRecorder, Point queryPoint);
+    void point_query(ExpRecorder &expRecorder, vector<Point> queryPoints);
 
     void windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows);
     vector<Point> windowQuery(ExpRecorder &expRecorder, Mbr queryWindows);
@@ -43,7 +43,7 @@ public:
     vector<Point> kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k);
 
     void insert(ExpRecorder &expRecorder, Point);
-    void insert(ExpRecorder &expRecorder, vector<Point>);
+    void insert(ExpRecorder &expRecorder);
 
     void remove(ExpRecorder &expRecorder, Point);
     void remove(ExpRecorder &expRecorder, vector<Point>);
@@ -157,7 +157,7 @@ void KDBTree::split(ExpRecorder &expRecorder, NonLeafNode *root, vector<Point> p
     }
 }
 
-void KDBTree::pointQuery(ExpRecorder &expRecorder, Point queryPoint)
+void KDBTree::point_query(ExpRecorder &expRecorder, Point queryPoint)
 {
     queue<nodespace::Node *> nodes;
     nodes.push(root);
@@ -173,7 +173,6 @@ void KDBTree::pointQuery(ExpRecorder &expRecorder, Point queryPoint)
             if (nonLeafNode->mbr.contains(queryPoint))
             {
                 expRecorder.page_access += 1;
-                // TODO opt
                 for (nodespace::Node *node : *(nonLeafNode->children))
                 {
                     nodes.push(node);
@@ -201,17 +200,16 @@ void KDBTree::pointQuery(ExpRecorder &expRecorder, Point queryPoint)
             break;
         }
     }
-    cout<< "???" << endl;
 }
 
-void KDBTree::pointQuery(ExpRecorder &expRecorder, vector<Point> queryPoints)
+void KDBTree::point_query(ExpRecorder &expRecorder, vector<Point> queryPoints)
 {
     expRecorder.clean();
-    // cout << "pointQuery:" << endl;
+    // cout << "point_query:" << endl;
     auto start = chrono::high_resolution_clock::now();
     for (Point point : queryPoints)
     {
-        pointQuery(expRecorder, point);
+        point_query(expRecorder, point);
     }
     auto finish = chrono::high_resolution_clock::now();
     expRecorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / queryPoints.size();
@@ -448,19 +446,18 @@ void KDBTree::insert(ExpRecorder &expRecorder, Point point)
     }
 }
 
-void KDBTree::insert(ExpRecorder &expRecorder, vector<Point> points)
+void KDBTree::insert(ExpRecorder &exp_recorder)
 {
-    // cout << "insert:" << endl;
-    struct timespec begin, end, gap;
+   vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
     auto start = chrono::high_resolution_clock::now();
     for (int i = 0; i < points.size(); i++)
     {
-        insert(expRecorder, points[i]);
+        insert(exp_recorder, points[i]);
     }
     auto finish = chrono::high_resolution_clock::now();
-    long long oldTimeCost = expRecorder.insert_time * expRecorder.insert_num;
-    expRecorder.insert_num += points.size();
-    expRecorder.insert_time = (oldTimeCost + chrono::duration_cast<chrono::nanoseconds>(finish - start).count()) / expRecorder.insert_num;
+    long long previous_time = exp_recorder.insert_time * exp_recorder.previous_insert_num;
+    exp_recorder.previous_insert_num += points.size();
+    exp_recorder.insert_time = (previous_time + chrono::duration_cast<chrono::nanoseconds>(finish - start).count()) / exp_recorder.previous_insert_num;
 }
 
 void KDBTree::remove(ExpRecorder &expRecorder, Point point)

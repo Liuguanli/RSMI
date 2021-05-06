@@ -16,7 +16,7 @@ public:
     vector<LeafNode> LeafNodes;
     Bucket();
     Bucket(Mbr mbr);
-    bool pointQuery(ExpRecorder &expRecorder, Point);
+    bool point_query(ExpRecorder &expRecorder, Point);
     void windowQuery(ExpRecorder &expRecorder, Mbr);
     bool insert(Point);
     void remove(Point);
@@ -40,7 +40,7 @@ Bucket::Bucket()
     addNode(LeafNode);
 }
 
-bool Bucket::pointQuery(ExpRecorder &expRecorder, Point point)
+bool Bucket::point_query(ExpRecorder &expRecorder, Point point)
 {
     // vector<Point>::iterator iter = find(dynArray.begin(), dynArray.end(), point);
     // if (iter != dynArray.end())

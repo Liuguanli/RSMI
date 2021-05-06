@@ -43,7 +43,9 @@ public:
     string distribution;
     long dataset_cardinality;
 
-    long long insert_num;
+    long long insert_num = 0;
+    int insert_times = 0;
+    long long previous_insert_num = 0;
     long delete_num;
     float window_size;
     float window_ratio;
@@ -53,7 +55,7 @@ public:
     long time;
     long top_level_time;
     long bottom_level_time;
-    long insert_time;
+    long insert_time = 0;
     long delete_time;
     long long rebuild_time;
     int rebuild_num;
@@ -75,11 +77,12 @@ public:
 
     float sampling_rate = 1.0;
 
-    int representative_threshold_m = 64;
+    int rs_threshold_m = 10000;
     double model_reuse_threshold = 0.1;
 
     string cluster_method = "kmeans";
     int cluster_size = 10000;
+    string insert_points_distribution = "normal";
 
     int window_query_result_size;
     int acc_window_query_qesult_size;
@@ -100,7 +103,7 @@ public:
     double upper_level_lambda = 0.8;
     double lower_level_lambda = 0.8;
 
-    int rs_threshold_m = 10000;
+    int insert_rebuild_index = 0;
 
     ExpRecorder();
     string get_time();

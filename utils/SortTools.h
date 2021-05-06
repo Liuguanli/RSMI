@@ -121,4 +121,12 @@ struct sort_curve_val
     }
 };
 
+struct sort_key
+{
+    bool operator()(const Point point1, const Point point2)
+    {
+        return (point1.key < point2.key);
+    }
+};
+
 #endif

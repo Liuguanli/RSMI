@@ -20,13 +20,16 @@ public:
 
     float temp_dist = 0.0;
 
+    int partition_id = 0;
+    float key = 0;
+
     Point(float, float);
     Point();
     bool operator == (const Point& point);
     float cal_dist(Point);
     void print();
     static vector<Point> get_points(vector<Point>, int);
-    static vector<Point> get_inserted_points(long long);
+    static vector<Point> get_inserted_points(long long, string distribution);
 
     string get_self();
 };

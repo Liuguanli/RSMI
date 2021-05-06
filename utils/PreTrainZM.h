@@ -165,9 +165,9 @@ namespace pre_train_zm
         cout << "total_error: " << total_error / N << " max_error: " << max_error << " min_error: " << min_error << endl;
     }
 
-    vector<Point> get_cluster_point(string folder, string file_name)
+    vector<Point> get_cluster_point(string file_name)
     {
-        FileReader filereader(folder + file_name, ",");
+        FileReader filereader(file_name, ",");
         vector<Point> points = filereader.get_points();
         long long N = points.size();
         int bit_num = ceil((log(N)) / log(2)) * 2;
@@ -346,6 +346,8 @@ namespace pre_train_zm
                 }
                 Point point(x, y);
                 point.index = temp[temp.size() / 2].index;
+                point.key = temp[temp.size() / 2].key;
+                point.normalized_curve_val = temp[temp.size() / 2].normalized_curve_val;
                 rs.push_back(point);
             }
         }

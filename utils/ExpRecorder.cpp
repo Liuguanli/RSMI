@@ -27,7 +27,7 @@ string ExpRecorder::get_time_size_errors()
     result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
     result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
     result += "sampling_rate:" + to_string(sampling_rate) + "\n";
-    result += "representative_threshold_m:" + to_string(representative_threshold_m) + "\n";
+    result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
     result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
     result += "size:" + to_string(size) + "\n";
     result += "maxError:" + to_string(max_error) + "\n";
@@ -57,7 +57,7 @@ string ExpRecorder::get_time_size_errors()
     }
     if (structure_name == "ZM-RS" || structure_name == "RSMI-RS")
     {
-        result += "rep threshold m:" + to_string(representative_threshold_m) + "\n";
+        result += "rep threshold m:" + to_string(rs_threshold_m) + "\n";
     }
     if (structure_name == "ZM-CL" || structure_name == "RSMI-CL")
     {
@@ -76,7 +76,7 @@ string ExpRecorder::get_time_size_errors()
     leaf_node_num = 0;
     depth = 0;
     loss = 0;
-    representative_threshold_m = 0;
+    rs_threshold_m = 0;
     top_rl_time = 0;
     extra_time = 0;
     ordering_cost = 0;
@@ -114,11 +114,13 @@ string ExpRecorder::get_time_pageaccess_accuracy()
 string ExpRecorder::get_time_pageaccess()
 {
     string result = "time:" + to_string(time) + "\n";
+    result += "insert_num:" + to_string(previous_insert_num) + "\n";
     result += "level:" + to_string(level) + "\n";
+    result += "insert_points_distribution:" + insert_points_distribution + "\n";
     result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
     result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
     result += "sampling_rate:" + to_string(sampling_rate) + "\n";
-    result += "representative_threshold_m:" + to_string(representative_threshold_m) + "\n";
+    result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
     result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
     result += "prediction_time:" + to_string(prediction_time) + "\n";
     result += "sfc_cal_time:" + to_string(sfc_cal_time) + "\n";
@@ -143,7 +145,7 @@ string ExpRecorder::get_time_pageaccess()
     }
     if (structure_name == "ZM-RS" || structure_name == "RSMI-RS")
     {
-        result += "rep threshold m:" + to_string(representative_threshold_m) + "\n";
+        result += "rep threshold m:" + to_string(rs_threshold_m) + "\n";
     }
     if (structure_name == "ZM-CL" || structure_name == "RSMI-CL")
     {
@@ -167,7 +169,19 @@ string ExpRecorder::get_delete_time_pageaccess()
 
 string ExpRecorder::get_insert_time_pageaccess()
 {
-    string result = "time:" + to_string(insert_time) + "\n" + "pageaccess:" + to_string(page_access) + "\n";
+    string result = "time:" + to_string(insert_time) + "\n";
+    if (insert_num != 0)
+    {
+        result += "insert_num:" + to_string(previous_insert_num) + "\n";
+        result += "insert_ratio:" + to_string(previous_insert_num * 100.0 / dataset_cardinality) + "%\n";
+        result += "insert_points_distribution:" + insert_points_distribution + "\n";
+    }
+    result += "level:" + to_string(level) + "\n";
+    result += "pageaccess:" + to_string(page_access) + "\n";
+    result += "sampling_rate:" + to_string(sampling_rate) + "\n";
+    result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
+    result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
+    result += "\n";
     time = 0;
     page_access = 0;
     return result;
@@ -175,7 +189,22 @@ string ExpRecorder::get_insert_time_pageaccess()
 
 string ExpRecorder::get_insert_time_pageaccess_rebuild()
 {
-    string result = "time:" + to_string(insert_time) + "\n" + "pageaccess:" + to_string(page_access) + "\n" + "rebuild_num:" + to_string(rebuild_num) + "\n" + "rebuild_time:" + to_string(rebuild_time) + "\n";
+    string result = "time:" + to_string(insert_time) + "\n";
+    if (insert_num != 0)
+    {
+        result += "insert_num:" + to_string(previous_insert_num) + "\n";
+        result += "insert_ratio:" + to_string(previous_insert_num * 100.0 / dataset_cardinality) + "%\n";
+        result += "insert_points_distribution:" + insert_points_distribution + "\n";
+    }
+    result += "prediction_time:" + to_string(prediction_time) + "\n";
+    result += "level:" + to_string(level) + "\n";
+    result += "pageaccess:" + to_string(page_access) + "\n";
+    result += "rebuild_num:" + to_string(rebuild_num) + "\n";
+    result += "rebuild_time:" + to_string(rebuild_time) + "\n";
+    result += "sampling_rate:" + to_string(sampling_rate) + "\n";
+    result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
+    result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
+    result += "\n";
     time = 0;
     page_access = 0;
     return result;
@@ -184,6 +213,7 @@ string ExpRecorder::get_insert_time_pageaccess_rebuild()
 string ExpRecorder::get_size()
 {
     string result = "size:" + to_string(size) + "\n";
+    result += "\n";
     size = 0;
     return result;
 }
@@ -238,6 +268,9 @@ void ExpRecorder::clean()
 
     sfc_cal_time = 0;
     cost_model_time = 0;
+
+    insert_time = 0;
+    previous_insert_num = 0;
     test_reset();
 }
 

@@ -32,6 +32,7 @@
 #include "../utils/FileReader.h"
 #include "../curves/hilbert.H"
 #include "../curves/hilbert4.H"
+#include "../curves/z.H"
 
 using namespace at;
 using namespace torch::nn;

@@ -525,7 +525,7 @@ namespace pre_train_rsmi
                     char command[1024];
                     strcpy(command, commandStr.c_str());
                     int res = system(command);
-                    vector<Point> cl_points = pre_train_zm::get_cluster_point("/home/liuguanli/Documents/pre_train/cluster/", file_name + "_minibatchkmeans_auto.csv");
+                    vector<Point> cl_points = pre_train_zm::get_cluster_point("/home/liuguanli/Documents/pre_train/cluster/"+ file_name + "_minibatchkmeans_auto.csv");
 
                     train_for_cost_model(cl_points, ppath, path, 1, "Z");
                     test_errors(all_points, model_path, "Z", max_error, min_error);

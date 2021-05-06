@@ -28,8 +28,8 @@ public:
 
     void build(ExpRecorder &expRecorder, vector<Point> points);
 
-    void pointQuery(ExpRecorder &expRecorder, Point queryPoint);
-    void pointQuery(ExpRecorder &expRecorder, vector<Point> queryPoints);
+    void point_query(ExpRecorder &expRecorder, Point queryPoint);
+    void point_query(ExpRecorder &expRecorder, vector<Point> queryPoints);
 
     void windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows);
     vector<Point> windowQuery(ExpRecorder &expRecorder, Mbr queryWindow);
@@ -38,7 +38,7 @@ public:
     vector<Point> kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k);
 
     void insert(ExpRecorder &expRecorder, Point);
-    void insert(ExpRecorder &expRecorder, vector<Point>);
+    void insert(ExpRecorder &expRecorder);
 
     void remove(ExpRecorder &expRecorder, Point);
     void remove(ExpRecorder &expRecorder, vector<Point>);
@@ -105,7 +105,7 @@ void Grid::build(ExpRecorder &expRecorder, vector<Point> points)
     expRecorder.cal_size();
 }
 
-void Grid::pointQuery(ExpRecorder &expRecorder, Point point)
+void Grid::point_query(ExpRecorder &expRecorder, Point point)
 {
     int xIndex = (int)(point.x / xGap);
     int yIndex = (int)(point.y / yGap);
@@ -114,19 +114,19 @@ void Grid::pointQuery(ExpRecorder &expRecorder, Point point)
     yIndex = yIndex < 0 ? 0 : yIndex;
     yIndex = yIndex >= numYCells ? numYCells - 1 : yIndex;
     // TODO finish Insert method
-    if (!buckets[xIndex][yIndex].pointQuery(expRecorder, point))
+    if (!buckets[xIndex][yIndex].point_query(expRecorder, point))
     {
         // cout << "not found!" << endl;
     }
 }
 
-void Grid::pointQuery(ExpRecorder &expRecorder, vector<Point> queryPoints)
+void Grid::point_query(ExpRecorder &expRecorder, vector<Point> queryPoints)
 {
-    cout << "Grid::pointQuery:" << endl;
+    cout << "Grid::point_query:" << endl;
     auto start = chrono::high_resolution_clock::now();
     for (Point point : queryPoints)
     {
-        pointQuery(expRecorder, point);
+        point_query(expRecorder, point);
     }
     auto finish = chrono::high_resolution_clock::now();
     expRecorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / queryPoints.size();
@@ -148,7 +148,7 @@ void Grid::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
     }
     expRecorder.time = time / queryWindows.size();
     expRecorder.page_access = (double)expRecorder.page_access / queryWindows.size();
-    cout<< "time: " << expRecorder.time << endl;
+    cout << "time: " << expRecorder.time << endl;
 }
 
 vector<Point> Grid::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
@@ -189,7 +189,7 @@ vector<Point> Grid::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
     {
         for (size_t j = lowerY; j <= upperY; j++)
         {
-            if (i ==lowerX || i == upperX || j == lowerY || j == upperY)
+            if (i == lowerX || i == upperX || j == lowerY || j == upperY)
             {
                 buckets[i][j].windowQuery(expRecorder, queryWindow);
             }
@@ -285,18 +285,18 @@ void Grid::insert(ExpRecorder &expRecorder, Point point)
     buckets[xIndex][yIndex].insert(point);
 }
 
-void Grid::insert(ExpRecorder &expRecorder, vector<Point> points)
+void Grid::insert(ExpRecorder &exp_recorder)
 {
-    cout << "insert:" << endl;
+    vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
     auto start = chrono::high_resolution_clock::now();
-    for (Point point : points)
+    for (int i = 0; i < points.size(); i++)
     {
-        insert(expRecorder, point);
+        insert(exp_recorder, points[i]);
     }
     auto finish = chrono::high_resolution_clock::now();
-    long long oldTimeCost = expRecorder.insert_time * expRecorder.insert_num;
-    expRecorder.insert_num += points.size();
-    expRecorder.insert_time = (oldTimeCost + chrono::duration_cast<chrono::nanoseconds>(finish - start).count()) / expRecorder.insert_num;
+    long long previous_time = exp_recorder.insert_time * exp_recorder.previous_insert_num;
+    exp_recorder.previous_insert_num += points.size();
+    exp_recorder.insert_time = (previous_time + chrono::duration_cast<chrono::nanoseconds>(finish - start).count()) / exp_recorder.previous_insert_num;
 }
 
 void Grid::remove(ExpRecorder &expRecorder, Point point)

@@ -36,14 +36,16 @@ bool Point::operator==(const Point &point)
 
 float Point::cal_dist(Point point)
 {
-    if (temp_dist == 0)
-        temp_dist = sqrt(pow((point.x - x), 2) + pow((point.y - y), 2));
-    return temp_dist;
+    // if (temp_dist == 0)
+    //     temp_dist = sqrt(pow((point.x - x), 2) + pow((point.y - y), 2));
+    // return temp_dist;
+    return sqrt(pow((point.x - x), 2) + pow((point.y - y), 2));
 }
 
 void Point::print()
 {
-    cout << "(x=" << x << ",y=" << y << ")" << " index=" << index << " curve_val=" << curve_val << endl;
+    cout << "(x=" << x << ",y=" << y << ")"
+         << " index=" << index << " curve_val=" << curve_val << endl;
 }
 
 vector<Point> Point::get_points(vector<Point> dataset, int num)
@@ -59,14 +61,20 @@ vector<Point> Point::get_points(vector<Point> dataset, int num)
     return points;
 }
 
-vector<Point> Point::get_inserted_points(long long num)
+vector<Point> Point::get_inserted_points(long long num, string distribution)
 {
-    srand(time(0));
+    srand(time(0)); // initialize random number generator which always be a different value
     vector<Point> points;
     for (int i = 0; i < num; i++)
     {
         float x = (float)(rand() % num) / num;
-        float y = (float)(rand() % num) / num;
+        float y = 0;
+        y = (float)(rand() % num) / num;
+        if (distribution == "skew")
+        {
+            // y = (float)(rand() % num) / num;
+            y = pow(y, 4);
+        }
         Point point(x, y);
         points.push_back(point);
     }

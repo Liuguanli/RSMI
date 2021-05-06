@@ -46,6 +46,7 @@ public:
     void write_mbrs(vector<Mbr> mbrs, ExpRecorder expRecorder);
     void write_points(vector<Point> points, ExpRecorder expRecorder);
     void write_inserted_points(vector<Point> points, ExpRecorder expRecorder);
+    void write_inserted_points(vector<Point> points, ExpRecorder expRecorder, int index);
 
     void write_learned_cdf(ExpRecorder, vector<float> cdf);
 

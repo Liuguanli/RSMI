@@ -343,8 +343,8 @@ if __name__ == '__main__':
     # distribution, size, skewness, filename, dim = parser(sys.argv[1:])
     # distribution, size, dim = 'normal', 1000, 2
     # gen(distribution, size, dim)
-    distribution, size, dim = 'uniform', 1000, 2
-    gen(distribution, size, dim)
+    # distribution, size, dim = 'uniform', 1000, 2
+    # gen(distribution, size, dim)
     # distribution, size, dim = 'uniform', 2000000, 2
     # gen(distribution, size, dim)
     # distribution, size, dim = 'uniform', 4000000, 2
@@ -359,8 +359,8 @@ if __name__ == '__main__':
     # gen(distribution, size, dim)
     # distribution, size, dim = 'uniform', 128000000, 2
     # gen(distribution, size, dim)
-    # distribution, size, dim = 'skewed', 128000000, 2
-    distribution, size, dim = 'skewed', 1000, 2
+    distribution, size, dim = 'skewed', 64000000, 2
+    # distribution, size, dim = 'skewed', 1000, 2
     gen(distribution, size, dim)
     # save_synthetic_datasets("Z")
 

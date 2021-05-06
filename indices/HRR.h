@@ -60,8 +60,8 @@ public:
     NonLeafNode *root;
     void build(ExpRecorder &expRecorder, vector<Point> points);
 
-    void pointQuery(ExpRecorder &expRecorder, Point queryPoints);
-    void pointQuery(ExpRecorder &expRecorder, vector<Point> queryPoints);
+    void point_query(ExpRecorder &expRecorder, Point queryPoints);
+    void point_query(ExpRecorder &expRecorder, vector<Point> queryPoints);
 
     void windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows);
     vector<Point> windowQuery(ExpRecorder &expRecorder, Mbr queryWindows);
@@ -70,7 +70,7 @@ public:
     vector<Point> kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k);
 
     void insert(ExpRecorder &expRecorder, Point);
-    void insert(ExpRecorder &expRecorder, vector<Point>);
+    void insert(ExpRecorder &expRecorder);
 
     void remove(ExpRecorder &expRecorder, Point);
     void remove(ExpRecorder &expRecorder, vector<Point>);
@@ -192,7 +192,7 @@ void HRR::build(ExpRecorder &expRecorder, vector<Point> points)
     expRecorder.size = (Constants::DIM * Constants::PAGESIZE * Constants::EACH_DIM_LENGTH + Constants::PAGESIZE * Constants::INFO_LENGTH + Constants::DIM * Constants::DIM * Constants::EACH_DIM_LENGTH) * (expRecorder.non_leaf_node_num + expRecorder.leaf_node_num) + expRecorder.dataset_cardinality * 2 * Constants::EACH_DIM_LENGTH * 2;
 }
 
-void HRR::pointQuery(ExpRecorder &expRecorder, Point queryPoint)
+void HRR::point_query(ExpRecorder &expRecorder, Point queryPoint)
 {
     queue<nodespace::Node *> nodes;
     nodes.push(root);
@@ -243,14 +243,12 @@ void HRR::pointQuery(ExpRecorder &expRecorder, Point queryPoint)
     }
 }
 
-void HRR::pointQuery(ExpRecorder &expRecorder, vector<Point> queryPoints)
+void HRR::point_query(ExpRecorder &expRecorder, vector<Point> queryPoints)
 {
-    cout << "HRR::pointQuery" << endl;
+    cout << "HRR::point_query" << endl;
     auto start = chrono::high_resolution_clock::now();
     for (long i = 0; i < queryPoints.size(); i++)
     {
-        // pointQuery(expRecorder, queryPoints[i]);
-
         queue<nodespace::Node *> nodes;
         nodes.push(root);
         bool isFound = false;
@@ -292,7 +290,6 @@ void HRR::pointQuery(ExpRecorder &expRecorder, vector<Point> queryPoints)
     }
     auto finish = chrono::high_resolution_clock::now();
     expRecorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / queryPoints.size();
-    cout << " expRecorder.time: " << expRecorder.time << endl;
     expRecorder.page_access = (double)expRecorder.page_access / queryPoints.size();
 }
 
@@ -340,7 +337,6 @@ vector<Point> HRR::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
 void HRR::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
 {
     cout << "HRR::windowQuery" << endl;
-
     int length = queryWindows.size();
     // length = 1;
     long long time = 0;
@@ -358,8 +354,8 @@ void HRR::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
 
     expRecorder.time = time / length;
     expRecorder.page_access = (double)expRecorder.page_access / length;
-    cout<< "time: " << expRecorder.time << endl;
-    cout<< "total size: " << size << endl;
+    cout << "time: " << expRecorder.time << endl;
+    cout << "total size: " << size << endl;
 }
 
 vector<Point> HRR::kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k)
@@ -436,7 +432,7 @@ void HRR::kNNQuery(ExpRecorder &expRecorder, vector<Point> queryPoints, int k)
     int length = queryPoints.size();
     for (int i = 0; i < length; i++)
     {
-        priority_queue<Point , vector<Point>, sortForKNN2> temp_pq;
+        priority_queue<Point, vector<Point>, sortForKNN2> temp_pq;
         expRecorder.pq = temp_pq;
         vector<Point> result = kNNQuery(expRecorder, queryPoints[i], k);
         // for (size_t j = 0; j < result.size(); j++)
@@ -529,17 +525,18 @@ void HRR::insert(ExpRecorder &expRecorder, Point point)
     }
 }
 
-void HRR::insert(ExpRecorder &expRecorder, vector<Point> points)
+void HRR::insert(ExpRecorder &exp_recorder)
 {
+    vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
     auto start = chrono::high_resolution_clock::now();
     for (int i = 0; i < points.size(); i++)
     {
-        insert(expRecorder, points[i]);
+        insert(exp_recorder, points[i]);
     }
     auto finish = chrono::high_resolution_clock::now();
-    long long oldTimeCost = expRecorder.insert_time * expRecorder.insert_num;
-    expRecorder.insert_num += points.size();
-    expRecorder.insert_time = (oldTimeCost + chrono::duration_cast<chrono::nanoseconds>(finish - start).count()) / expRecorder.insert_num;
+    long long previous_time = exp_recorder.insert_time * exp_recorder.previous_insert_num;
+    exp_recorder.previous_insert_num += points.size();
+    exp_recorder.insert_time = (previous_time + chrono::duration_cast<chrono::nanoseconds>(finish - start).count()) / exp_recorder.previous_insert_num;
 }
 
 void HRR::remove(ExpRecorder &expRecorder, Point point)
