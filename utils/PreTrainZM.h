@@ -346,7 +346,8 @@ namespace pre_train_zm
                 }
                 Point point(x, y);
                 point.index = temp[temp.size() / 2].index;
-                point.key = temp[temp.size() / 2].key;
+                // point.key = temp[temp.size() / 2].key;
+                // point.normalized_curve_val = temp[temp.size() / 2].normalized_curve_val;
                 point.normalized_curve_val = temp[temp.size() / 2].normalized_curve_val;
                 rs.push_back(point);
             }
@@ -676,6 +677,9 @@ namespace pre_train_zm
     void cost_model_build()
     {
         FileReader filereader(",");
+        // string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted_normalized.csv";
+        // string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/build_time_model_zm_normalized.pt";
+        // string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/query_time_model_zm_normalized.pt";
         string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted.csv";
         string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/build_time_model_zm.pt";
         string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/query_time_model_zm.pt";
@@ -749,8 +753,9 @@ namespace pre_train_zm
         iter = methods.begin();
 
         auto start = chrono::high_resolution_clock::now();
+        // float min_cost = 100;
         float max_score = 0;
-        int result = 0;
+        int result = 1;
         // mr = 1
         // or = 2
         // rl = 3
@@ -773,6 +778,7 @@ namespace pre_train_zm
             float build_score = build_cost_model->predict(x).item().toFloat();
             float query_score = query_cost_model->predict(x).item().toFloat();
             score = lambda * build_score + (1 - lambda) * query_score;
+            // cout<< "build_score: " <<build_score << " query_score: " << query_score << endl;
             if (score > max_score)
             {
                 max_score = score;
@@ -781,6 +787,7 @@ namespace pre_train_zm
             // cout << "iter->first: " << iter->first << " build_score: " << build_score << " query_score: " << query_score << " score: " << score << endl;
             iter++;
         }
+        // cout<< "result: " << result << endl;
         switch (result)
         {
         case 1: // mr = 1

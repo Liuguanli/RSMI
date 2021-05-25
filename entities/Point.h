@@ -14,7 +14,7 @@ public:
     float y;
     long long x_i;
     long long y_i;
-    long long xs[2];
+    // long long xs[2];
     long long curve_val;
     float normalized_curve_val;
 

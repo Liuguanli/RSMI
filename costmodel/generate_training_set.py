@@ -77,15 +77,7 @@ data_arr.append([1.6e7, 'skew','ZM', 0.8,1])
 data_arr.append([1.6e7, 'skew','RL',0.4,0.2])
 data_arr.append([1.6e7, 'skew','MR',0.2,0.8])
 data_arr.append([1.6e7, 'skew','CL',1,0.6])
-data_arr.append([1.6e7, 'skew','SP',0,0.4])
-
-data_arr.append([1.6e7, 'uniform','RS',0.6,0])
-data_arr.append([1.6e7, 'uniform','ZM', 0.8,1])
-data_arr.append([1.6e7, 'uniform','RL',0.4,0.2])
-data_arr.append([1.6e7, 'uniform','MR',0.2,0.8])
-data_arr.append([1.6e7, 'uniform','CL',1,0.6])
-data_arr.append([1.6e7, 'uniform','SP',0,0.4])
-
+data_abuild_cost_model
 data_arr.append([8e6, 'normal','RS',0.6,0])
 data_arr.append([8e6, 'normal','ZM', 0.8,1])
 data_arr.append([8e6, 'normal','RL',0.4,0.2])

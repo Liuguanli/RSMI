@@ -142,15 +142,7 @@ void FileWriter::write_build(ExpRecorder exp_recorder)
     ofstream write;
     string folder = Constants::BUILD;
     file_utils::check_dir(filename + folder);
-    if (exp_recorder.structure_name == "ML-index")
-    {
-        /* code */
-        write.open((filename + folder + exp_recorder.structure_name + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_" + to_string(exp_recorder.cluster_size) + ".txt"), ios::app);
-    }
-    else
-    {
-        write.open((filename + folder + exp_recorder.structure_name + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_" + to_string(exp_recorder.N) + ".txt"), ios::app);
-    }
+    write.open((filename + folder + exp_recorder.structure_name + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_" + to_string(exp_recorder.N) + ".txt"), ios::app);
 
     // if (exp_recorder.structure_name == "ZM" || exp_recorder.structure_name == "RSMI" )
     // {

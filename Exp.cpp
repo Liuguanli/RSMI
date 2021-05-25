@@ -51,6 +51,7 @@ long long inserted_num = cardinality / 10;
 string distribution = Constants::DEFAULT_DISTRIBUTION;
 int inserted_partition = 5;
 int skewness = 1;
+float lambda = 0;
 
 double knn_diff(vector<Point> acc, vector<Point> pred)
 {
@@ -91,19 +92,6 @@ void exp_binary_search(FileWriter file_writer, ExpRecorder exp_recorder, vector<
 
 void exp_RSMI(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, string model_path)
 {
-    // model reuse OSM
-    // load time: 653787332
-    // build time: 154s
-    // finish point_query time: 425
-
-    // model reuse SA
-    // build time: 764s
-    // finish point_query time: 395
-
-    // train from scratch
-    // build time: 14000s (build)
-    // finish point_query time: 472
-
     cout << "exp_RSMI: " << endl;
     std::stringstream stream;
     stream << std::fixed << std::setprecision(1) << exp_recorder.model_reuse_threshold;
@@ -135,17 +123,32 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> p
     file_writer.write_point_query(exp_recorder);
     exp_recorder.clean();
 
-    for (size_t i = 0; i < exp_recorder.insert_times; i++)
-    {
-        cout << " insert" << endl;
-        partition->insert(exp_recorder, exp_recorder.insert_rebuild_index);
-        // partition->insert(exp_recorder);
-        file_writer.write_insert(exp_recorder);
-        cout << " after insert query" << endl;
-        partition->point_query(exp_recorder, points);
-        file_writer.write_insert_point_query(exp_recorder);
-    }
-    exp_recorder.clean();
+    // for (size_t i = 0; i < exp_recorder.insert_times; i++)
+    // {
+    //     cout << " insert" << endl;
+    //     partition->insert(exp_recorder, exp_recorder.insert_rebuild_index);
+    //     // partition->insert(exp_recorder);
+    // file_writer.write_insert(exp_recorder);
+    //     cout << " after insert query" << endl;
+    //     partition->point_query(exp_recorder, points);
+    //     file_writer.write_insert_point_query(exp_recorder);
+    // }
+
+    // TODO redesign the insertion part!!!
+    // string dataset = Constants::QUERYPROFILES + "update/skewed_128000000_4_12800000_" + to_string(1) + "_.csv";
+    // FileReader filereader(dataset, ",");
+    // vector<Point> insert_points = filereader.get_points();
+    // int insertedTimes = 100;
+    // int insertedNum = insert_points.size() / insertedTimes;
+    // for (size_t i = 0; i < insertedTimes / 2; i++)
+    // {
+    //     vector<Point> tempPoints(insert_points.begin() + i * insertedNum, insert_points.begin() + (i + 1) * insertedNum);
+    //     partition->insert(exp_recorder, tempPoints);
+    //     file_writer.write_insert(exp_recorder);
+    //     partition->point_query(exp_recorder, points);
+    //     file_writer.write_insert_point_query(exp_recorder);
+    // }
+    // exp_recorder.clean();
 }
 
 void exp_ZM(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, string model_path)
@@ -178,14 +181,14 @@ void exp_ZM(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> poi
     file_writer.write_point_query(exp_recorder);
     exp_recorder.clean();
 
-    for (size_t i = 0; i < exp_recorder.insert_times; i++)
-    {
-        zm->insert(exp_recorder);
-        file_writer.write_insert(exp_recorder);
-        zm->point_query(exp_recorder, points);
-        file_writer.write_insert_point_query(exp_recorder);
-    }
-    exp_recorder.clean();
+    // for (size_t i = 0; i < exp_recorder.insert_times; i++)
+    // {
+    //     zm->insert(exp_recorder);
+    //     file_writer.write_insert(exp_recorder);
+    //     zm->point_query(exp_recorder, points);
+    //     file_writer.write_insert_point_query(exp_recorder);
+    // }
+    // exp_recorder.clean();
 }
 
 void exp_ML_index(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, string model_path)
@@ -307,12 +310,13 @@ void parse(int argc, char **argv, ExpRecorder &exp_recorder)
         {
             {"cardinality", required_argument, NULL, 'c'},
             {"distribution", required_argument, NULL, 'd'},
-            {"skewness", required_argument, NULL, 's'}};
+            {"skewness", required_argument, NULL, 's'},
+            {"lambda", required_argument, NULL, 'l'}};
 
     while (1)
     {
         int opt_index = 0;
-        c = getopt_long(argc, argv, "c:d:s:", long_options, &opt_index);
+        c = getopt_long(argc, argv, "c:d:s:l:", long_options, &opt_index);
 
         if (-1 == c)
         {
@@ -329,15 +333,20 @@ void parse(int argc, char **argv, ExpRecorder &exp_recorder)
         case 's':
             skewness = atoi(optarg);
             break;
+        case 'l':
+            lambda = atof(optarg);
+            break;
         }
     }
     exp_recorder.dataset_cardinality = cardinality;
     exp_recorder.distribution = distribution;
     exp_recorder.skewness = skewness;
-    inserted_num = cardinality / 100;
+    // inserted_num = cardinality / 100;
     // inserted_num = 1000;
-    exp_recorder.insert_num = inserted_num;
-    exp_recorder.insert_times = 10;
+    // exp_recorder.insert_num = inserted_num;
+    // exp_recorder.insert_times = 10;
+    exp_recorder.upper_level_lambda = lambda;
+    exp_recorder.lower_level_lambda = lambda;
     // exp_recorder.insert_points_distribution = "skew";
 }
 
@@ -400,7 +409,7 @@ void build_rsmi_rebuild_model()
     exp_recorder.sampling_rate = 0.0001;
     exp_recorder.rs_threshold_m = 10000;
     FileWriter file_writer(Constants::RECORDS);
-    for (size_t j = 2; j <= 10; j++)
+    for (size_t j = 9; j <= 10; j++)
     {
         vector<Point> points;
         for (size_t i = 1; i <= j; i++)
@@ -428,6 +437,7 @@ void build_rsmi_rebuild_model()
 string RSMI::model_path_root = "";
 int main(int argc, char **argv)
 {
+    // TODO traverse
     // pre_train_rsmi::pre_train_cost_model("or");
     // pre_train_rsmi::pre_train_cost_model("rs");
     // pre_train_rsmi::pre_train_cost_model("sp");
@@ -440,10 +450,14 @@ int main(int argc, char **argv)
     //----------------------------------------------------
     torch::manual_seed(0);
 
-    // build_rsmi_rebuild_model();
-
     ExpRecorder exp_recorder;
     parse(argc, argv, exp_recorder);
+
+    // if (exp_recorder.upper_level_lambda >= 0.8)
+    // {
+    //     build_rsmi_rebuild_model();
+    // }
+
     //-------------------------------------------------
     // FileWriter query_file_writer(Constants::QUERYPROFILES);
     // for (size_t i = 1; i <= 10; i++)
@@ -469,13 +483,25 @@ int main(int argc, char **argv)
     // expGrid(file_writer, exp_recorder, points, mbrs_map, query_poitns);
     // expKDB(file_writer, exp_recorder, points, mbrs_map, query_poitns);
     // exp_binary_search(file_writer, exp_recorder, points);
+
     exp_recorder.set_level(2)->set_cost_model(true);
     exp_recorder.sampling_rate = 0.0001;
     exp_recorder.rs_threshold_m = 10000;
-    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, model_path);
-    // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, model_path);
-    exp_ML_index(file_writer, exp_recorder, points, mbrs_map, query_poitns, model_path);
+    exp_recorder.cluster_size = 10;
 
+    // exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, model_path);
+    // exp_ML_index(file_writer, exp_recorder, points, mbrs_map, query_poitns, model_path);
+    exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, model_path);
+
+    // for (size_t i = 10; i >= 0; i--)
+    // {
+    //     cout << "------------------------i=" << to_string(i) << "------------------------" << endl;
+    //     exp_recorder.upper_level_lambda = i * 0.1;
+    //     exp_recorder.lower_level_lambda = i * 0.1;
+    //     exp_ZM(file_writer, exp_recorder, points, mbrs_map, query_poitns, model_path);
+    //     exp_ML_index(file_writer, exp_recorder, points, mbrs_map, query_poitns, model_path);
+    //     exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, model_path);
+    // }
 
     // cluster
     // exp_recorder.test_cluster()->set_level(1);

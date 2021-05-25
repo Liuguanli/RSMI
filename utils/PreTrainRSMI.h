@@ -610,6 +610,7 @@ namespace pre_train_rsmi
         cout << "cost_model_build" << endl;
         FileReader filereader(",");
         string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted.csv";
+        // string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted_normalized.csv";
         string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/build_time_model_rsmi.pt";
         string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/query_time_model_rsmi.pt";
 
@@ -753,8 +754,9 @@ namespace pre_train_rsmi
         iter = methods.begin();
 
         auto start = chrono::high_resolution_clock::now();
+        // float min_cost = 100;
         float max_score = 0;
-        int result = 0;
+        int result = 1;
         while (iter != methods.end())
         {
             vector<float> temp = parameters;

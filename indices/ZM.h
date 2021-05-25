@@ -300,13 +300,14 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     }
                     Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), locations_);
                     float lambda = i == 0 ? exp_recorder.upper_level_lambda : exp_recorder.lower_level_lambda;
+                    // get predict method!!!
                     pre_train_zm::cost_model_predict(exp_recorder, lambda, locations_.size() * 1.0 / 10000, pre_train_zm::get_distribution(histogram));
                 }
-
                 if (i == 0)
                 {
                     if (exp_recorder.is_sp)
                     {
+                        exp_recorder.sp_num++;
                         auto start_sp = chrono::high_resolution_clock::now();
                         if (exp_recorder.is_sp_first)
                         {
@@ -355,6 +356,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     }
                     else if (exp_recorder.is_cluster)
                     {
+                        exp_recorder.cluster_num++;
                         auto start_cl = chrono::high_resolution_clock::now();
                         int k = 10000;
                         auto start_cluster = chrono::high_resolution_clock::now();
@@ -384,6 +386,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     }
                     else if (exp_recorder.is_rs)
                     {
+                        exp_recorder.rs_num++;
                         auto start_rs = chrono::high_resolution_clock::now();
                         vector<Point> tmp_records_0_0 = pre_train_zm::get_rep_set_space(exp_recorder.rs_threshold_m, 0, 0, 0.5, 0.5, tmp_records[0][0]);
                         // vector<Point> tmp_records_0_0 = pre_train_zm::get_rep_set(m, bit_num, 0, tmp_records[0][0]);
@@ -417,6 +420,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     }
                     else if (exp_recorder.is_rl)
                     {
+                        exp_recorder.rl_num++;
                         cout << "RL_SFC begin" << endl;
                         auto start_rl = chrono::high_resolution_clock::now();
                         int bit_num = 6;
@@ -455,6 +459,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     }
                     else if (exp_recorder.is_model_reuse)
                     {
+                        exp_recorder.model_reuse_num++;
                         auto start_mr = chrono::high_resolution_clock::now();
                         for (Point point : tmp_records[i][j])
                         {
@@ -483,6 +488,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     }
                     else
                     {
+                        exp_recorder.original_num++;
                         for (Point point : tmp_records[i][j])
                         {
                             // features.push_back(point.curve_val);
@@ -509,6 +515,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                 {
                     if (exp_recorder.is_model_reuse)
                     {
+                        exp_recorder.model_reuse_num++;
                         auto start_mr = chrono::high_resolution_clock::now();
                         for (Point point : tmp_records[i][j])
                         {
@@ -530,6 +537,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                         }
                         else
                         {
+                            exp_recorder.original_num++;
                             // cout << "train model 1" << endl;
                             auto start_train = chrono::high_resolution_clock::now();
                             net->train_model(locations, labels);
@@ -541,6 +549,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     }
                     else if (exp_recorder.is_sp)
                     {
+                        exp_recorder.sp_num++;
                         auto start_sp = chrono::high_resolution_clock::now();
                         int sample_gap = 1 / sqrt(sampling_rate);
                         long long counter = 0;
@@ -570,10 +579,16 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     }
                     else if (exp_recorder.is_rs)
                     {
+                        exp_recorder.rs_num++;
                         auto start_rs = chrono::high_resolution_clock::now();
                         // cout << "tmp_records[i][j].size(): " << tmp_records[i][j].size() << endl;
                         // vector<Point> tmp_records_i_j = pre_train_zm::get_rep_set(sqrt(m), bit_num, 0, tmp_records[i][j]);
-                        vector<Point> tmp_records_i_j = pre_train_zm::get_rep_set_space(sqrt(exp_recorder.rs_threshold_m), 0, 0, 0.5, 0.5, tmp_records[i][j]);
+                        int sub_threshold = exp_recorder.rs_threshold_m;
+                        if (tmp_records[i][j].size() < Constants::THRESHOLD)
+                        {
+                            sub_threshold = sqrt(exp_recorder.rs_threshold_m);
+                        }
+                        vector<Point> tmp_records_i_j = pre_train_zm::get_rep_set_space(sub_threshold, 0, 0, 0.5, 0.5, tmp_records[i][j]);
                         // for (Point point : tmp_records_i_j)
                         // {
                         //     // features.push_back(point.curve_val);
@@ -581,6 +596,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                         //     labels.push_back(point.index);
                         // }
                         int temp_N = tmp_records_i_j.size();
+                        // cout << "tmp_records_i_j.size(): " << tmp_records_i_j.size() << endl;
                         for (long long i = 0; i < temp_N; i++)
                         {
                             tmp_records_i_j[i].x_i = tmp_records_i_j[i].x * N;
@@ -609,6 +625,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     }
                     else
                     {
+                        exp_recorder.original_num++;
                         for (Point point : tmp_records[i][j])
                         {
                             // features.push_back(point.curve_val);
@@ -622,6 +639,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                         exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
                     }
                 }
+                // cout << "build sub-model finish: " << endl;
                 net->get_parameters_ZM();
                 int max_error = 0;
                 int min_error = 0;

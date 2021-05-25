@@ -8,13 +8,18 @@ def load_data(name):
     data = pd.read_csv(name, header=None)
     x = data[0].values.reshape(-1, 1)
     y = data[1].values.reshape(-1, 1)
-    return x, y
+    res = []
+    for i in range(x.shape[0]):
+        if i % 2 == 0:
+            res.append([x[i][0],y[i][0]])
+    return res
 
 def load_real_datasets():
     xs = []
     ys = []
     labels = []
-    x, y  = load_data("/home/research/SA_367442158_1_2_.csv")
+    res  = load_data("/home/research/datasets/SA_367442158_1_2_.csv")
+    np.savetxt("/home/research/datasets/SA_180000000_1_2_.csv", np.array(res), delimiter=",")
     xs.append(x)
     ys.append(y)
     labels.append("SA")
@@ -57,4 +62,4 @@ def plot(xs, ys, labels):
 
 if __name__ == "__main__":
     xs, ys, labels = load_real_datasets()
-    plot(xs, ys, labels)
+    # plot(xs, ys, labels)

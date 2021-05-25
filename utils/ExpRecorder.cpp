@@ -26,7 +26,12 @@ string ExpRecorder::get_time_size_errors()
     result += "cost_model_time:" + to_string(cost_model_time) + "\n";
     result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
     result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
+    result += "cluster_size:" + to_string(cluster_size) + "\n";
     result += "sampling_rate:" + to_string(sampling_rate) + "\n";
+    result += "epsilon:" + to_string(model_reuse_threshold) + "\n";
+    result += "top_rl_time:" + to_string(top_rl_time) + "\n";
+    result += "rep threshold m:" + to_string(rs_threshold_m) + "\n";
+    result += "cluster_method:" + cluster_method + "\n";
     result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
     result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
     result += "size:" + to_string(size) + "\n";
@@ -38,32 +43,13 @@ string ExpRecorder::get_time_size_errors()
     result += "leaf_node_num:" + to_string(leaf_node_num) + "\n";
     result += "last_level_model_num:" + to_string(last_level_model_num) + "\n";
     result += "non_leaf_model_num:" + to_string(non_leaf_model_num) + "\n";
+    result += "sp_num:" + to_string(sp_num) + "\n";
+    result += "model_reuse_num:" + to_string(model_reuse_num) + "\n";
+    result += "rl_num:" + to_string(rl_num) + "\n";
+    result += "cluster_num:" + to_string(cluster_num) + "\n";
+    result += "rs_num:" + to_string(rs_num) + "\n";
+    result += "original:" + to_string(original_num) + "\n";
     result += "depth:" + to_string(depth) + "\n";
-    // if (structure_name == "ZM" || structure_name == "RSMI")
-    // {
-    // }
-    if (structure_name == "ZM-MR" || structure_name == "RSMI-MR")
-    {
-        result += "epsilon:" + to_string(model_reuse_threshold) + "\n";
-    }
-    if (structure_name == "ZM-RL" || structure_name == "RSMI-RL")
-    {
-        result += "epsilon:" + to_string(model_reuse_threshold) + "\n";
-        result += "top_rl_time:" + to_string(top_rl_time) + "\n";
-    }
-    if (structure_name == "ZM-SPF" || structure_name == "ZM-SP" || structure_name == "RSMI-SP")
-    {
-        result += "sampling rate:" + to_string(sampling_rate) + "\n";
-    }
-    if (structure_name == "ZM-RS" || structure_name == "RSMI-RS")
-    {
-        result += "rep threshold m:" + to_string(rs_threshold_m) + "\n";
-    }
-    if (structure_name == "ZM-CL" || structure_name == "RSMI-CL")
-    {
-        result += "cluster_method:" + cluster_method + "\n";
-        result += "cluster_size:" + to_string(cluster_size) + "\n";
-    }
     result += "\n";
     time = 0;
     top_level_time = 0;
@@ -115,46 +101,29 @@ string ExpRecorder::get_time_pageaccess()
 {
     string result = "time:" + to_string(time) + "\n";
     result += "insert_num:" + to_string(previous_insert_num) + "\n";
+    if (insert_num != 0)
+    {
+        result += "insert_num:" + to_string(previous_insert_num) + "\n";
+        result += "insert_ratio:" + to_string(previous_insert_num * 100.0 / dataset_cardinality) + "%\n";
+        result += "insert_points_distribution:" + insert_points_distribution + "\n";
+    }
     result += "level:" + to_string(level) + "\n";
     result += "insert_points_distribution:" + insert_points_distribution + "\n";
     result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
     result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
+    result += "cluster_size:" + to_string(cluster_size) + "\n";
     result += "sampling_rate:" + to_string(sampling_rate) + "\n";
     result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
+    result += "rep threshold m:" + to_string(rs_threshold_m) + "\n";
+    result += "cluster_method:" + cluster_method + "\n";
     result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
     result += "prediction_time:" + to_string(prediction_time) + "\n";
+    result += "epsilon:" + to_string(model_reuse_threshold) + "\n";
     result += "sfc_cal_time:" + to_string(sfc_cal_time) + "\n";
     result += "search_time:" + to_string(search_time) + "\n";
     result += "search_steps:" + to_string(search_steps) + "\n";
     result += "point_not_found:" + to_string(point_not_found) + "\n";
     result += "pageaccess:" + to_string(page_access) + "\n";
-    // if (structure_name == "ZM" || structure_name == "RSMI")
-    // {
-    // }
-    if (structure_name == "ZM-MR" || structure_name == "RSMI-MR")
-    {
-        result += "epsilon:" + to_string(model_reuse_threshold) + "\n";
-    }
-    if (structure_name == "ZM-RL" || structure_name == "RSMI-RL")
-    {
-        result += "epsilon:" + to_string(model_reuse_threshold) + "\n";
-    }
-    if (structure_name == "ZM-SPF" || structure_name == "ZM-SP" || structure_name == "RSMI-SP")
-    {
-        result += "sampling rate:" + to_string(sampling_rate) + "\n";
-    }
-    if (structure_name == "ZM-RS" || structure_name == "RSMI-RS")
-    {
-        result += "rep threshold m:" + to_string(rs_threshold_m) + "\n";
-    }
-    if (structure_name == "ZM-CL" || structure_name == "RSMI-CL")
-    {
-        result += "cluster_method:" + cluster_method + "\n";
-        result += "cluster_size:" + to_string(cluster_size) + "\n";
-    }
-    if (structure_name == "Grid" || structure_name == "HRR" || structure_name == "KDB")
-    {
-    }
     result += "\n";
     return result;
 }
@@ -178,7 +147,10 @@ string ExpRecorder::get_insert_time_pageaccess()
     }
     result += "level:" + to_string(level) + "\n";
     result += "pageaccess:" + to_string(page_access) + "\n";
+    result += "cluster_size:" + to_string(cluster_size) + "\n";
     result += "sampling_rate:" + to_string(sampling_rate) + "\n";
+    result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
+    result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
     result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
     result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
     result += "\n";
@@ -201,7 +173,10 @@ string ExpRecorder::get_insert_time_pageaccess_rebuild()
     result += "pageaccess:" + to_string(page_access) + "\n";
     result += "rebuild_num:" + to_string(rebuild_num) + "\n";
     result += "rebuild_time:" + to_string(rebuild_time) + "\n";
+    result += "cluster_size:" + to_string(cluster_size) + "\n";
     result += "sampling_rate:" + to_string(sampling_rate) + "\n";
+    result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
+    result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
     result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
     result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
     result += "\n";
@@ -271,6 +246,14 @@ void ExpRecorder::clean()
 
     insert_time = 0;
     previous_insert_num = 0;
+
+    sp_num = 0;
+    model_reuse_num = 0;
+    rl_num = 0;
+    cluster_num = 0;
+    rs_num = 0;
+    original_num = 0;
+    traverse_time = 0;
     test_reset();
 }
 

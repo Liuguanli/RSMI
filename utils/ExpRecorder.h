@@ -81,7 +81,7 @@ public:
     double model_reuse_threshold = 0.1;
 
     string cluster_method = "kmeans";
-    int cluster_size = 10000;
+    int cluster_size = 100;
     string insert_points_distribution = "normal";
 
     int window_query_result_size;
@@ -92,11 +92,17 @@ public:
 
     bool is_sp = false;
     bool is_sp_first = false;
+    int sp_num = 0;
     bool is_model_reuse = false;
+    int model_reuse_num = 0;
     bool is_rl = false;
+    int rl_num = 0;
     bool is_cluster = false;
+    int cluster_num = 0;
     bool is_rs = false;
+    int rs_num = 0;
     bool is_cost_model = false;
+    int original_num = 0;
 
     int level = 1;
 
@@ -104,6 +110,8 @@ public:
     double lower_level_lambda = 0.8;
 
     int insert_rebuild_index = 0;
+
+    long traverse_time = 0;
 
     ExpRecorder();
     string get_time();

@@ -55,6 +55,7 @@ def encode_onehot(df, column_name):
 
 @clock
 def build_cost_model():
+    # df = pd.read_csv('train_set_normalized.csv')
     df = pd.read_csv('train_set.csv')
 
     df = shuffle(df)
@@ -62,6 +63,12 @@ def build_cost_model():
 
     train_y_1 = df[['build_cost']]
     train_y_2 = df[['query_cost']]
+
+    # min_max_scaler = preprocessing.MinMaxScaler()
+    # train_y_1 = min_max_scaler.fit_transform(train_y_1)
+    # train_y_1 = pd.DataFrame(train_y_1)
+    # train_y_2 = min_max_scaler.fit_transform(train_y_2)
+    # train_y_2 = pd.DataFrame(train_y_2)
 
     # clf = RandomForestRegressor(max_depth=2, n_estimators=10, random_state=0, bootstrap = True,min_samples_leaf=3,min_samples_split=5)
     clf_build = RandomForestRegressor(max_depth=2, n_estimators=20, random_state=0)
@@ -78,6 +85,7 @@ def build_cost_model():
     temp = pd.concat([train_x, train_y_1], axis=1)
     temp = pd.concat([temp, train_y_2], axis=1)
     temp.to_csv("train_set_formatted.csv",index=False)
+    # temp.to_csv("train_set_formatted_normalized.csv",index=False)
 
 @clock
 def predict(lamb, cardinality, distribution):
