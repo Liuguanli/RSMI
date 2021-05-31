@@ -424,7 +424,7 @@ namespace pre_train_rsmi
             Net::load_pre_trained_model_rsmi(threshold);
         }
 
-        FileWriter file_writer("/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/");
+        FileWriter file_writer("/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/");
         while ((ptr = readdir(dir)) != NULL)
         {
             if (ptr->d_name[0] == '.')
@@ -609,10 +609,10 @@ namespace pre_train_rsmi
     {
         cout << "cost_model_build" << endl;
         FileReader filereader(",");
-        string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted.csv";
-        // string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted_normalized.csv";
-        string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/build_time_model_rsmi.pt";
-        string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/query_time_model_rsmi.pt";
+        string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/train_set_formatted.csv";
+        // string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/train_set_formatted_normalized.csv";
+        string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/build_time_model_rsmi.pt";
+        string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/query_time_model_rsmi.pt";
 
         std::ifstream fin_build(build_time_model_path);
         std::ifstream fin_query(query_time_model_path);
@@ -646,7 +646,7 @@ namespace pre_train_rsmi
     {
         cout << "evaluate_cost_model " << endl;
         // read file
-        string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted_test.csv";
+        string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/train_set_formatted_test.csv";
         FileReader filereader(",");
         vector<float> parameters;
         vector<float> build_time_labels;

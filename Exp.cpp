@@ -479,9 +479,9 @@ int main(int argc, char **argv)
     FileWriter file_writer(Constants::RECORDS);
 
     //----------------------------------------------------
-    // expHRR(file_writer, exp_recorder, points, mbrs_map, query_poitns);
-    // expGrid(file_writer, exp_recorder, points, mbrs_map, query_poitns);
-    // expKDB(file_writer, exp_recorder, points, mbrs_map, query_poitns);
+    //expHRR(file_writer, exp_recorder, points, mbrs_map, query_poitns);
+    //expGrid(file_writer, exp_recorder, points, mbrs_map, query_poitns);
+    //expKDB(file_writer, exp_recorder, points, mbrs_map, query_poitns);
     // exp_binary_search(file_writer, exp_recorder, points);
 
     exp_recorder.set_level(2)->set_cost_model(true);

@@ -259,6 +259,7 @@ namespace pre_train_zm
     // get_rep_set_space(m, 0,0,0.5,all_points);
     vector<Point> get_rep_set_space(long long m, double start_x, double start_y, double x_edge_length, double y_edge_length, vector<Point> all_points)
     {
+        cout << "get_rep_set_space 1" << endl;
         long long N = all_points.size();
         vector<Point> rs;
         if (all_points.size() == 0)
@@ -294,22 +295,29 @@ namespace pre_train_zm
             }
             points_map[key].push_back(all_points[i]);
         }
+        // cout << "get_rep_set_space 2" << endl;
         all_points.clear();
         all_points.shrink_to_fit();
 
         map<int, vector<Point>>::iterator iter;
         iter = points_map.begin();
-        // while(iter != points_map.end()) {
-        //     cout << "map: " << iter->first << " : " << iter->second.size() << endl;
-        //     iter++;
-        // }
+        while(iter != points_map.end()) {
+            cout << "map: " << iter->first << " : " << iter->second.size() << endl;
+            iter++;
+        }
+        // cout << "get_rep_set_space 3" << endl;
         for (size_t i = 0; i < key_num; i++)
         {
             vector<Point> temp = points_map[i];
+            // cout << "get_rep_set_space 4 i= " << i << endl;
+            if(temp.size() == 0) {
+                continue;
+            }
             double start_x_temp = start_x;
             double start_y_temp = start_y;
-            if (temp.size() > 2 * m)
+            if (temp.size() > m)
             {
+                // cout << "get_rep_set_space 5" << endl;
                 if (i == 1)
                 {
                     start_x_temp = start_x + x_edge_length;
@@ -328,6 +336,7 @@ namespace pre_train_zm
             }
             else if (temp.size() > 0)
             {
+                // cout << "get_rep_set_space 6" << endl;
                 // TODO use fake points!!!
                 double x = start_x + x_edge_length / 2;
                 double y = start_y + y_edge_length / 2;
@@ -345,10 +354,11 @@ namespace pre_train_zm
                     y += y_edge_length;
                 }
                 Point point(x, y);
-                point.index = temp[temp.size() / 2].index;
+                int middle_point = (temp.size() - 1) / 2;
+                point.index = temp[middle_point].index;
                 // point.key = temp[temp.size() / 2].key;
                 // point.normalized_curve_val = temp[temp.size() / 2].normalized_curve_val;
-                point.normalized_curve_val = temp[temp.size() / 2].normalized_curve_val;
+                point.normalized_curve_val = temp[middle_point].normalized_curve_val;
                 rs.push_back(point);
             }
         }
@@ -514,7 +524,7 @@ namespace pre_train_zm
             locations.push_back(point.normalized_curve_val);
             labels.push_back(point.index);
         }
-
+    
         file_name = file_name.substr(0, file_name.find(".csv"));
         // cout<< "file_name: " << file_name << endl;
         string features_path = Constants::FEATURES_PATH_ZM + to_string(resolution) + "/" + threshold + "/";
@@ -677,12 +687,12 @@ namespace pre_train_zm
     void cost_model_build()
     {
         FileReader filereader(",");
-        // string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted_normalized.csv";
-        // string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/build_time_model_zm_normalized.pt";
-        // string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/query_time_model_zm_normalized.pt";
-        string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/train_set_formatted.csv";
-        string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/build_time_model_zm.pt";
-        string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/costmodel/query_time_model_zm.pt";
+        // string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/train_set_formatted_normalized.csv";
+        // string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/build_time_model_zm_normalized.pt";
+        // string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/query_time_model_zm_normalized.pt";
+        string path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/train_set_formatted.csv";
+        string build_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/build_time_model_zm.pt";
+        string query_time_model_path = "/home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cost_model/query_time_model_zm.pt";
 
         std::ifstream fin_build(build_time_model_path);
         std::ifstream fin_query(query_time_model_path);

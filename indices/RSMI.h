@@ -46,9 +46,11 @@ private:
     std::shared_ptr<Net> net;
 
     float x_gap = 1.0;
+    float x_scale = 1.0;
     float x_0 = 0;
     float x_1 = 0;
     float y_gap = 1.0;
+    float y_scale = 1.0;
     float y_0 = 0;
     float y_1 = 0;
     bool is_reused = false;
@@ -87,7 +89,6 @@ public:
     vector<Point> acc_kNN_query(ExpRecorder &exp_recorder, Point query_point, int k);
     double cal_rho(Point point);
     double knn_diff(vector<Point> acc, vector<Point> pred);
-
 
     void insert(ExpRecorder &exp_recorder, Point);
     void insert(ExpRecorder &exp_recorder);
@@ -157,7 +158,8 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             mbr.update(points[i].x, points[i].y);
         }
         sort(points.begin(), points.end(), sortY());
-        y_gap = 1.0 / (points[N - 1].y - points[0].y);
+        y_gap = points[N - 1].y - points[0].y;
+        y_scale = 1.0 / (points[N - 1].y - points[0].y);
         y_0 = points[0].y;
         y_1 = points[N - 1].y;
         for (int i = 0; i < N; i++)
@@ -240,6 +242,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         vector<float> labels;
         if (exp_recorder.is_model_reuse)
         {
+            cout << "exp_recorder.is_mr" << endl;
             exp_recorder.model_reuse_num++;
             vector<float> features;
             auto start_mr = chrono::high_resolution_clock::now();
@@ -263,9 +266,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             {
                 net->train_model(locations, labels);
             }
+            cout << "exp_recorder.is_mr finish" << endl;
         }
         else if (exp_recorder.is_sp)
         {
+            cout << "exp_recorder.is_sp" << endl;
             exp_recorder.sp_num++;
             auto start_sp = chrono::high_resolution_clock::now();
             int sample_gap = 1 / sampling_rate;
@@ -290,20 +295,23 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             auto finish_sp = chrono::high_resolution_clock::now();
             exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_sp - start_sp).count();
             net->train_model(locations, labels);
+            cout << "exp_recorder.is_sp finish" << endl;
         }
         else if (exp_recorder.is_rs)
         {
             exp_recorder.rs_num++;
             if (N < 10 * sqrt(exp_recorder.rs_threshold_m))
             {
+                cout << "exp_recorder.is_rs 1" << endl;
                 auto start_train = chrono::high_resolution_clock::now();
                 net->train_model(locations, labels);
                 auto end_train = chrono::high_resolution_clock::now();
                 exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
+                cout << "exp_recorder.is_rs 1 finish" << endl;
             }
             else
             {
-                // cout << "exp_recorder.is_rs" << endl;
+                cout << "exp_recorder.is_rs 2" << endl;
                 auto start_rs = chrono::high_resolution_clock::now();
                 vector<Point> rs_points = pre_train_zm::get_rep_set_space(sqrt(exp_recorder.rs_threshold_m), x_0, y_0, x_gap / 2, y_gap / 2, points);
                 int temp_N = rs_points.size();
@@ -322,12 +330,13 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 net->train_model(rs_locations, rs_labels);
                 auto end_train = chrono::high_resolution_clock::now();
                 exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
+                cout << "exp_recorder.is_rs 2 finish" << endl;
             }
         }
         else if (exp_recorder.is_rl)
         {
             exp_recorder.rl_num++;
-            // cout << "RL_SFC begin" << endl;
+            cout << "exp_recorder.is_rl" << endl;
             auto start_rl = chrono::high_resolution_clock::now();
             int bit_num = 6;
             // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
@@ -352,6 +361,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             exp_recorder.top_rl_time = chrono::duration_cast<chrono::nanoseconds>(finish_rl - start_rl).count();
             exp_recorder.extra_time += exp_recorder.top_rl_time;
             net->train_model(features, cdf);
+            cout << "exp_recorder.is_rl finish" << endl;
             // torch::save(net, this->model_path);
             // cout << "RL_SFC finish" << endl;
         }
@@ -364,6 +374,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         // }
         else
         {
+            cout << "exp_recorder. is og" << endl;
             exp_recorder.original_num++;
             for (Point point : points)
             {
@@ -372,6 +383,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 labels.push_back(point.index);
             }
             net->train_model(locations, labels);
+            cout << "exp_recorder. is og finish" << endl;
         }
         net->get_parameters();
         exp_recorder.non_leaf_node_num++;
@@ -382,7 +394,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             int predicted_index;
             if (is_reused)
             {
-                predicted_index = (int)(net->predict(point, x_gap, y_gap, x_0, y_0) * leaf_node_num);
+                predicted_index = (int)(net->predict(point, x_scale, y_scale, x_0, y_0) * leaf_node_num);
             }
             else
             {
@@ -425,11 +437,13 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         bit_num = max_partition_num;
         int partition_size = ceil(points.size() * 1.0 / pow(bit_num, 2));
         sort(points.begin(), points.end(), sortY());
-        y_gap = 1.0 / (points[N - 1].y - points[0].y);
+        y_gap = points[N - 1].y - points[0].y;
+        y_scale = 1.0 / (points[N - 1].y - points[0].y);
         y_0 = points[0].y;
         y_1 = points[N - 1].y;
         sort(points.begin(), points.end(), sortX());
-        x_gap = 1.0 / (points[N - 1].x - points[0].x);
+        x_gap = points[N - 1].x - points[0].x;
+        x_scale = 1.0 / (points[N - 1].x - points[0].x);
         x_0 = points[0].x;
         x_1 = points[N - 1].x;
         long long side = pow(bit_num, 2);
@@ -531,6 +545,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             if (exp_recorder.is_rl)
             {
+                cout << "exp_recorder.is_rl nonleaf" << endl;
                 exp_recorder.rl_num++;
                 // cout << "RL_SFC begin" << endl;
                 auto start_rl = chrono::high_resolution_clock::now();
@@ -559,17 +574,20 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 net->train_model(features, cdf);
                 // torch::save(net, this->model_path);
                 // cout << "RL_SFC finish" << endl;
+                cout << "exp_recorder.is_rl nonleaf finish" << endl;
             }
             else if (exp_recorder.is_rs)
             {
+                cout << "exp_recorder.is_rs nonleaf" << endl;
                 exp_recorder.rs_num++;
                 // cout << "is_rs" << endl;
                 auto start_rs = chrono::high_resolution_clock::now();
-                int m = N > 100 * exp_recorder.rs_threshold_m ? exp_recorder.rs_threshold_m : sqrt(exp_recorder.rs_threshold_m);
-                // cout << "m: " << m << " x_0: " << x_0 << " y_0: " << y_0 << " x_gap: " << x_gap << " y_gap: " << y_gap << endl;
+                int m = N > 10 * exp_recorder.rs_threshold_m ? exp_recorder.rs_threshold_m : sqrt(exp_recorder.rs_threshold_m);
+                cout << "m: " << m << " x_0: " << x_0 << " y_0: " << y_0 << " x_gap: " << x_gap << " y_gap: " << y_gap << endl;
+                cout << "points.size: " << points.size() << endl;
                 vector<Point> rs_points = pre_train_zm::get_rep_set_space(m, x_0, y_0, x_gap / 2, y_gap / 2, points);
                 int temp_N = rs_points.size();
-                // cout << "temp_N: " << temp_N << endl;
+                cout << "temp_N: " << temp_N << endl;
                 vector<float> rs_locations;
                 vector<float> rs_labels;
                 for (Point point : rs_points)
@@ -586,9 +604,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 auto end_train = chrono::high_resolution_clock::now();
                 exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
                 exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_rs - start_rs).count();
+                cout << "exp_recorder.is_rs nonleaf finish" << endl;
             }
             else if (exp_recorder.is_sp)
             {
+                cout << "exp_recorder.is_sp nonleaf" << endl;
                 exp_recorder.sp_num++;
                 // cout << "is_sp" << endl;
                 auto start_sp = chrono::high_resolution_clock::now();
@@ -606,9 +626,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 auto finish_sp = chrono::high_resolution_clock::now();
                 exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_sp - start_sp).count();
                 net->train_model(locations_sp, labels_sp);
+                cout << "exp_recorder.is_sp nonleaf finish" << endl;
             }
             else if (exp_recorder.is_model_reuse)
             {
+                cout << "exp_recorder.is_mr non-leaf " << endl;
                 exp_recorder.model_reuse_num++;
                 // cout << "is_model_reuse" << endl;
                 // SFC sfc(bit_num, features);
@@ -632,11 +654,14 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                     // net->get_parameters();
                     torch::save(net, this->model_path);
                 }
+                cout << "exp_recorder.is_mr non-leaf finish" << endl;
             }
             else
             {
+                cout << "exp_recorder.is_og" << endl;
                 exp_recorder.original_num++;
                 net->train_model(locations, labels);
+                cout << "exp_recorder.is_og finish" << endl;
             }
             net->get_parameters();
 
@@ -645,7 +670,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 int predicted_index;
                 if (is_reused && !is_retrain)
                 {
-                    predicted_index = (int)(net->predict(point, x_gap, y_gap, x_0, y_0) * width);
+                    predicted_index = (int)(net->predict(point, x_scale, y_scale, x_0, y_0) * width);
                 }
                 else
                 {
@@ -696,7 +721,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 int predicted_index;
                 if (is_reused)
                 {
-                    predicted_index = (int)(net->predict(points[0], x_gap, y_gap, x_0, y_0) * width);
+                    predicted_index = (int)(net->predict(points[0], x_scale, y_scale, x_0, y_0) * width);
                 }
                 else
                 {
@@ -1047,7 +1072,7 @@ int RSMI::predict(ExpRecorder &exp_recorder, Point query_point, int width)
 
     if (is_reused)
     {
-        predicted_index = (int)(net->predict(query_point, x_gap, y_gap, x_0, y_0) * width);
+        predicted_index = (int)(net->predict(query_point, x_scale, y_scale, x_0, y_0) * width);
     }
     else
     {
@@ -1191,7 +1216,7 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
     }
 }
 
-// this method is for knn query
+// this method is for window query
 void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr query_window, float boundary, int k, Point query_point, float &kth)
 {
     if (is_last)
@@ -1622,7 +1647,6 @@ void RSMI::traverse(ExpRecorder &exp_recorder)
 
     if (is_last)
     {
-
     }
     else
     {
