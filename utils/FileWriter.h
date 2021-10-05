@@ -44,7 +44,8 @@ public:
     void write_delete_acc_kNN_query(ExpRecorder);
 
     void write_mbrs(vector<Mbr> mbrs, ExpRecorder expRecorder);
-    void write_points(vector<Point> points, ExpRecorder expRecorder);
+    void write_points(vector<Point> points, ExpRecorder expRecorder, string mid);
+    void write_inserted_points(ExpRecorder expRecorder, string name);
     void write_inserted_points(vector<Point> points, ExpRecorder expRecorder);
     void write_inserted_points(vector<Point> points, ExpRecorder expRecorder, int index);
 

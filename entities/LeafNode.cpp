@@ -11,6 +11,12 @@ LeafNode::LeafNode()
     children = new vector<Point>();
 }
 
+LeafNode::LeafNode(int id)
+{
+    this->id = id;
+    children = new vector<Point>();
+}
+
 LeafNode::LeafNode(Mbr mbr)
 {
     this->mbr = mbr;
@@ -50,6 +56,7 @@ LeafNode *LeafNode::split()
     // build leftNode
     vector<Point> vec1(children->begin(), children->begin() + mid);
     children->clear();
+    mbr.clean();
     add_points(vec1);
     return right;
 }
@@ -59,13 +66,14 @@ LeafNode LeafNode::split1()
     // build rightNode
     LeafNode right;
     right.parent = this->parent;
-    int mid = Constants::PAGESIZE / 2;
+    int mid = children->size() / 2;
     vector<Point> vec(children->begin() + mid, children->end());
     right.add_points(vec);
 
     // build leftNode
     vector<Point> vec1(children->begin(), children->begin() + mid);
     children->clear();
+    mbr.clean();
     add_points(vec1);
     return right;
 }

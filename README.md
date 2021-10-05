@@ -141,3 +141,17 @@ model save. If you do not record the training time, you can use trained models a
 }
 ```
 
+### Extend to PostgreSQL
+
+follow spgist
+
+
+
+c head file
+src/include/access/
+
+c implementation
+src/backend/access/
+
+contrib/btree_gist/btree_gist.h
+

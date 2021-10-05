@@ -20,7 +20,6 @@
 #include <string>
 #include <algorithm>
 #include <cmath>
-#include <queue>
 #include <limits>
 #include "../utils/ExpRecorder.h"
 #include "../curves/hilbert.H"
@@ -63,14 +62,14 @@ public:
     void point_query(ExpRecorder &expRecorder, Point queryPoints);
     void point_query(ExpRecorder &expRecorder, vector<Point> queryPoints);
 
-    void windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows);
-    vector<Point> windowQuery(ExpRecorder &expRecorder, Mbr queryWindows);
+    void window_query(ExpRecorder &expRecorder, vector<Mbr> queryWindows);
+    vector<Point> window_query(ExpRecorder &expRecorder, Mbr queryWindows);
 
-    void kNNQuery(ExpRecorder &expRecorder, vector<Point> queryPoints, int k);
-    vector<Point> kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k);
+    void kNN_query(ExpRecorder &expRecorder, vector<Point> queryPoints, int k);
+    vector<Point> kNN_query(ExpRecorder &expRecorder, Point queryPoint, int k);
 
     void insert(ExpRecorder &expRecorder, Point);
-    void insert(ExpRecorder &expRecorder);
+    void insert(ExpRecorder &expRecorder, vector<Point> points);
 
     void remove(ExpRecorder &expRecorder, Point);
     void remove(ExpRecorder &expRecorder, vector<Point>);
@@ -293,7 +292,7 @@ void HRR::point_query(ExpRecorder &expRecorder, vector<Point> queryPoints)
     expRecorder.page_access = (double)expRecorder.page_access / queryPoints.size();
 }
 
-vector<Point> HRR::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
+vector<Point> HRR::window_query(ExpRecorder &expRecorder, Mbr queryWindow)
 {
     vector<Point> windowQueryResults;
     queue<nodespace::Node *> nodes;
@@ -334,9 +333,9 @@ vector<Point> HRR::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
     return windowQueryResults;
 }
 
-void HRR::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
+void HRR::window_query(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
 {
-    cout << "HRR::windowQuery" << endl;
+    cout << "HRR::window_query" << endl;
     int length = queryWindows.size();
     // length = 1;
     long long time = 0;
@@ -345,7 +344,7 @@ void HRR::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
     {
         // expRecorder.windowQueryResults.insert();
         auto start = chrono::high_resolution_clock::now();
-        vector<Point> result = windowQuery(expRecorder, queryWindows[i]);
+        vector<Point> result = window_query(expRecorder, queryWindows[i]);
         auto finish = chrono::high_resolution_clock::now();
         time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
         size += result.size();
@@ -358,7 +357,7 @@ void HRR::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
     cout << "total size: " << size << endl;
 }
 
-vector<Point> HRR::kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k)
+vector<Point> HRR::kNN_query(ExpRecorder &expRecorder, Point queryPoint, int k)
 {
     vector<Point> windowQueryResults;
     priority_queue<NodeExtend *, vector<NodeExtend *>, sortPQ> pq;
@@ -425,16 +424,16 @@ vector<Point> HRR::kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k)
     return windowQueryResults;
 }
 
-void HRR::kNNQuery(ExpRecorder &expRecorder, vector<Point> queryPoints, int k)
+void HRR::kNN_query(ExpRecorder &expRecorder, vector<Point> queryPoints, int k)
 {
-    cout << "HRR::kNNQuery" << endl;
+    cout << "HRR::kNN_query" << endl;
     auto start = chrono::high_resolution_clock::now();
     int length = queryPoints.size();
     for (int i = 0; i < length; i++)
     {
         priority_queue<Point, vector<Point>, sortForKNN2> temp_pq;
         expRecorder.pq = temp_pq;
-        vector<Point> result = kNNQuery(expRecorder, queryPoints[i], k);
+        vector<Point> result = kNN_query(expRecorder, queryPoints[i], k);
         // for (size_t j = 0; j < result.size(); j++)
         // {
         //     cout<< result[j].getSelf() << " " << result[j].cal_dist(queryPoints[i]) << endl;
@@ -525,9 +524,9 @@ void HRR::insert(ExpRecorder &expRecorder, Point point)
     }
 }
 
-void HRR::insert(ExpRecorder &exp_recorder)
+void HRR::insert(ExpRecorder &exp_recorder, vector<Point> points)
 {
-    vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
+    // vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
     auto start = chrono::high_resolution_clock::now();
     for (int i = 0; i < points.size(); i++)
     {

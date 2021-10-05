@@ -34,12 +34,12 @@ bool Point::operator==(const Point &point)
     return false;
 }
 
-float Point::cal_dist(Point point)
+double Point::cal_dist(Point point)
 {
     // if (temp_dist == 0)
-    //     temp_dist = sqrt(pow((point.x - x), 2) + pow((point.y - y), 2));
-    // return temp_dist;
-    return sqrt(pow((point.x - x), 2) + pow((point.y - y), 2));
+    temp_dist = sqrt(pow((point.x - x), 2) + pow((point.y - y), 2));
+    return temp_dist;
+    // return sqrt(pow((point.x - x), 2) + pow((point.y - y), 2));
 }
 
 void Point::print()
@@ -50,6 +50,7 @@ void Point::print()
 
 vector<Point> Point::get_points(vector<Point> dataset, int num)
 {
+    cout<< "..." << dataset.size() << endl;
     srand(time(0));
     int length = dataset.size();
     vector<Point> points;

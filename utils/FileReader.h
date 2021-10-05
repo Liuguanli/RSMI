@@ -29,6 +29,7 @@ public:
     void read_sfc(string filename, vector<int> &, vector<float> &);
     void read_sfc_2d(string filename, vector<float> &, vector<float> &);
     void get_cost_model_data(string, vector<float> &, vector<float> &, vector<float> &);
+    void get_rebuild_data(string, vector<float> &, vector<float> &);
 };
 
 #endif

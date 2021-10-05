@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "../entities/Point.h"
+#include "../entities/Histogram.h"
 #include <string>
 #include "Constants.h"
 #include "SortTools.h"
@@ -15,6 +16,9 @@ class ExpRecorder
 public:
     priority_queue<Point, vector<Point>, sortForKNN2> pq;
 
+    Histogram ogiginal_histogram;
+    Histogram changing_histogram;
+
     long long point_not_found = 0;
 
     long long index_high;
@@ -26,9 +30,9 @@ public:
     long long max_error = 0;
     long long min_error = 0;
 
-    int depth = 0;
+    int depth = 1;
 
-    long long total_depth;
+    int new_depth = 1;
 
     int N = Constants::THRESHOLD;
 
@@ -43,13 +47,15 @@ public:
     string distribution;
     long dataset_cardinality;
 
+    int update_num = 0;
+
     long long insert_num = 0;
     int insert_times = 0;
     long long previous_insert_num = 0;
     long delete_num;
     float window_size;
     float window_ratio;
-    int k_num;
+    int k_num = 25;
     int skewness = 1;
 
     long time;
@@ -71,6 +77,9 @@ public:
     long ordering_cost = 0;
     long training_cost = 0;
 
+    long long search_length = 0;
+
+
     long cost_model_time = 0;
 
     long search_steps = 0;
@@ -84,11 +93,14 @@ public:
     int cluster_size = 100;
     string insert_points_distribution = "normal";
 
-    int window_query_result_size;
-    int acc_window_query_qesult_size;
+    long window_query_result_size;
+    long acc_window_query_result_size;
     vector<Point> knn_query_results;
     vector<Point> acc_knn_query_results;
     vector<Point> window_query_results;
+    vector<Point> acc_window_query_results;
+
+    vector<Point> inserted_points;
 
     bool is_sp = false;
     bool is_sp_first = false;
@@ -113,6 +125,15 @@ public:
 
     long traverse_time = 0;
 
+    int bit_num = 0;
+
+    bool is_rebuild = false;
+    bool is_knn = false;
+    bool is_window = false;
+    bool is_point = false;
+    bool is_insert = false;
+    int knn_r_enlarged_num;
+
     ExpRecorder();
     string get_time();
     string get_time_pageaccess();
@@ -133,20 +154,21 @@ public:
     string get_dataset_name();
     void set_structure_name(string prefix);
 
-    ExpRecorder* test_sp();
-    ExpRecorder* test_sp_mr();
-    ExpRecorder* test_sp_first();
-    ExpRecorder* test_model_reuse();
-    ExpRecorder* test_rl();
-    ExpRecorder* test_rl_mr();
-    ExpRecorder* test_cluster();
-    ExpRecorder* test_rs();
-    ExpRecorder* test_rs_mr();
-    ExpRecorder* set_cost_model(bool);
+    ExpRecorder *test_sp();
+    ExpRecorder *test_sp_mr();
+    ExpRecorder *test_sp_first();
+    ExpRecorder *test_model_reuse();
+    ExpRecorder *test_rl();
+    ExpRecorder *test_rl_mr();
+    ExpRecorder *test_cluster();
+    ExpRecorder *test_rs();
+    ExpRecorder *test_rs_mr();
+    ExpRecorder *set_cost_model(bool);
     void test_reset();
+    bool is_og();
 
-    ExpRecorder* set_level(int level);
-
+    ExpRecorder *set_level(int level);
+    string get_current_time();
 };
 
 #endif

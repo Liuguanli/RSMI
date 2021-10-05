@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../utils/Constants.h"
+#include <cmath>
 
 class Histogram
 {
@@ -14,6 +15,12 @@ private:
     float data_size;
     int bin_num = Constants::DEFAULT_BIN_NUM;
 
+    float start_x = 0;
+    float end_x = 0;
+    float key_gap = 0;
+
+    long N = 0;
+
 public:
     std::vector<float> hist;
     std::vector<float> data;
@@ -21,6 +28,7 @@ public:
     Histogram()
     {
     }
+
 
     Histogram(int bin_num)
     {
@@ -30,10 +38,14 @@ public:
     Histogram(int bin_num, std::vector<float> data)
     {
         // this->data = data;
-        long N = data.size();
-        float start_x = data[0];
-        float end_x = data[N - 1];
-        float key_gap = (end_x - start_x) * 1.0 / bin_num;
+        N = data.size();
+        start_x = data[0];
+        end_x = data[N - 1];
+
+        bin_num = 100;
+
+        this->bin_num = bin_num;
+        key_gap = (end_x - start_x) * 1.0 / bin_num;
         float old_freq = 0.0;
         int index = 0;
         for (size_t i = 1; i < bin_num; i++)
@@ -45,61 +57,31 @@ public:
             hist.push_back(index * 1.0 / N);
         }
         hist.push_back(1.0);
-        // if (N < bin_num)
-        // {
-        //     for (size_t i = 1; i < bin_num; i++)
-        //     {
-        //         int num = 0;
-        //         for (size_t j = 0; j < N; j++)
-        //         {
-        //             if (data[j] > start_x + key_gap * i && data[j] <= start_x + key_gap * (i + 1))
-        //             {
-        //                 num++;
-        //             }
-        //             if (data[j] > start_x + key_gap * (i + 1))
-        //             {
-        //                 break;
-        //             }
+    }
 
-        //         }
-        //         hist.push_back(float(num) / N);
-        //     }
-        // }
-        // else
-        // {
-        //     // cout<< "key_gap: " << key_gap << endl;
-        //     for (size_t i = 1; i < bin_num; i++)
-        //     {
-        //         long long index = binary_search(start_x + key_gap * i);
-        //         float freq = index * 1.0 / N - old_freq;
-        //         hist.push_back(freq);
-        //         old_freq = index * 1.0 / N;
-        //         // cout<< "i: " << i << " freq:" << freq << endl;
-        //     }
-        //     // cout<< "finish:" << endl;
-        //     hist.push_back(1 - old_freq);
-        // }
+    void update(float value)
+    {
+        int index = ceil((value - start_x) * 1.0 / key_gap);
+        for (size_t i = index; i < hist.size(); i++)
+        {
+            hist[i] = hist[i] + 1.0 / N;
+        }
+        for (size_t i = 0; i < hist.size(); i++)
+        {
+            hist[i] = hist[i] * N / (N + 1);
+        }
+        N++;
     }
 
     // Histogram(std::vector<float>);
     // float cal_dist(std::vector<float>);
-    float cal_dist(std::vector<float> source_hist)
+    float cal_cdf_dist(std::vector<float> source_hist)
     {
-        float dist_hist = std::max(source_hist[0], hist[0]);
-        float temp_sum = 0.0;
-
-        for (size_t i = 0; i < source_hist.size() - 1; i++)
+        float dist_hist = 0;
+        for (size_t i = 0; i < source_hist.size(); i++)
         {
-            temp_sum += source_hist[i] - hist[i];
-            float temp = 0.0;
-            if (source_hist[i + 1] + temp_sum > hist[i + 1] - temp_sum)
-            {
-                temp = source_hist[i + 1] + temp_sum;
-            }
-            else
-            {
-                temp = hist[i + 1] - temp_sum;
-            }
+            float temp = abs(source_hist[i] - hist[i]);
+            
             if (dist_hist < temp)
             {
                 dist_hist = temp;

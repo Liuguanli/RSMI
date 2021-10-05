@@ -139,8 +139,9 @@ def get_json(x, y, features, model_type, parameters):
 # def pre_train_synthetic_cubic():
 #     pass
 
-def pre_train_synthetic(model_type="linear", width=50):
-    path = "./data"
+# /home/liuguanli/Documents/pre_train/features_zm/
+def pre_train_synthetic(model_type="linear", width=50, epsilon=0.1):
+    path = "/home/liuguanli/Documents/pre_train/data/" + str(epsilon)
     files= os.listdir(path)
     conf_dist = {}
     for file in files:
@@ -160,19 +161,19 @@ def pre_train_synthetic(model_type="linear", width=50):
                 # model_cpp = torch.jit.trace(model, xs[0].float())
                 if x.shape[0] != 0:
                     model_cpp = torch.jit.trace(model, xs[0].double())
-                    model_cpp.save('./trained_models/' + model_type + '/' + str(width) + '/' + prefix + '.pt')
-                    if type(min_err) != int:
-                        min_err = min_err.item()
-                    if type(max_err) != int:
-                        max_err = max_err.item()
-            json_item['min_err'] = min_err
-            json_item['max_err'] = max_err
-            if model_type == "nn":
-                f = open('./trained_models/' + model_type + '/' + str(width) + '/' + prefix + '.json','w')
-            else:
-                f = open('./trained_models/' + model_type + '/' + prefix + '.json','w')
-            f.write(json.dumps(json_item))
-            f.close()
+                    model_cpp.save('/home/liuguanli/Documents/pre_train/models_zm/1/' + str(epsilon) + '.pt')
+                    # if type(min_err) != int:
+                    #     min_err = min_err.item()
+                    # if type(max_err) != int:
+                    #     max_err = max_err.item()
+            # json_item['min_err'] = min_err
+            # json_item['max_err'] = max_err
+            # if model_type == "nn":
+            #     f = open('./trained_models/' + model_type + '/' + str(width) + '/' + prefix + '.json','w')
+            # else:
+            #     f = open('./trained_models/' + model_type + '/' + prefix + '.json','w')
+            # f.write(json.dumps(json_item))
+            # f.close()
 
         # conf_dist[prefix] = json_item
     
@@ -221,9 +222,11 @@ def pre_train_real():
 
 if __name__ == "__main__":
     torch.set_default_tensor_type('torch.DoubleTensor')
-    pre_train_synthetic(model_type="linear")
+    # pre_train_synthetic(model_type="linear")
     # pre_train_synthetic(model_type="cubic")
-    # pre_train_synthetic(model_type="nn", width=4)
+    pre_train_synthetic(model_type="nn", width=8, epsilon=0.1)
+    pre_train_synthetic(model_type="nn", width=8, epsilon=0.3)
+    pre_train_synthetic(model_type="nn", width=8, epsilon=0.5)
     # pre_train_synthetic(model_type="nn", width=12)
     # pre_train_synthetic(model_type="nn", width=20)
     # pre_train_synthetic(model_type="nn", width=24)

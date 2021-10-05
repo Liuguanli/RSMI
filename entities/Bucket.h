@@ -17,7 +17,7 @@ public:
     Bucket();
     Bucket(Mbr mbr);
     bool point_query(ExpRecorder &expRecorder, Point);
-    void windowQuery(ExpRecorder &expRecorder, Mbr);
+    void window_query(ExpRecorder &expRecorder, Mbr);
     bool insert(Point);
     void remove(Point);
     vector<Point> getAllPoints();
@@ -60,7 +60,7 @@ bool Bucket::point_query(ExpRecorder &expRecorder, Point point)
     return false;
 }
 
-void Bucket::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
+void Bucket::window_query(ExpRecorder &expRecorder, Mbr queryWindow)
 {
     // vector<Point> window_query_results;
     // for (size_t i = 0; i < LeafNodes.size(); i++)

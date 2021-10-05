@@ -12,7 +12,7 @@ const string Constants::DATASETS = "./datasets/";
 // const string Constants::QUERYPROFILES = "./files/queryprofile/";
 // const string Constants::DATASETS = "/home/liuguanli/Documents/datasets/RLRtree/raw/";
 const string Constants::RECORDS = "./files/records/";
-const string Constants::QUERYPROFILES = "/home/liuguanli/Documents/datasets/RLRtree/queryprofile/";
+const string Constants::QUERYPROFILES = "./files/queryprofile/";
 const string Constants::DATASETS = "/home/research/datasets/";
 #endif
 const string Constants::DEFAULT_DISTRIBUTION = "skewed";

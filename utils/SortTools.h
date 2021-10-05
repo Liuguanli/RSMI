@@ -60,6 +60,7 @@ struct sortPQ
     }
 };
 
+// ! this is correct
 struct sortPQ_Desc
 {
     bool operator()(const NodeExtend *node1, const NodeExtend *node2)
@@ -68,10 +69,10 @@ struct sortPQ_Desc
     }
 };
 
-struct sortForKNN
+struct sort_for_kNN
 {
     Point queryPoint;
-    sortForKNN(Point &point)
+    sort_for_kNN(Point &point)
     {
         queryPoint = point;
     }
@@ -93,7 +94,7 @@ struct sortForKNN2
 {
     bool operator()(Point point1, Point point2)
     {
-        return point1.temp_dist > point2.temp_dist;
+        return point1.temp_dist < point2.temp_dist;
     }
 };
 
@@ -101,6 +102,9 @@ struct sortX
 {
     bool operator()(const Point point1, const Point point2)
     {
+        if (point1.x == point2.x) {
+            return (point1.y < point2.y); 
+        }
         return (point1.x < point2.x);
     }
 };
@@ -109,6 +113,9 @@ struct sortY
 {
     bool operator()(const Point point1, const Point point2)
     {
+        if (point1.y == point2.y) {
+            return (point1.x < point2.x); 
+        }
         return (point1.y < point2.y);
     }
 };

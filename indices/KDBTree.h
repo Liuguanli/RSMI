@@ -36,14 +36,14 @@ public:
     void point_query(ExpRecorder &expRecorder, Point queryPoint);
     void point_query(ExpRecorder &expRecorder, vector<Point> queryPoints);
 
-    void windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows);
-    vector<Point> windowQuery(ExpRecorder &expRecorder, Mbr queryWindows);
+    void window_query(ExpRecorder &expRecorder, vector<Mbr> queryWindows);
+    vector<Point> window_query(ExpRecorder &expRecorder, Mbr queryWindows);
 
-    void kNNQuery(ExpRecorder &expRecorder, vector<Point> queryPoints, int k);
-    vector<Point> kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k);
+    void kNN_query(ExpRecorder &expRecorder, vector<Point> queryPoints, int k);
+    vector<Point> kNN_query(ExpRecorder &expRecorder, Point queryPoint, int k);
 
     void insert(ExpRecorder &expRecorder, Point);
-    void insert(ExpRecorder &expRecorder);
+    void insert(ExpRecorder &expRecorder, vector<Point>);
 
     void remove(ExpRecorder &expRecorder, Point);
     void remove(ExpRecorder &expRecorder, vector<Point>);
@@ -216,14 +216,13 @@ void KDBTree::point_query(ExpRecorder &expRecorder, vector<Point> queryPoints)
     expRecorder.page_access = (double)expRecorder.page_access / queryPoints.size();
 }
 
-void KDBTree::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
+void KDBTree::window_query(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
 {
-    // cout << "windowQuery:" << endl;
     auto start = chrono::high_resolution_clock::now();
     for (int i = 0; i < queryWindows.size(); i++)
     {
         // expRecorder.window_query_results.insert();
-        windowQuery(expRecorder, queryWindows[i]);
+        window_query(expRecorder, queryWindows[i]);
     }
     auto finish = chrono::high_resolution_clock::now();
     // cout << "end:" << end.tv_nsec << " begin" << begin.tv_nsec << endl;
@@ -232,7 +231,7 @@ void KDBTree::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
     cout<< "time: " << expRecorder.time << endl;
 }
 
-vector<Point> KDBTree::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
+vector<Point> KDBTree::window_query(ExpRecorder &expRecorder, Mbr queryWindow)
 {
     vector<Point> window_query_results;
     queue<nodespace::Node *> nodes;
@@ -273,17 +272,17 @@ vector<Point> KDBTree::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
     return window_query_results;
 }
 
-vector<Point> KDBTree::kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k)
+vector<Point> KDBTree::kNN_query(ExpRecorder &expRecorder, Point queryPoint, int k)
 {
     // vector<Point *> result;
     // float knnquerySide = sqrt((float)k / N);
     // while (true)
     // {
     //     Mbr *mbr = Mbr::getMbr(queryPoint, knnquerySide);
-    //     vector<Point *> tempResult = windowQuery(expRecorder, mbr);
+    //     vector<Point *> tempResult = window_query(expRecorder, mbr);
     //     if (tempResult.size() >= k)
     //     {
-    //         sort(tempResult.begin(), tempResult.end(), sortForKNN(queryPoint));
+    //         sort(tempResult.begin(), tempResult.end(), sort_for_kNN(queryPoint));
     //         Point *last = tempResult[k - 1];
     //         if (last->cal_dist(queryPoint) <= knnquerySide)
     //         {
@@ -364,13 +363,13 @@ vector<Point> KDBTree::kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int 
     return window_query_results;
 }
 
-void KDBTree::kNNQuery(ExpRecorder &expRecorder, vector<Point> queryPoints, int k)
+void KDBTree::kNN_query(ExpRecorder &expRecorder, vector<Point> queryPoints, int k)
 {
-    // cout << "kNNQuery:" << endl;
+    // cout << "kNN_query:" << endl;
     auto start = chrono::high_resolution_clock::now();
     for (int i = 0; i < queryPoints.size(); i++)
     {
-        kNNQuery(expRecorder, queryPoints[i], k);
+        kNN_query(expRecorder, queryPoints[i], k);
     }
     auto finish = chrono::high_resolution_clock::now();
     // cout << "end:" << end.tv_nsec << " begin" << begin.tv_nsec << endl;
@@ -446,9 +445,9 @@ void KDBTree::insert(ExpRecorder &expRecorder, Point point)
     }
 }
 
-void KDBTree::insert(ExpRecorder &exp_recorder)
+void KDBTree::insert(ExpRecorder &exp_recorder, vector<Point> points)
 {
-   vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
+//    vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
     auto start = chrono::high_resolution_clock::now();
     for (int i = 0; i < points.size(); i++)
     {

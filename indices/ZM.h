@@ -26,6 +26,7 @@
 // #include "../file_utils/SearchHelper.h"
 // #include "../file_utils/CustomDataSet4ZM.h"
 #include "../utils/PreTrainZM.h"
+#include "../utils/Rebuild.h"
 
 #include <torch/script.h>
 #include <ATen/ATen.h>
@@ -61,13 +62,11 @@ private:
     long long top_error;
     long long bottom_error;
     float loss;
+    long long error_shift = 0;
 
     std::shared_ptr<Net> the_net;
 
 public:
-    ZM();
-    ZM(int);
-    ZM(string);
     string model_path;
     string model_path_root;
     float sampling_rate = 1.0;
@@ -85,11 +84,15 @@ public:
     int zm_min_error = 0;
     // vector<long long> hs;
 
-    vector<Point> points;
+    vector<Point> zm_points;
 
     long model_build_time;
 
     double threshold = 0.1;
+
+    ZM();
+    ZM(int);
+    ZM(string);
 
     // auto trainModel(vector<Point> points);
     // void pre_train();
@@ -120,10 +123,12 @@ public:
     vector<Point> acc_kNN_query(ExpRecorder &exp_recorder, Point query_point, int k);
 
     void insert(ExpRecorder &exp_recorder, Point);
-    void insert(ExpRecorder &exp_recorder);
+    bool insert(ExpRecorder &exp_recorder, vector<Point> &inserted_points);
 
     void remove(ExpRecorder &exp_recorder, Point);
     void remove(ExpRecorder &exp_recorder, vector<Point>);
+
+    void clear(ExpRecorder &exp_recorder);
 };
 
 ZM::ZM()
@@ -220,7 +225,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
         exp_recorder.leaf_node_num++;
     }
 
-    this->points = points;
+    this->zm_points = points;
     min_curve_val = points[0].curve_val;
     max_curve_val = points[points.size() - 1].curve_val;
     gap = max_curve_val - min_curve_val;
@@ -290,7 +295,6 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                 // vector<long long> features;
                 // auto rng = std::default_random_engine{};
                 // std::shuffle(std::begin(points), std::end(points), rng);
-
                 if (exp_recorder.is_cost_model)
                 {
                     vector<float> locations_;
@@ -299,6 +303,11 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                         locations_.push_back(point.normalized_curve_val);
                     }
                     Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), locations_);
+                    if (i == 0)
+                    {
+                        exp_recorder.ogiginal_histogram = histogram;
+                        exp_recorder.changing_histogram = histogram;
+                    }
                     float lambda = i == 0 ? exp_recorder.upper_level_lambda : exp_recorder.lower_level_lambda;
                     // get predict method!!!
                     pre_train_zm::cost_model_predict(exp_recorder, lambda, locations_.size() * 1.0 / 10000, pre_train_zm::get_distribution(histogram));
@@ -358,18 +367,25 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                     {
                         exp_recorder.cluster_num++;
                         auto start_cl = chrono::high_resolution_clock::now();
-                        int k = 10000;
+                        int k = exp_recorder.cluster_size;
                         auto start_cluster = chrono::high_resolution_clock::now();
-                        string commandStr = "python /home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cluster/cluster.py -d " +
-                                            exp_recorder.distribution + " -s " + to_string(exp_recorder.dataset_cardinality) + " -n " +
-                                            to_string(exp_recorder.skewness) + " -m 2 -k " + to_string(k) +
-                                            " -f /home/liuguanli/Documents/pre_train/cluster/%s_%d_%d_%d_minibatchkmeans_auto.csv";
-                        // string commandStr = "python /home/liuguanli/Documents/pre_train/rl_4_sfc/RL_4_SFC.py";
-                        cout << "commandStr: " << commandStr << endl;
-                        char command[1024];
-                        strcpy(command, commandStr.c_str());
-                        int res = system(command);
-                        vector<Point> clustered_points = pre_train_zm::get_cluster_point("/home/research/datasets/OSM_100000000_1_2_minibatchkmeans_auto.csv");
+                        string file_name = "/home/research/datasets/" +
+                                           exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_k_" + to_string(k) + "_minibatchkmeans_auto.csv";
+                        std::ifstream fin(file_name);
+                        if (!fin)
+                        {
+                            string commandStr = "python /home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/cluster/cluster.py -d " +
+                                                exp_recorder.distribution + " -s " + to_string(exp_recorder.dataset_cardinality) + " -n " +
+                                                to_string(exp_recorder.skewness) + " -m 2 -k " + to_string(k) +
+                                                " -f /home/liuguanli/Documents/pre_train/cluster/%s_%d_%d_%d_minibatchkmeans_auto.csv";
+                            // string commandStr = "python /home/liuguanli/Documents/pre_train/rl_4_sfc/RL_4_SFC.py";
+                            cout << "commandStr: " << commandStr << endl;
+                            char command[1024];
+                            strcpy(command, commandStr.c_str());
+                            int res = system(command);
+                        }
+
+                        vector<Point> clustered_points = pre_train_zm::get_cluster_point(file_name);
                         cout << "clustered_points.size(): " << clustered_points.size() << endl;
                         for (Point point : clustered_points)
                         {
@@ -401,9 +417,6 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                             tmp_records_0_0[i].curve_val = curve_val;
                         }
                         sort(tmp_records_0_0.begin(), tmp_records_0_0.end(), sort_curve_val());
-                        // min_curve_val = tmp_records_0_0[0].curve_val;
-                        // max_curve_val = tmp_records_0_0[temp_N - 1].curve_val;
-                        // gap = max_curve_val - min_curve_val;
                         for (long long i = 0; i < temp_N; i++)
                         {
                             tmp_records_0_0[i].index = i * 1.0 / temp_N;
@@ -423,7 +436,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                         exp_recorder.rl_num++;
                         cout << "RL_SFC begin" << endl;
                         auto start_rl = chrono::high_resolution_clock::now();
-                        int bit_num = 6;
+                        int bit_num = exp_recorder.bit_num;
                         // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
                         pre_train_zm::write_approximate_SFC(points, exp_recorder.get_file_name(), bit_num);
                         string commandStr = "python /home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/pre_train/rl_4_sfc/RL_4_SFC.py -d " +
@@ -530,7 +543,6 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                         string threshold = stream.str();
                         if (net->is_reusable_zm(histogram, threshold, model_path))
                         {
-                            // cout << "model_path: " << model_path << endl;
                             auto finish_mr = chrono::high_resolution_clock::now();
                             exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_mr - start_mr).count();
                             torch::load(net, model_path);
@@ -709,6 +721,7 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
                 }
                 // cout << net->parameters() << endl;
                 // cout << "stage:" << i << " size:" << tmp_records[i][j].size() << endl;
+                // cout << "max_error: " << max_error << " min_error: " << min_error << endl;
                 tmp_records[i][j].clear();
                 tmp_records[i][j].shrink_to_fit();
             }
@@ -741,117 +754,117 @@ void ZM::build(ExpRecorder &exp_recorder, vector<Point> points, int resolution)
     // cout << "min_error: " << index[0][0]->min_error << endl;
 }
 
-void ZM::binary_search(ExpRecorder &exp_recorder, Point query_point, long long curve_val, int front, int back)
-{
-    // front = front / Constants::PAGESIZE;
-    // back = back / Constants::PAGESIZE + 1;
-    auto start_search = chrono::high_resolution_clock::now();
-    while (front <= back)
-    {
-        exp_recorder.search_steps++;
-        int mid = (front + back) / 2;
-        Point point = points[mid];
-        if (point.curve_val > curve_val)
-        {
-            back = mid - 1;
-        }
-        else if (point.curve_val < curve_val)
-        {
-            front = mid + 1;
-        }
-        else
-        {
-            if (point == query_point)
-            {
-                // cout << "find it" << endl;
-                break;
-            }
-            front = mid - 1;
-            back = mid + 1;
-            while (points[front].curve_val == curve_val || points[back].curve_val == curve_val)
-            {
-                if (front >= 0 && points[front].curve_val == curve_val)
-                {
-                    if (points[front] == query_point)
-                    {
-                        // cout << "find it" << endl;
-                        break;
-                    }
-                }
-                exp_recorder.search_steps++;
+// void ZM::binary_search(ExpRecorder &exp_recorder, Point query_point, long long curve_val, int front, int back)
+// {
+//     // front = front / Constants::PAGESIZE;
+//     // back = back / Constants::PAGESIZE + 1;
+//     auto start_search = chrono::high_resolution_clock::now();
+//     while (front <= back)
+//     {
+//         exp_recorder.search_steps++;
+//         int mid = (front + back) / 2;
+//         Point point = zm_points[mid];
+//         if (point.curve_val > curve_val)
+//         {
+//             back = mid - 1;
+//         }
+//         else if (point.curve_val < curve_val)
+//         {
+//             front = mid + 1;
+//         }
+//         else
+//         {
+//             if (point == query_point)
+//             {
+//                 // cout << "find it" << endl;
+//                 break;
+//             }
+//             front = mid - 1;
+//             back = mid + 1;
+//             while (zm_points[front].curve_val == curve_val || zm_points[back].curve_val == curve_val)
+//             {
+//                 if (front >= 0 && zm_points[front].curve_val == curve_val)
+//                 {
+//                     if (zm_points[front] == query_point)
+//                     {
+//                         // cout << "find it" << endl;
+//                         break;
+//                     }
+//                 }
+//                 exp_recorder.search_steps++;
 
-                if (back < N && points[back].curve_val == curve_val)
-                {
-                    if (points[back] == query_point)
-                    {
-                        // cout << "find it" << endl;
-                        break;
-                    }
-                }
-                exp_recorder.search_steps++;
+//                 if (back < N && zm_points[back].curve_val == curve_val)
+//                 {
+//                     if (zm_points[back] == query_point)
+//                     {
+//                         // cout << "find it" << endl;
+//                         break;
+//                     }
+//                 }
+//                 exp_recorder.search_steps++;
 
-                front--;
-                back++;
-            }
-            break;
-        }
-        if (front > back)
-        {
-            // cout << "not found!" << endl;
-            exp_recorder.point_not_found++;
-        }
-    }
-    auto finish_search = chrono::high_resolution_clock::now();
-    exp_recorder.search_time += chrono::duration_cast<chrono::nanoseconds>(finish_search - start_search).count();
-}
+//                 front--;
+//                 back++;
+//             }
+//             break;
+//         }
+//         if (front > back)
+//         {
+//             // cout << "not found!" << endl;
+//             exp_recorder.point_not_found++;
+//         }
+//     }
+//     auto finish_search = chrono::high_resolution_clock::now();
+//     exp_recorder.search_time += chrono::duration_cast<chrono::nanoseconds>(finish_search - start_search).count();
+// }
 
-void ZM::binary_search(ExpRecorder &exp_recorder, vector<Point> points)
-{
-    auto start = chrono::high_resolution_clock::now();
-    this->N = points.size();
-    bit_num = ceil((log(N)) / log(2));
-    // bit_num = ceil((log(N / resolution)) / log(2));
-    // bit_num = pow(2, ceil((log(bit_num) / log(2)))) * 2;
-    for (long long i = 0; i < N; i++)
-    {
-        long long xs[2] = {points[i].x * N, points[i].y * N};
-        long long curve_val = compute_Z_value(xs, 2, bit_num);
-        points[i].curve_val = curve_val;
-    }
-    // if (!Constants::IS_REPRESENTATIVE_SET)
-    // {
-    sort(points.begin(), points.end(), sort_curve_val());
-    this->points = points;
+// void ZM::binary_search(ExpRecorder &exp_recorder, vector<Point> points)
+// {
+//     auto start = chrono::high_resolution_clock::now();
+//     this->N = points.size();
+//     bit_num = ceil((log(N)) / log(2));
+//     // bit_num = ceil((log(N / resolution)) / log(2));
+//     // bit_num = pow(2, ceil((log(bit_num) / log(2)))) * 2;
+//     for (long long i = 0; i < N; i++)
+//     {
+//         long long xs[2] = {points[i].x * N, points[i].y * N};
+//         long long curve_val = compute_Z_value(xs, 2, bit_num);
+//         points[i].curve_val = curve_val;
+//     }
+//     // if (!Constants::IS_REPRESENTATIVE_SET)
+//     // {
+//     sort(points.begin(), points.end(), sort_curve_val());
+//     this->zm_points = points;
 
-    auto finish = chrono::high_resolution_clock::now();
-    cout << "build finish: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
+//     auto finish = chrono::high_resolution_clock::now();
+//     cout << "build finish: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
 
-    long res = 0;
-    auto start1 = chrono::high_resolution_clock::now();
-    for (long i = 0; i < points.size(); i++)
-    {
-        auto start2 = chrono::high_resolution_clock::now();
-        auto start_sfc = chrono::high_resolution_clock::now();
-        long long xs[2] = {points[i].x * N, points[i].y * N};
-        long long curve_val = compute_Z_value(xs, 2, bit_num);
-        auto finish_sfc = chrono::high_resolution_clock::now();
-        exp_recorder.sfc_cal_time += chrono::duration_cast<chrono::nanoseconds>(finish_sfc - start_sfc).count();
-        binary_search(exp_recorder, points[i], curve_val, 0, N - 1);
-        auto finish2 = chrono::high_resolution_clock::now();
-        res += chrono::duration_cast<chrono::nanoseconds>(finish2 - start2).count();
-    }
-    auto finish1 = chrono::high_resolution_clock::now();
-    exp_recorder.search_time /= N;
-    exp_recorder.sfc_cal_time /= N;
-    exp_recorder.search_steps /= N;
-    exp_recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count() / N;
-    cout << "query finish: " << exp_recorder.time << endl;
-    cout << "search_time: " << exp_recorder.search_time << endl;
-    cout << "sfc_cal_time: " << exp_recorder.sfc_cal_time << endl;
-    // cout << "query finish: " << chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count() / N << endl;
-}
+//     long res = 0;
+//     auto start1 = chrono::high_resolution_clock::now();
+//     for (long i = 0; i < points.size(); i++)
+//     {
+//         auto start2 = chrono::high_resolution_clock::now();
+//         auto start_sfc = chrono::high_resolution_clock::now();
+//         long long xs[2] = {points[i].x * N, points[i].y * N};
+//         long long curve_val = compute_Z_value(xs, 2, bit_num);
+//         auto finish_sfc = chrono::high_resolution_clock::now();
+//         exp_recorder.sfc_cal_time += chrono::duration_cast<chrono::nanoseconds>(finish_sfc - start_sfc).count();
+//         binary_search(exp_recorder, points[i], curve_val, 0, N - 1);
+//         auto finish2 = chrono::high_resolution_clock::now();
+//         res += chrono::duration_cast<chrono::nanoseconds>(finish2 - start2).count();
+//     }
+//     auto finish1 = chrono::high_resolution_clock::now();
+//     exp_recorder.search_time /= N;
+//     exp_recorder.sfc_cal_time /= N;
+//     exp_recorder.search_steps /= N;
+//     exp_recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count() / N;
+//     cout << "query finish: " << exp_recorder.time << endl;
+//     cout << "search_time: " << exp_recorder.search_time << endl;
+//     cout << "sfc_cal_time: " << exp_recorder.sfc_cal_time << endl;
+//     // cout << "query finish: " << chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count() / N << endl;
+// }
 
-void ZM::point_query(ExpRecorder &exp_recorder, Point query_point)
+void ZM::point_query_after_update(ExpRecorder &exp_recorder, Point query_point)
 {
     auto start_sfc = chrono::high_resolution_clock::now();
     long long xs[2] = {query_point.x * N, query_point.y * N};
@@ -898,16 +911,84 @@ void ZM::point_query(ExpRecorder &exp_recorder, Point query_point)
     front = front / page_size;
     back = back / page_size;
 
+    for (size_t i = front; i <= back; i++)
+    {
+        vector<Point>::iterator iter = find(leafnodes[i]->children->begin(), leafnodes[i]->children->end(), query_point);
+        exp_recorder.page_access += 1;
+        if (iter != leafnodes[i]->children->end())
+        {
+            // cout<< "find it!" << endl;
+            break;
+        }
+    }
+
+    auto finish_1 = chrono::high_resolution_clock::now();
+    exp_recorder.search_time += chrono::duration_cast<chrono::nanoseconds>(finish_1 - start_1).count();
+    // cout<< "search time: " << chrono::duration_cast<chrono::nanoseconds>(finish_1 - start_1).count() << endl;
+}
+
+void ZM::point_query(ExpRecorder &exp_recorder, Point query_point)
+{
+    auto start_sfc = chrono::high_resolution_clock::now();
+    long long xs[2] = {query_point.x * N, query_point.y * N};
+    long long curve_val = compute_Z_value(xs, 2, bit_num);
+    auto finish_sfc = chrono::high_resolution_clock::now();
+    exp_recorder.sfc_cal_time += chrono::duration_cast<chrono::nanoseconds>(finish_sfc - start_sfc).count();
+    float key = (curve_val - min_curve_val) * 1.0 / gap;
+    int predicted_index = 0;
+    int next_stage_length = 1;
+    int min_error = 0;
+    int max_error = 0;
+    auto start = chrono::high_resolution_clock::now();
+    for (int i = 0; i < stages.size(); i++)
+    {
+        if (i == stages.size() - 1)
+        {
+            next_stage_length = N;
+            min_error = index[i][predicted_index]->min_error;
+            max_error = index[i][predicted_index]->max_error;
+        }
+        else
+        {
+            next_stage_length = stages[i + 1];
+        }
+        predicted_index = index[i][predicted_index]->predict_ZM(key) * next_stage_length;
+        if (predicted_index < 0)
+        {
+            predicted_index = 0;
+        }
+        if (predicted_index >= next_stage_length)
+        {
+            predicted_index = next_stage_length - 1;
+        }
+    }
+    auto finish = chrono::high_resolution_clock::now();
+    exp_recorder.prediction_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+    // cout << "prediction time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << endl;
+    auto start_1 = chrono::high_resolution_clock::now();
+    long front = predicted_index + min_error - error_shift;
+    front = front < 0 ? 0 : front;
+    long back = predicted_index + max_error + error_shift;
+    back = back >= N ? N - 1 : back;
+    front = front / page_size;
+    back = back / page_size;
+    if (front <= back)
+    {
+        exp_recorder.search_length += (back - front + 1);
+    }
+    int page_access = 0;
     while (front <= back)
     {
         int mid = (front + back) / 2;
         LeafNode *leafnode = leafnodes[mid];
-        // cout << "front: " << front << " back: " << back << " curve_val: " << curve_val << endl;
-        exp_recorder.page_access += 1;
-        if ((*leafnode->children)[0].curve_val <= curve_val && curve_val <= (*leafnode->children)[leafnode->children->size() - 1].curve_val)
+        long long first_curve_val = (*leafnode->children)[0].curve_val;
+        long long last_curve_val = (*leafnode->children)[leafnode->children->size() - 1].curve_val;
+        page_access += 1;
+        if (first_curve_val <= curve_val && curve_val <= last_curve_val)
         {
             // query_point.print();
             vector<Point>::iterator iter = find(leafnode->children->begin(), leafnode->children->end(), query_point);
+
             if (iter != leafnode->children->end())
             {
                 // cout << "find it" << endl;
@@ -940,10 +1021,49 @@ void ZM::point_query(ExpRecorder &exp_recorder, Point query_point)
             // cout << "not found!" << endl;
         }
     }
-
+    exp_recorder.page_access += page_access;
     auto finish_1 = chrono::high_resolution_clock::now();
     exp_recorder.search_time += chrono::duration_cast<chrono::nanoseconds>(finish_1 - start_1).count();
     // cout<< "search time: " << chrono::duration_cast<chrono::nanoseconds>(finish_1 - start_1).count() << endl;
+}
+
+void ZM::point_query_after_update(ExpRecorder &exp_recorder, vector<Point> query_points)
+{
+    cout << "point_query:" << query_points.size() << endl;
+    the_net = index[0][0];
+    auto start = chrono::high_resolution_clock::now();
+    long res = 0;
+    // for (long i = 1593018; i <= 1593018; i++)
+    for (long i = 0; i < query_points.size(); i++)
+    {
+        long long curve_val = 0;
+        int front = 0;
+        int back = 0;
+        auto start1 = chrono::high_resolution_clock::now();
+        // get_range(exp_recorder, query_points[i], curve_val, front, back);
+        // binary_search(exp_recorder, query_points[i], curve_val, front, back);
+        point_query_after_update(exp_recorder, query_points[i]);
+        auto finish1 = chrono::high_resolution_clock::now();
+        res += chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count();
+        // }
+    }
+    auto finish = chrono::high_resolution_clock::now();
+    // cout<< "time: " << res << endl;
+    // cout<< "prediction_time: " << exp_recorder.prediction_time << endl;
+    // cout<< "search_time: " << exp_recorder.search_time << endl;
+    exp_recorder.time = res / N;
+    exp_recorder.page_access /= N;
+    exp_recorder.search_time /= N;
+    exp_recorder.prediction_time /= N;
+    exp_recorder.sfc_cal_time /= N;
+    exp_recorder.search_steps /= N;
+    exp_recorder.search_length /= N;
+
+    // exp_recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / query_points.size();
+    // cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
+    // exp_recorder.page_access = exp_recorder.page_access / query_points.size();
+    // cout << "finish point_not_found: " << exp_recorder.point_not_found << endl;
+    cout << "finish point_query time: " << exp_recorder.time << endl;
 }
 
 void ZM::point_query(ExpRecorder &exp_recorder, vector<Point> query_points)
@@ -963,6 +1083,7 @@ void ZM::point_query(ExpRecorder &exp_recorder, vector<Point> query_points)
         // binary_search(exp_recorder, query_points[i], curve_val, front, back);
         point_query(exp_recorder, query_points[i]);
         auto finish1 = chrono::high_resolution_clock::now();
+        // cout<< chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count() << endl;
         res += chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count();
         // }
     }
@@ -970,12 +1091,13 @@ void ZM::point_query(ExpRecorder &exp_recorder, vector<Point> query_points)
     // cout<< "time: " << res << endl;
     // cout<< "prediction_time: " << exp_recorder.prediction_time << endl;
     // cout<< "search_time: " << exp_recorder.search_time << endl;
-    exp_recorder.time = res / N;
-    exp_recorder.page_access /= N;
-    exp_recorder.search_time /= N;
-    exp_recorder.prediction_time /= N;
-    exp_recorder.sfc_cal_time /= N;
-    exp_recorder.search_steps /= N;
+    exp_recorder.time = res / query_points.size();
+    exp_recorder.page_access /= query_points.size();
+    exp_recorder.search_time /= query_points.size();
+    exp_recorder.prediction_time /= query_points.size();
+    exp_recorder.sfc_cal_time /= query_points.size();
+    exp_recorder.search_steps /= query_points.size();
+    exp_recorder.search_length /= query_points.size();
 
     // exp_recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / query_points.size();
     // cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
@@ -1053,16 +1175,303 @@ vector<float> ZM::predict_cdf()
     return cdf;
 }
 
+vector<Point> ZM::window_query(ExpRecorder &exp_recorder, Mbr query_window)
+{
+    auto start = chrono::high_resolution_clock::now();
+    vector<Point> window_query_results;
+    vector<Point> vertexes = query_window.get_corner_points();
+    vector<long long> indices;
+    for (Point point : vertexes)
+    {
+        get_point_index(exp_recorder, point);
+        indices.push_back(exp_recorder.index_low);
+        indices.push_back(exp_recorder.index_high);
+        // cout << "exp_recorder.index_low: " << exp_recorder.index_low << " exp_recorder.index_high: " << exp_recorder.index_high << endl;
+    }
+    sort(indices.begin(), indices.end());
+
+    long front = indices.front() / page_size;
+    long back = indices.back() / page_size;
+
+    front = front < 0 ? 0 : front;
+    back = back >= leafnodes.size() ? leafnodes.size() - 1 : back;
+    // cout << "front: " << front << " back: " << back << endl;
+    auto finish = chrono::high_resolution_clock::now();
+    exp_recorder.prediction_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+    start = chrono::high_resolution_clock::now();
+    for (size_t i = front; i <= back; i++)
+    {
+        LeafNode *leafnode = leafnodes[i];
+        if (leafnode->mbr.interact(query_window))
+        {
+            exp_recorder.page_access += 1;
+            for (Point point : *(leafnode->children))
+            {
+                if (query_window.contains(point))
+                {
+                    window_query_results.push_back(point);
+                }
+            }
+        }
+    }
+    if (front <= back)
+    {
+        exp_recorder.search_length += (back - front + 1);
+    }
+    finish = chrono::high_resolution_clock::now();
+    exp_recorder.search_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+    return window_query_results;
+}
+
+void ZM::window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows)
+{
+    exp_recorder.is_window = true;
+    cout << "ZM::window_query" << endl;
+    auto start = chrono::high_resolution_clock::now();
+    for (int i = 0; i < query_windows.size(); i++)
+    {
+        auto start = chrono::high_resolution_clock::now();
+        vector<Point> window_query_results = window_query(exp_recorder, query_windows[i]);
+        auto finish = chrono::high_resolution_clock::now();
+        exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+        exp_recorder.window_query_result_size += window_query_results.size();
+        // break;
+    }
+    // auto finish = chrono::high_resolution_clock::now();
+    exp_recorder.time /= query_windows.size();
+    exp_recorder.search_time /= query_windows.size();
+    exp_recorder.search_length /= query_windows.size();
+    exp_recorder.prediction_time /= query_windows.size();
+    exp_recorder.page_access = (double)exp_recorder.page_access / query_windows.size();
+}
+
+vector<Point> ZM::acc_window_query(ExpRecorder &exp_Recorder, Mbr query_Window)
+{
+    vector<Point> window_Query_Results;
+    for (LeafNode *leafnode : leafnodes)
+    {
+        if (leafnode->mbr.interact(query_Window))
+        {
+            exp_Recorder.page_access += 1;
+            for (Point point : *(leafnode->children))
+            {
+                if (query_Window.contains(point))
+                {
+                    window_Query_Results.push_back(point);
+                }
+            }
+        }
+    }
+    // cout<< windowQueryResults.size() <<endl;
+    return window_Query_Results;
+}
+
+void ZM::acc_window_query(ExpRecorder &exp_Recorder, vector<Mbr> query_Windows)
+{
+    cout << "ZM::accWindowQuery" << endl;
+    auto start = chrono::high_resolution_clock::now();
+    for (int i = 0; i < query_Windows.size(); i++)
+    {
+        exp_Recorder.acc_window_query_result_size += acc_window_query(exp_Recorder, query_Windows[i]).size();
+    }
+    auto finish = chrono::high_resolution_clock::now();
+    // cout << "end:" << end.tv_nsec << " begin" << begin.tv_nsec << endl;
+    exp_Recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / query_Windows.size();
+    exp_Recorder.page_access = (double)exp_Recorder.page_access / query_Windows.size();
+}
+
+void ZM::kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k)
+{
+    exp_recorder.is_knn = true;
+    cout << "ZM::kNN_query" << endl;
+    for (int i = 0; i < query_points.size(); i++)
+    {
+        auto start = chrono::high_resolution_clock::now();
+        kNN_query(exp_recorder, query_points[i], k);
+        vector<Point> knn_result;
+        while (!exp_recorder.pq.empty())
+        {
+            knn_result.push_back(exp_recorder.pq.top());
+            // std::cout << "point_pq.top().temp_dist: " << point_pq.top().temp_dist << std::endl;
+            exp_recorder.pq.pop();
+        }
+        auto finish = chrono::high_resolution_clock::now();
+        exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+        exp_recorder.knn_query_results.insert(exp_recorder.knn_query_results.end(), knn_result.begin(), knn_result.end());
+        // cout << "knnDiff: " << knnDiff(accKNNQuery(exp_recorder, query_points[i], k), kNN_query(exp_recorder, query_points[i], k)) << endl;
+    }
+    exp_recorder.time /= query_points.size();
+    exp_recorder.search_time /= query_points.size();
+    exp_recorder.search_length /= query_points.size();
+    exp_recorder.prediction_time /= query_points.size();
+    exp_recorder.page_access = (double)exp_recorder.page_access / query_points.size();
+}
+
+vector<Point> ZM::kNN_query(ExpRecorder &exp_recorder, Point query_point, int k)
+{
+    vector<Point> result;
+    float knn_query_side = sqrt((float)k / N) * 2;
+    while (true)
+    {
+        Mbr mbr = Mbr::get_mbr(query_point, knn_query_side);
+        vector<Point> temp_result = window_query(exp_recorder, mbr);
+
+        if (temp_result.size() >= k)
+        {
+            // sort(temp_result.begin(), temp_result.end(), sort_for_kNN(query_point));
+            // Point last = temp_result[k - 1];
+            double dist_furthest = 0;
+            int dist_furthest_i = 0;
+            for (size_t i = 0; i < temp_result.size(); i++)
+            {
+                // Point temp_point = temp_result[i];
+                double temp_dist = temp_result[i].cal_dist(query_point);
+                // std::cout << "temp_dist: " << temp_dist << std::endl;
+
+                temp_result[i].temp_dist = temp_dist;
+                if (exp_recorder.pq.size() < k)
+                {
+                    // NodeExtend *temp = new NodeExtend(temp_result[i], temp_dist);
+                    exp_recorder.pq.push(temp_result[i]);
+                }
+                else
+                {
+                    if (exp_recorder.pq.top().temp_dist < temp_dist)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        // NodeExtend *temp = new NodeExtend(temp_result[i], temp_dist);
+                        exp_recorder.pq.pop();
+                        exp_recorder.pq.push(temp_result[i]);
+                    }
+                }
+            }
+            if (exp_recorder.pq.top().temp_dist <= knn_query_side)
+            {
+                break;
+            }
+        }
+
+        // cout << "mbr: " << mbr->getSelf() << "size: " << temp_result.size() << endl;
+        // if (temp_result.size() >= k)
+        // {
+        //     sort(temp_result.begin(), temp_result.end(), sort_for_kNN(query_point));
+        //     Point last = temp_result[k - 1];
+        //     // cout << " last dist : " << last->calDist(query_point) << " knn_query_side: " << knn_query_side << endl;
+        //     if (last.cal_dist(query_point) <= knn_query_side)
+        //     {
+        //         auto bn = temp_result.begin();
+        //         auto en = temp_result.begin() + k;
+        //         vector<Point> vec(bn, en);
+        //         result = vec;
+        //         break;
+        //     }
+        // }
+        knn_query_side = knn_query_side * 2;
+        exp_recorder.knn_r_enlarged_num++;
+        // cout << " knn_query_side: " << knn_query_side << endl;
+    }
+    return result;
+}
+
+void ZM::acc_kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k)
+{
+    cout << "ZM::accKNNQuery" << endl;
+    for (int i = 0; i < query_points.size(); i++)
+    {
+        auto start = chrono::high_resolution_clock::now();
+        vector<Point> knn_result = acc_kNN_query(exp_recorder, query_points[i], k);
+        auto finish = chrono::high_resolution_clock::now();
+        exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+        exp_recorder.acc_knn_query_results.insert(exp_recorder.acc_knn_query_results.end(), knn_result.begin(), knn_result.end());
+    }
+    exp_recorder.time /= query_points.size();
+    exp_recorder.page_access = (double)exp_recorder.page_access / query_points.size();
+}
+
+vector<Point> ZM::acc_kNN_query(ExpRecorder &exp_Recorder, Point query_point, int k)
+{
+    vector<Point> result;
+    float knnquery_Side = sqrt((float)k / N);
+    while (true)
+    {
+        Mbr mbr = Mbr::get_mbr(query_point, knnquery_Side);
+        vector<Point> tempResult = acc_window_query(exp_Recorder, mbr);
+        if (tempResult.size() >= k)
+        {
+            sort(tempResult.begin(), tempResult.end(), sort_for_kNN(query_point));
+            Point last = tempResult[k - 1];
+            if (last.cal_dist(query_point) <= knnquery_Side)
+            {
+                // TODO get top K from the vector.
+                auto bn = tempResult.begin();
+                auto en = tempResult.begin() + k;
+                vector<Point> vec(bn, en);
+                result = vec;
+                break;
+            }
+        }
+        knnquery_Side = knnquery_Side * 2;
+    }
+    return result;
+}
+
+long long ZM::get_point_index(ExpRecorder &exp_recorder, Point query_point)
+{
+    query_point.x_i = query_point.x * N;
+    query_point.y_i = query_point.y * N;
+    long long xs[2] = {query_point.x_i, query_point.y_i};
+    long long curve_val = compute_Z_value(xs, 2, bit_num);
+
+    query_point.curve_val = curve_val;
+    float key = (curve_val - min_curve_val) * 1.0 / gap;
+    query_point.normalized_curve_val = key;
+    long long predicted_index = 0;
+    long long length_of_next_stage = 1;
+    int min_error = 0;
+    int max_error = 0;
+    for (int i = 0; i < stages.size(); i++)
+    {
+        if (i == stages.size() - 1)
+        {
+            length_of_next_stage = N;
+            min_error = index[i][predicted_index]->min_error;
+            max_error = index[i][predicted_index]->max_error;
+        }
+        else
+        {
+            length_of_next_stage = stages[i + 1];
+        }
+        predicted_index = index[i][predicted_index]->predict_ZM(key) * length_of_next_stage;
+        if (predicted_index < 0)
+        {
+            predicted_index = 0;
+        }
+        if (predicted_index >= length_of_next_stage)
+        {
+            predicted_index = length_of_next_stage - 1;
+        }
+    }
+    exp_recorder.index_high = predicted_index + max_error + error_shift;
+    exp_recorder.index_low = predicted_index + min_error - error_shift;
+    // cout << "predicted_index: " << predicted_index << " max_error: " << max_error << " min_error: " << min_error << " error_shift: " << error_shift << endl;
+    return predicted_index;
+}
+
 void ZM::insert(ExpRecorder &exp_recorder, Point point)
 {
+    exp_recorder.update_num++;
     point.x_i = point.x * N;
     point.y_i = point.y * N;
     long long xs[2] = {point.x_i, point.y_i};
     long long curve_val = compute_Z_value(xs, 2, bit_num);
-
     point.curve_val = curve_val;
     float key = (curve_val - min_curve_val) * 1.0 / gap;
     point.normalized_curve_val = key;
+    // TODO record the CDF changing
+    exp_recorder.changing_histogram.update(key);
     long long predicted_index = 0;
     long long length_next_stage = 1;
     int min_error = 0;
@@ -1085,7 +1494,7 @@ void ZM::insert(ExpRecorder &exp_recorder, Point point)
         predicted_index = index[i][predicted_index]->predict_ZM(key) * length_next_stage;
 
         net = &index[i][predicted_index];
-        // predictedIndex = net->forward(torch::tensor({key})).item().toFloat() * lengthOfNextStage;
+        // predicted_index = net->forward(torch::tensor({key})).item().toFloat() * length_of_next_stage;
         if (predicted_index < 0)
         {
             predicted_index = 0;
@@ -1098,34 +1507,120 @@ void ZM::insert(ExpRecorder &exp_recorder, Point point)
     exp_recorder.index_high = predicted_index + max_error;
     exp_recorder.index_low = predicted_index + min_error;
 
-    int inserted_index = predicted_index / Constants::PAGESIZE;
+    long front = predicted_index + min_error;
+    front = front < 0 ? 0 : front;
+    long back = predicted_index + max_error;
+    back = back >= N ? N - 1 : back;
+    front = front / page_size;
+    back = back / page_size;
 
-    LeafNode *leafnode = leafnodes[inserted_index];
-
-    if (leafnode->is_full())
+    // TODO double check!!!
+    while (front <= back)
     {
-        leafnode->add_point(point);
-        LeafNode *right = leafnode->split();
-        leafnodes.insert(leafnodes.begin() + inserted_index + 1, right);
-        index[stages.size() - 1][last_model_index]->max_error += 1;
-        index[stages.size() - 1][last_model_index]->min_error -= 1;
-    }
-    else
-    {
-        leafnode->add_point(point);
+        int mid = (front + back) / 2;
+        LeafNode *leafnode = leafnodes[mid];
+        exp_recorder.page_access += 1;
+        if ((*leafnode->children)[0].curve_val <= curve_val && curve_val <= (*leafnode->children)[leafnode->children->size() - 1].curve_val)
+        {
+            if (leafnode->is_full())
+            {
+                leafnode->add_point(point);
+                sort(leafnode->children->begin(), leafnode->children->end(), sort_key());
+                LeafNode *right = leafnode->split();
+                leafnodes.insert(leafnodes.begin() + mid + 1, right);
+                error_shift += page_size;
+                // index[stages.size() - 1][last_model_index]->max_error += page_size;
+                // index[stages.size() - 1][last_model_index]->min_error -= page_size;
+            }
+            else
+            {
+                leafnode->add_point(point);
+                sort(leafnode->children->begin(), leafnode->children->end(), sort_key());
+            }
+            return;
+        }
+        else
+        {
+            if ((*leafnode->children)[0].curve_val < curve_val)
+            {
+                front = mid + 1;
+            }
+            else
+            {
+                back = mid - 1;
+            }
+        }
     }
 }
 
-void ZM::insert(ExpRecorder &exp_recorder)
+bool ZM::insert(ExpRecorder &exp_recorder, vector<Point> &inserted_points)
 {
-    vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
+    // vector<Point> inserted_points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
     auto start = chrono::high_resolution_clock::now();
-    for (int i = 0; i < points.size(); i++)
+    for (int i = 0; i < inserted_points.size(); i++)
     {
-        insert(exp_recorder, points[i]);
+        insert(exp_recorder, inserted_points[i]);
+        // rebuild_index::is_rebuild(exp_recorder, "Z");
+        // if (rebuild_index::is_rebuild(exp_recorder, "Z"))
+        // {
+        //     // TODO points + inserted points, Constants::RESOLUTION
+        //     build(exp_recorder, points, Constants::RESOLUTION);
+        // }
     }
+    exp_recorder.previous_insert_num += inserted_points.size();
+    // cout << "is_rebuild: " << rebuild_index::is_rebuild(exp_recorder, "Z") << endl;
     auto finish = chrono::high_resolution_clock::now();
+    bool is_rebuild = rebuild_index::is_rebuild(exp_recorder, "Z");
     long long previous_time = exp_recorder.insert_time * exp_recorder.previous_insert_num;
-    exp_recorder.previous_insert_num += points.size();
     exp_recorder.insert_time = (previous_time + chrono::duration_cast<chrono::nanoseconds>(finish - start).count()) / exp_recorder.previous_insert_num;
+    return is_rebuild;
 }
+
+// TODO clean all objects
+void ZM::clear(ExpRecorder &exp_recorder)
+{
+
+    gap = 0;
+    min_curve_val = 0;
+    max_curve_val = 0;
+    top_error = 0;
+    bottom_error = 0;
+    loss = 0;
+    error_shift = 0;
+
+    index.clear();
+    index.shrink_to_fit();
+
+    // for (size_t i = 0; i < leafnodes.size(); i++)
+    // {
+    //     delete leafnodes[i];
+    // }
+    leafnodes.clear();
+    leafnodes.shrink_to_fit();
+
+    stages.clear();
+    stages.shrink_to_fit();
+
+    xs.clear();
+    xs.shrink_to_fit();
+
+    zm_points.clear();
+    zm_points.shrink_to_fit();
+}
+
+// void ZM::remove(ExpRecorder &exp_recorder, Point point)
+// {
+
+// }
+
+// void ZM::remove(ExpRecorder &exp_recorder, vector<Point> points)
+// {
+//     auto start = chrono::high_resolution_clock::now();
+//     for (int i = 0; i < points.size(); i++)
+//     {
+//         remove(exp_recorder, points[i]);
+//     }
+//     auto finish = chrono::high_resolution_clock::now();
+//     exp_recorder.delete_num = points.size();
+//     exp_recorder.delete_time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / exp_recorder.delete_num;
+// }

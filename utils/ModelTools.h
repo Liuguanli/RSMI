@@ -283,10 +283,10 @@ public:
     //     return result;
     // }
 
-    float predict(Point point, float x_gap, float y_gap, float x_0, float y_0)
+    float predict(float x1, float x2)
     {
-        float x1 = (point.x - x_0) * x_gap + x_0;
-        float x2 = (point.y - y_0) * y_gap + y_0;
+        // float x1 = (point.x - x_0) * x_gap + x_0;
+        // float x2 = (point.y - y_0) * y_gap + y_0;
         int blocks = width / 4;
         int rem = width % 4;
         int move_back = blocks * 4;
@@ -413,10 +413,24 @@ public:
         return 0.0;
     }
 
+    vector<float> predict(vector<float> locations)
+    {
+        int N = locations.size() / this->input_width;
+        torch::Tensor x = torch::tensor(locations, at::kCUDA).reshape({N, this->input_width});
+        torch::Tensor y = predict(x).reshape({N, 1});
+        std::vector<float> res;
+        for (size_t i = 0; i < N; i++)
+        {
+            res.push_back(y.select(0, i).item().toFloat());
+        }
+        return res;
+    }
+
     void train_model(vector<float> locations, vector<float> labels)
     {
 
         long long N = labels.size();
+        // cout<< "N: " << N << endl;
 #ifdef use_gpu
         torch::Tensor x = torch::tensor(locations, at::kCUDA).reshape({N, this->input_width});
         torch::Tensor y = torch::tensor(labels, at::kCUDA).reshape({N, 1});
@@ -431,9 +445,8 @@ public:
         torch::optim::Adam optimizer(this->parameters(), torch::optim::AdamOptions(this->learning_rate));
         if (N > 16000000)
         {
-            int batch_num = N / 1000000;
-            // int batch_num = N / 30000000;
-            // int batch_num = N / 10000000;
+            int batch_num = ceil(N / 10000000);
+            // int batch_num = ceil(N / 10000000);
 
             auto x_chunks = x.chunk(batch_num, 0);
             auto y_chunks = y.chunk(batch_num, 0);
@@ -564,6 +577,7 @@ public:
             }
             iter++;
         }
+        // cout<< " min_dist: " << min_dist << endl;
         return true;
     }
 
@@ -770,7 +784,6 @@ public:
     }
 
     torch::nn::Linear fc1{nullptr}, fc2{nullptr};
-
 };
 
 #endif

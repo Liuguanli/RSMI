@@ -31,14 +31,14 @@ public:
     void point_query(ExpRecorder &expRecorder, Point queryPoint);
     void point_query(ExpRecorder &expRecorder, vector<Point> queryPoints);
 
-    void windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows);
-    vector<Point> windowQuery(ExpRecorder &expRecorder, Mbr queryWindow);
+    void window_query(ExpRecorder &expRecorder, vector<Mbr> queryWindows);
+    vector<Point> window_query(ExpRecorder &expRecorder, Mbr queryWindow);
 
-    void kNNQuery(ExpRecorder &expRecorder, vector<Point> queryPoints, int k);
-    vector<Point> kNNQuery(ExpRecorder &expRecorder, Point queryPoint, int k);
+    void kNN_query(ExpRecorder &expRecorder, vector<Point> queryPoints, int k);
+    vector<Point> kNN_query(ExpRecorder &expRecorder, Point queryPoint, int k);
 
     void insert(ExpRecorder &expRecorder, Point);
-    void insert(ExpRecorder &expRecorder);
+    void insert(ExpRecorder &expRecorder, vector<Point> points);
 
     void remove(ExpRecorder &expRecorder, Point);
     void remove(ExpRecorder &expRecorder, vector<Point>);
@@ -133,14 +133,14 @@ void Grid::point_query(ExpRecorder &expRecorder, vector<Point> queryPoints)
     expRecorder.page_access = (double)expRecorder.page_access / queryPoints.size();
 }
 
-void Grid::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
+void Grid::window_query(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
 {
-    cout << "windowQuery:" << endl;
+    cout << "window_query:" << endl;
     long long time = 0;
     for (Mbr queryWindow : queryWindows)
     {
         auto start = chrono::high_resolution_clock::now();
-        windowQuery(expRecorder, queryWindow);
+        window_query(expRecorder, queryWindow);
         auto finish = chrono::high_resolution_clock::now();
         expRecorder.window_query_results.clear();
         expRecorder.window_query_results.shrink_to_fit();
@@ -151,7 +151,7 @@ void Grid::windowQuery(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
     cout << "time: " << expRecorder.time << endl;
 }
 
-vector<Point> Grid::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
+vector<Point> Grid::window_query(ExpRecorder &expRecorder, Mbr queryWindow)
 {
     // vector<Point> points = queryWindow.getCornerPoints();
     // int lowerX = numXCells;
@@ -191,7 +191,7 @@ vector<Point> Grid::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
         {
             if (i == lowerX || i == upperX || j == lowerY || j == upperY)
             {
-                buckets[i][j].windowQuery(expRecorder, queryWindow);
+                buckets[i][j].window_query(expRecorder, queryWindow);
             }
             else
             {
@@ -202,22 +202,22 @@ vector<Point> Grid::windowQuery(ExpRecorder &expRecorder, Mbr queryWindow)
     return expRecorder.window_query_results;
 }
 
-void Grid::kNNQuery(ExpRecorder &expRecorder, vector<Point> queryPoints, int k)
+void Grid::kNN_query(ExpRecorder &expRecorder, vector<Point> queryPoints, int k)
 {
-    cout << "kNNQuery:" << endl;
+    cout << "kNN_query:" << endl;
     auto start = chrono::high_resolution_clock::now();
     for (Point point : queryPoints)
     {
-        kNNQuery(expRecorder, point, k);
+        kNN_query(expRecorder, point, k);
     }
     auto finish = chrono::high_resolution_clock::now();
     expRecorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / queryPoints.size();
     expRecorder.page_access = (double)expRecorder.page_access / queryPoints.size();
 }
 
-vector<Point> Grid::kNNQuery(ExpRecorder &expRecorder, Point point, int k)
+vector<Point> Grid::kNN_query(ExpRecorder &expRecorder, Point point, int k)
 {
-    // cout<< "Grid::kNNQuery single " << endl;
+    // cout<< "Grid::kNN_query single " << endl;
     vector<Point> result;
     int xIndex = (int)(point.x / xGap);
     int yIndex = (int)(point.y / yGap);
@@ -247,7 +247,7 @@ vector<Point> Grid::kNNQuery(ExpRecorder &expRecorder, Point point, int k)
         }
         if (kNNQueryResults.size() >= k)
         {
-            sort(kNNQueryResults.begin(), kNNQueryResults.end(), sortForKNN(point));
+            sort(kNNQueryResults.begin(), kNNQueryResults.end(), sort_for_kNN(point));
             Point last = kNNQueryResults[k - 1];
             if (last.cal_dist(point) <= side)
             {
@@ -269,7 +269,7 @@ vector<Point> Grid::kNNQuery(ExpRecorder &expRecorder, Point point, int k)
         upperY++;
         upperY = upperY >= numYCells ? numYCells - 1 : upperY;
     }
-    // cout<< "Grid::kNNQuery single finish" << endl;
+    // cout<< "Grid::kNN_query single finish" << endl;
     return result;
 }
 
@@ -285,9 +285,9 @@ void Grid::insert(ExpRecorder &expRecorder, Point point)
     buckets[xIndex][yIndex].insert(point);
 }
 
-void Grid::insert(ExpRecorder &exp_recorder)
+void Grid::insert(ExpRecorder &exp_recorder, vector<Point> points)
 {
-    vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
+    // vector<Point> points = Point::get_inserted_points(exp_recorder.insert_num, exp_recorder.insert_points_distribution);
     auto start = chrono::high_resolution_clock::now();
     for (int i = 0; i < points.size(); i++)
     {

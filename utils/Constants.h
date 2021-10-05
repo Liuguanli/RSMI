@@ -13,6 +13,7 @@ public:
     static const int EPOCH = 500;
     static const int START_EPOCH = 300;
     static const int EPOCH_ADDED = 100;
+    static const int BIT_NUM = 6;
 
     static const int THRESHOLD = 20000;
 

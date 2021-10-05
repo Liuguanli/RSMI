@@ -1,0 +1,2 @@
+rm -rf  Exp  Exp.o  entities/Mbr.o  entities/NonLeafNode.o  entities/NodeExtend.o  entities/LeafNode.o  entities/Point.o  entities/Node.o  utils/FileReader.o  utils/ExpRecorder.o  utils/Constants.o  utils/FileWriter.o  curves/hilbert.o  curves/z.o  curves/hilbert4.o
+g++ -O3 -std=c++14 -o Exp.o -c Exp.cpp -g -I/home/liuguanli/Documents/libtorch_gpu/include -I/home/liuguanli/Documents/libtorch_gpu/include/torch/csrc/api/include

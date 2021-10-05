@@ -71,17 +71,17 @@ def build_cost_model():
     # train_y_2 = pd.DataFrame(train_y_2)
 
     # clf = RandomForestRegressor(max_depth=2, n_estimators=10, random_state=0, bootstrap = True,min_samples_leaf=3,min_samples_split=5)
-    clf_build = RandomForestRegressor(max_depth=2, n_estimators=20, random_state=0)
-    clf_query = RandomForestRegressor(max_depth=2, n_estimators=20, random_state=0)
+    # clf_build = RandomForestRegressor(max_depth=2, n_estimators=20, random_state=0)
+    # clf_query = RandomForestRegressor(max_depth=2, n_estimators=20, random_state=0)
 
     # estimator = clf._make_estimator()
     train_x = encode_onehot(train_x, 'distribution')
     train_x = encode_onehot(train_x, 'method')
 
-    clf_build.fit(train_x.values, train_y_1.values.ravel())
-    clf_query.fit(train_x.values, train_y_2.values.ravel())
-    dump(clf_build, 'cost_model_build.joblib')
-    dump(clf_query, 'cost_model_query.joblib') 
+    # clf_build.fit(train_x.values, train_y_1.values.ravel())
+    # clf_query.fit(train_x.values, train_y_2.values.ravel())
+    # dump(clf_build, 'cost_model_build.joblib')
+    # dump(clf_query, 'cost_model_query.joblib') 
     temp = pd.concat([train_x, train_y_1], axis=1)
     temp = pd.concat([temp, train_y_2], axis=1)
     temp.to_csv("train_set_formatted.csv",index=False)
@@ -89,8 +89,8 @@ def build_cost_model():
 
 @clock
 def predict(lamb, cardinality, distribution):
-    clf_build = load('cost_model_build.joblib')
-    clf_query = load('cost_model_query.joblib')
+    # clf_build = load('cost_model_build.joblib')
+    # clf_query = load('cost_model_query.joblib')
     # todo methods ... 
     # score = lamb * clf_build.predict() + (1 - lamb) * clf_query.predict()
     distributions = {'normal':[1,0,0],'skewed':[0,1,0],'uniform':[0,0,1]}
@@ -125,7 +125,6 @@ def plot(clf):
     graph = pydotplus.graph_from_dot_data(dot_data.getvalue())
     graph.write_pdf("tree.pdf")
     Image(graph.create_png())
-
 
 
 if __name__ == '__main__':

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../utils/Constants.h"
+#include "../curves/z.H"
 
 class SFC
 {
@@ -89,7 +90,8 @@ public:
 
     vector<float> get_weighted_curve()
     {
-        long long max = pow(2, bit_num) - 1;
+        long long side = pow(2, bit_num / 2);
+        long long max = side - 1;
         cout<< "max: " << max << endl;
         vector<float> weighted_curve_value;
         int N = values.size();
@@ -97,6 +99,16 @@ public:
         int index = 0;
         // TODO use map to get
         map<long long, int> values_map;
+        long edge_length = pow(2, bit_num / 2);
+        for(size_t i = 0; i < edge_length; i++)
+        {
+            for (size_t j = 0; j < edge_length; j++)
+            {
+                long long xs[2] = {i * side, j * side};
+                long long curve_val = compute_Z_value(xs, 2, bit_num);
+                values_map[curve_val] = 0;
+            }
+        }
         for (size_t i = 0; i < N; i++)
         {
             values_map[values[i]]++;

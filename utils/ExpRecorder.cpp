@@ -2,6 +2,7 @@
 #include <string.h>
 #include "ExpRecorder.h"
 #include "Constants.h"
+#include <ctime>
 using namespace std;
 
 ExpRecorder::ExpRecorder()
@@ -15,8 +16,15 @@ string ExpRecorder::get_time()
 
 string ExpRecorder::get_time_size_errors()
 {
-    string result = "time:" + to_string(time) + "\n";
+    string result = "--------------------" + get_current_time();
+    result += "time:" + to_string(time) + "\n";
+    result += "is_rebuild:" + to_string(is_rebuild) + "\n";
+    if (is_rebuild)
+    {
+        result += "cardinality:" + to_string(previous_insert_num + dataset_cardinality) + "\n";
+    }
     result += "level:" + to_string(level) + "\n";
+    result += "is_cost_model:" + to_string(is_cost_model) + "\n";
     result += "top_level_time:" + to_string(top_level_time) + "\n";
     result += "bottom_level_time:" + to_string(bottom_level_time) + "\n";
     result += "sfc_cal_time:" + to_string(sfc_cal_time) + "\n";
@@ -26,12 +34,13 @@ string ExpRecorder::get_time_size_errors()
     result += "cost_model_time:" + to_string(cost_model_time) + "\n";
     result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
     result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
-    result += "cluster_size:" + to_string(cluster_size) + "\n";
-    result += "sampling_rate:" + to_string(sampling_rate) + "\n";
-    result += "epsilon:" + to_string(model_reuse_threshold) + "\n";
     result += "top_rl_time:" + to_string(top_rl_time) + "\n";
-    result += "rep threshold m:" + to_string(rs_threshold_m) + "\n";
-    result += "cluster_method:" + cluster_method + "\n";
+    result += "CL :" + cluster_method + "\n";
+    result += "CL k:" + to_string(cluster_size) + "\n";
+    result += "SP rho:" + to_string(sampling_rate) + "\n";
+    result += "MR epsilon:" + to_string(model_reuse_threshold) + "\n";
+    result += "RS m:" + to_string(rs_threshold_m) + "\n";
+    result += "RL l:" + to_string(bit_num) + "\n";
     result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
     result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
     result += "size:" + to_string(size) + "\n";
@@ -73,7 +82,12 @@ string ExpRecorder::get_time_size_errors()
 
 string ExpRecorder::get_time_size()
 {
-    string result = "time:" + to_string(time) + "\n" + "size:" + to_string(size) + "\n";
+    string result = "--------------------" + get_current_time();
+    result += "time:" + to_string(time) + "\n";
+    result += "size:" + to_string(size) + "\n";
+    result += "is_cost_model:" + to_string(is_cost_model) + "\n";
+    result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
+    result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
     time = 0;
     size = 0;
     result += "\n";
@@ -82,7 +96,14 @@ string ExpRecorder::get_time_size()
 
 string ExpRecorder::get_time_accuracy()
 {
-    string result = "time:" + to_string(time) + "\n" + "accuracy:" + to_string(accuracy) + "\n";
+    string result = "--------------------" + get_current_time();
+    result += "time:" + to_string(time) + "\n";
+    result += "accuracy:" + to_string(accuracy) + "\n";
+    result += "is_cost_model:" + to_string(is_cost_model) + "\n";
+    result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
+    result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
+    result += "\n";
+
     time = 0;
     accuracy = 0;
     return result;
@@ -90,7 +111,45 @@ string ExpRecorder::get_time_accuracy()
 
 string ExpRecorder::get_time_pageaccess_accuracy()
 {
-    string result = "time:" + to_string(time) + "\n" + "pageaccess:" + to_string(page_access) + "\n" + "accuracy:" + to_string(accuracy) + "\n";
+    string result = "--------------------" + get_current_time();
+    result += "time:" + to_string(time) + "\n";
+    result += "pageaccess:" + to_string(page_access) + "\n";
+    result += "accuracy:" + to_string(accuracy) + "\n";
+    result += "is_cost_model:" + to_string(is_cost_model) + "\n";
+    if (insert_num != 0)
+    {
+        result += "insert_num:" + to_string(previous_insert_num) + "\n";
+        result += "is_rebuild:" + to_string(is_rebuild) + "\n";
+        if (is_rebuild)
+        {
+            result += "cardinality:" + to_string(previous_insert_num + dataset_cardinality) + "\n";
+        }
+        result += "insert_ratio:" + to_string(previous_insert_num * 100.0 / dataset_cardinality) + "%\n";
+        result += "insert_points_distribution:" + insert_points_distribution + "\n";
+    }
+    if (is_knn)
+    {
+        result += "knn_r_enlarged_num:" + to_string(knn_r_enlarged_num) + "\n";
+    }
+    result += "CL :" + cluster_method + "\n";
+    result += "CL k:" + to_string(cluster_size) + "\n";
+    result += "SP rho:" + to_string(sampling_rate) + "\n";
+    result += "MR epsilon:" + to_string(model_reuse_threshold) + "\n";
+    result += "RS m:" + to_string(rs_threshold_m) + "\n";
+    result += "RL l:" + to_string(bit_num) + "\n";
+    result += "sp_num:" + to_string(sp_num) + "\n";
+    result += "model_reuse_num:" + to_string(model_reuse_num) + "\n";
+    result += "rl_num:" + to_string(rl_num) + "\n";
+    result += "cluster_num:" + to_string(cluster_num) + "\n";
+    result += "rs_num:" + to_string(rs_num) + "\n";
+    result += "original:" + to_string(original_num) + "\n";
+    result += "prediction_time:" + to_string(prediction_time) + "\n";
+    result += "search_time:" + to_string(search_time) + "\n";
+    result += "search_length:" + to_string(search_length) + "\n";
+    result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
+    result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
+    result += "\n";
+
     time = 0;
     page_access = 0;
     accuracy = 0;
@@ -99,29 +158,40 @@ string ExpRecorder::get_time_pageaccess_accuracy()
 
 string ExpRecorder::get_time_pageaccess()
 {
-    string result = "time:" + to_string(time) + "\n";
-    result += "insert_num:" + to_string(previous_insert_num) + "\n";
+    string result = "--------------------" + get_current_time();
+    result += "time:" + to_string(time) + "\n";
     if (insert_num != 0)
     {
         result += "insert_num:" + to_string(previous_insert_num) + "\n";
+        result += "is_rebuild:" + to_string(is_rebuild) + "\n";
+        if (is_rebuild)
+        {
+            result += "cardinality:" + to_string(previous_insert_num + dataset_cardinality) + "\n";
+        }
         result += "insert_ratio:" + to_string(previous_insert_num * 100.0 / dataset_cardinality) + "%\n";
         result += "insert_points_distribution:" + insert_points_distribution + "\n";
     }
+    result += "is_cost_model:" + to_string(is_cost_model) + "\n";
     result += "level:" + to_string(level) + "\n";
-    result += "insert_points_distribution:" + insert_points_distribution + "\n";
     result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
     result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
-    result += "cluster_size:" + to_string(cluster_size) + "\n";
-    result += "sampling_rate:" + to_string(sampling_rate) + "\n";
-    result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
-    result += "rep threshold m:" + to_string(rs_threshold_m) + "\n";
-    result += "cluster_method:" + cluster_method + "\n";
-    result += "model_reuse_threshold:" + to_string(model_reuse_threshold) + "\n";
+    result += "CL :" + cluster_method + "\n";
+    result += "CL k:" + to_string(cluster_size) + "\n";
+    result += "SP rho:" + to_string(sampling_rate) + "\n";
+    result += "MR epsilon:" + to_string(model_reuse_threshold) + "\n";
+    result += "RS m:" + to_string(rs_threshold_m) + "\n";
+    result += "RL l:" + to_string(bit_num) + "\n";
+    result += "sp_num:" + to_string(sp_num) + "\n";
+    result += "model_reuse_num:" + to_string(model_reuse_num) + "\n";
+    result += "rl_num:" + to_string(rl_num) + "\n";
+    result += "cluster_num:" + to_string(cluster_num) + "\n";
+    result += "rs_num:" + to_string(rs_num) + "\n";
+    result += "original:" + to_string(original_num) + "\n";
     result += "prediction_time:" + to_string(prediction_time) + "\n";
-    result += "epsilon:" + to_string(model_reuse_threshold) + "\n";
     result += "sfc_cal_time:" + to_string(sfc_cal_time) + "\n";
     result += "search_time:" + to_string(search_time) + "\n";
     result += "search_steps:" + to_string(search_steps) + "\n";
+    result += "search_length:" + to_string(search_length) + "\n";
     result += "point_not_found:" + to_string(point_not_found) + "\n";
     result += "pageaccess:" + to_string(page_access) + "\n";
     result += "\n";
@@ -130,7 +200,15 @@ string ExpRecorder::get_time_pageaccess()
 
 string ExpRecorder::get_delete_time_pageaccess()
 {
-    string result = "time:" + to_string(delete_time) + "\n" + "pageaccess:" + to_string(page_access) + "\n";
+    string result = "--------------------" + get_current_time();
+    result += "time:" + to_string(delete_time) + "\n";
+    result += "pageaccess:" + to_string(page_access) + "\n";
+    result += "accuracy:" + to_string(accuracy) + "\n";
+    result += "is_cost_model:" + to_string(is_cost_model) + "\n";
+    result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
+    result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
+    result += "\n";
+
     time = 0;
     page_access = 0;
     return result;
@@ -138,17 +216,34 @@ string ExpRecorder::get_delete_time_pageaccess()
 
 string ExpRecorder::get_insert_time_pageaccess()
 {
-    string result = "time:" + to_string(insert_time) + "\n";
+    string result = "--------------------" + get_current_time();
+    result += "time:" + to_string(insert_time) + "\n";
     if (insert_num != 0)
     {
         result += "insert_num:" + to_string(previous_insert_num) + "\n";
+        result += "is_rebuild:" + to_string(is_rebuild) + "\n";
+        if (is_rebuild)
+        {
+            result += "cardinality:" + to_string(previous_insert_num + dataset_cardinality) + "\n";
+        }
         result += "insert_ratio:" + to_string(previous_insert_num * 100.0 / dataset_cardinality) + "%\n";
         result += "insert_points_distribution:" + insert_points_distribution + "\n";
     }
+    result += "is_cost_model:" + to_string(is_cost_model) + "\n";
     result += "level:" + to_string(level) + "\n";
     result += "pageaccess:" + to_string(page_access) + "\n";
-    result += "cluster_size:" + to_string(cluster_size) + "\n";
-    result += "sampling_rate:" + to_string(sampling_rate) + "\n";
+    result += "CL :" + cluster_method + "\n";
+    result += "CL k:" + to_string(cluster_size) + "\n";
+    result += "SP rho:" + to_string(sampling_rate) + "\n";
+    result += "MR epsilon:" + to_string(model_reuse_threshold) + "\n";
+    result += "RS m:" + to_string(rs_threshold_m) + "\n";
+    result += "RL l:" + to_string(bit_num) + "\n";
+    result += "sp_num:" + to_string(sp_num) + "\n";
+    result += "model_reuse_num:" + to_string(model_reuse_num) + "\n";
+    result += "rl_num:" + to_string(rl_num) + "\n";
+    result += "cluster_num:" + to_string(cluster_num) + "\n";
+    result += "rs_num:" + to_string(rs_num) + "\n";
+    result += "original:" + to_string(original_num) + "\n";
     result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
     result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
     result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
@@ -161,20 +256,37 @@ string ExpRecorder::get_insert_time_pageaccess()
 
 string ExpRecorder::get_insert_time_pageaccess_rebuild()
 {
-    string result = "time:" + to_string(insert_time) + "\n";
+    string result = "--------------------" + get_current_time();
+    result += "time:" + to_string(insert_time) + "\n";
     if (insert_num != 0)
     {
         result += "insert_num:" + to_string(previous_insert_num) + "\n";
+        result += "is_rebuild:" + to_string(is_rebuild) + "\n";
+        if (is_rebuild)
+        {
+            result += "cardinality:" + to_string(previous_insert_num + dataset_cardinality) + "\n";
+        }
         result += "insert_ratio:" + to_string(previous_insert_num * 100.0 / dataset_cardinality) + "%\n";
         result += "insert_points_distribution:" + insert_points_distribution + "\n";
     }
+    result += "is_cost_model:" + to_string(is_cost_model) + "\n";
     result += "prediction_time:" + to_string(prediction_time) + "\n";
     result += "level:" + to_string(level) + "\n";
     result += "pageaccess:" + to_string(page_access) + "\n";
     result += "rebuild_num:" + to_string(rebuild_num) + "\n";
     result += "rebuild_time:" + to_string(rebuild_time) + "\n";
-    result += "cluster_size:" + to_string(cluster_size) + "\n";
-    result += "sampling_rate:" + to_string(sampling_rate) + "\n";
+    result += "CL :" + cluster_method + "\n";
+    result += "CL k:" + to_string(cluster_size) + "\n";
+    result += "SP rho:" + to_string(sampling_rate) + "\n";
+    result += "MR epsilon:" + to_string(model_reuse_threshold) + "\n";
+    result += "RS m:" + to_string(rs_threshold_m) + "\n";
+    result += "RL l:" + to_string(bit_num) + "\n";
+    result += "sp_num:" + to_string(sp_num) + "\n";
+    result += "model_reuse_num:" + to_string(model_reuse_num) + "\n";
+    result += "rl_num:" + to_string(rl_num) + "\n";
+    result += "cluster_num:" + to_string(cluster_num) + "\n";
+    result += "rs_num:" + to_string(rs_num) + "\n";
+    result += "original:" + to_string(original_num) + "\n";
     result += "upper_level_lambda:" + to_string(upper_level_lambda) + "\n";
     result += "lower_level_lambda:" + to_string(lower_level_lambda) + "\n";
     result += "representative_threshold_m:" + to_string(rs_threshold_m) + "\n";
@@ -207,7 +319,7 @@ void ExpRecorder::clean()
     non_leaf_node_num = 0;
 
     window_query_result_size = 0;
-    acc_window_query_qesult_size = 0;
+    acc_window_query_result_size = 0;
 
     knn_query_results.clear();
     knn_query_results.shrink_to_fit();
@@ -245,7 +357,7 @@ void ExpRecorder::clean()
     cost_model_time = 0;
 
     insert_time = 0;
-    previous_insert_num = 0;
+    // previous_insert_num = 0;
 
     sp_num = 0;
     model_reuse_num = 0;
@@ -254,7 +366,18 @@ void ExpRecorder::clean()
     rs_num = 0;
     original_num = 0;
     traverse_time = 0;
+
+    update_num = 0;
     test_reset();
+
+    is_rebuild = false;
+    is_knn = false;
+    is_window = false;
+    is_point = false;
+    is_insert = false;
+    knn_r_enlarged_num = 0;
+
+    search_length = 0;
 }
 
 string ExpRecorder::get_file_name()
@@ -387,4 +510,21 @@ void ExpRecorder::test_reset()
     is_rl = false;
     is_cluster = false;
     is_rs = false;
+}
+
+bool ExpRecorder::is_og()
+{
+    if (is_sp || is_model_reuse || is_rl || is_cluster || is_rs)
+    {
+        return false;
+    }
+    return true;
+}
+
+string ExpRecorder::get_current_time()
+{
+    time_t now = std::time(0);
+    char *dt = ctime(&now);
+    std::string str(dt);
+    return str;
 }

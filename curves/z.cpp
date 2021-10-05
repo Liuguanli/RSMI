@@ -34,7 +34,8 @@ long long compute_Z_value(long long x, long long y, int bit_num)
 	long long result = 0;
 	for (int i = 0; i < bit_num; i++)
 	{
-		long seed = (long) pow(2, i);
+		// long seed = (long) pow(2, i);
+		long seed = 1 << i;
 
 		long temp = seed & x;
 		temp = temp << i;

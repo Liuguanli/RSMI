@@ -257,9 +257,9 @@ namespace pre_train_zm
     }
 
     // get_rep_set_space(m, 0,0,0.5,all_points);
-    vector<Point> get_rep_set_space(long long m, double start_x, double start_y, double x_edge_length, double y_edge_length, vector<Point> all_points)
+    vector<Point> get_rep_set_space(long long m, double start_x, double start_y, double x_edge_length, double y_edge_length, vector<Point> &all_points)
     {
-        cout << "get_rep_set_space 1" << endl;
+        // cout << "get_rep_set_space 1" << endl;
         long long N = all_points.size();
         vector<Point> rs;
         if (all_points.size() == 0)
@@ -296,26 +296,26 @@ namespace pre_train_zm
             points_map[key].push_back(all_points[i]);
         }
         // cout << "get_rep_set_space 2" << endl;
-        all_points.clear();
-        all_points.shrink_to_fit();
+        // all_points.clear();
+        // all_points.shrink_to_fit();
 
-        map<int, vector<Point>>::iterator iter;
-        iter = points_map.begin();
-        while(iter != points_map.end()) {
-            cout << "map: " << iter->first << " : " << iter->second.size() << endl;
-            iter++;
-        }
+        // map<int, vector<Point>>::iterator iter;
+        // iter = points_map.begin();
+        // while(iter != points_map.end()) {
+        //     cout << "map: " << iter->first << " : " << iter->second.size() << endl;
+        //     iter++;
+        // }
         // cout << "get_rep_set_space 3" << endl;
         for (size_t i = 0; i < key_num; i++)
         {
-            vector<Point> temp = points_map[i];
             // cout << "get_rep_set_space 4 i= " << i << endl;
-            if(temp.size() == 0) {
+            if (points_map[i].size() == 0)
+            {
                 continue;
             }
             double start_x_temp = start_x;
             double start_y_temp = start_y;
-            if (temp.size() > m)
+            if (points_map[i].size() > m)
             {
                 // cout << "get_rep_set_space 5" << endl;
                 if (i == 1)
@@ -331,35 +331,33 @@ namespace pre_train_zm
                     start_x_temp = start_x + x_edge_length;
                     start_y_temp = start_y + y_edge_length;
                 }
-                vector<Point> res = get_rep_set_space(m, start_x_temp, start_y_temp, x_edge_length / 2, y_edge_length / 2, temp);
+                vector<Point> res = get_rep_set_space(m, start_x_temp, start_y_temp, x_edge_length / 2, y_edge_length / 2, points_map[i]);
                 rs.insert(rs.end(), res.begin(), res.end());
             }
-            else if (temp.size() > 0)
+            else if (points_map[i].size() > 0)
             {
-                // cout << "get_rep_set_space 6" << endl;
-                // TODO use fake points!!!
-                double x = start_x + x_edge_length / 2;
-                double y = start_y + y_edge_length / 2;
-                if (i == 1)
-                {
-                    x += x_edge_length;
-                }
-                if (i == 2)
-                {
-                    y += y_edge_length;
-                }
-                if (i == 3)
-                {
-                    x += x_edge_length;
-                    y += y_edge_length;
-                }
-                Point point(x, y);
-                int middle_point = (temp.size() - 1) / 2;
-                point.index = temp[middle_point].index;
-                // point.key = temp[temp.size() / 2].key;
-                // point.normalized_curve_val = temp[temp.size() / 2].normalized_curve_val;
-                point.normalized_curve_val = temp[middle_point].normalized_curve_val;
-                rs.push_back(point);
+                // double x = start_x + x_edge_length / 2;
+                // double y = start_y + y_edge_length / 2;
+                // if (i == 1)
+                // {
+                //     x += x_edge_length;
+                // }
+                // if (i == 2)
+                // {
+                //     y += y_edge_length;
+                // }
+                // if (i == 3)
+                // {
+                //     x += x_edge_length;
+                //     y += y_edge_length;
+                // }
+                // Point point(x, y);
+                // int middle_point = (temp.size() - 1) / 2;
+                // point.index = temp[middle_point].index;
+                // point.normalized_curve_val = temp[middle_point].normalized_curve_val;
+                // rs.push_back(point);
+                int middle_point = (points_map[i].size() - 1) / 2;
+                rs.push_back(points_map[i][middle_point]);
             }
         }
         return rs;
@@ -424,11 +422,11 @@ namespace pre_train_zm
             sfcs.push_back(points[i].curve_val);
             features.push_back((points[i].curve_val - min_curve_val) * 1.0 / gap);
         }
-        cout << "N: " << N << " min_curve_val: " << min_curve_val << " max_curve_val: " << max_curve_val << endl;
+        // cout << "N: " << N << " min_curve_val: " << min_curve_val << " max_curve_val: " << max_curve_val << endl;
         SFC sfc(bit_num, sfcs);
         vector<float> weighted_SFC = sfc.get_weighted_curve();
-        cout << "file_name: " << file_name << endl;
-        cout << "weighted_SFC size: " << weighted_SFC.size() << endl;
+        // cout << "file_name: " << file_name << endl;
+        // cout << "weighted_SFC size: " << weighted_SFC.size() << endl;
         string sfc_weight_path = Constants::SFC_Z_WEIGHT + "bit_num_" + to_string(bit_num) + "/";
         FileWriter SFC_writer(sfc_weight_path);
         SFC_writer.write_weighted_SFC(weighted_SFC, file_name);
@@ -524,7 +522,7 @@ namespace pre_train_zm
             locations.push_back(point.normalized_curve_val);
             labels.push_back(point.index);
         }
-    
+
         file_name = file_name.substr(0, file_name.find(".csv"));
         // cout<< "file_name: " << file_name << endl;
         string features_path = Constants::FEATURES_PATH_ZM + to_string(resolution) + "/" + threshold + "/";
@@ -679,8 +677,11 @@ namespace pre_train_zm
     //         }
     //     }
     // }
-
     // std::shared_ptr<Net>
+    map<string, vector<float>> distributions = {
+        {"normal", {1, 0, 0}}, {"skewed", {0, 1, 0}}, {"uniform", {0, 0, 1}}};
+    map<int, vector<float>> methods = {
+        {1, {0, 1, 0, 0, 0, 0}}, {2, {0, 0, 1, 0, 0, 0}}, {3, {0, 0, 0, 1, 0, 0}}, {4, {0, 0, 0, 0, 1, 0}}, {5, {0, 0, 0, 0, 0, 1}}};
     auto query_cost_model = std::make_shared<Net>(10, 32);
     auto build_cost_model = std::make_shared<Net>(10, 32);
 
@@ -715,11 +716,166 @@ namespace pre_train_zm
             query_cost_model->train_model(parameters, query_time_labels);
             torch::save(build_cost_model, build_time_model_path);
             torch::save(query_cost_model, query_time_model_path);
-        }
-    }
 
-    void evaluate_cost_model()
-    {
+            int training_set_size = build_time_labels.size();
+
+            // TODO evaluate
+// lambda: 0 build accuracy: 0.97619
+// lambda: 0 query accuracy: 0.771429
+// lambda: 0 total accuracy: 0.771429
+// lambda: 0.1 build accuracy: 0.97619
+// lambda: 0.1 query accuracy: 0.771429
+// lambda: 0.1 total accuracy: 0.771429
+// lambda: 0.2 build accuracy: 0.97619
+// lambda: 0.2 query accuracy: 0.771429
+// lambda: 0.2 total accuracy: 0.747619
+
+// lambda: 0.3 build accuracy: 0.97619
+// lambda: 0.3 query accuracy: 0.771429
+// lambda: 0.3 total accuracy: 0.752381
+
+// lambda: 0.4 build accuracy: 0.97619
+// lambda: 0.4 query accuracy: 0.771429
+// lambda: 0.4 total accuracy: 0.742857
+
+// lambda: 0.5 build accuracy: 0.97619
+// lambda: 0.5 query accuracy: 0.771429
+// lambda: 0.5 total accuracy: 0.8
+
+// lambda: 0.6 build accuracy: 0.97619
+// lambda: 0.6 query accuracy: 0.771429
+// lambda: 0.6 total accuracy: 0.828571
+
+// lambda: 0.7 build accuracy: 0.97619
+// lambda: 0.7 query accuracy: 0.771429
+// lambda: 0.7 total accuracy: 0.928571
+
+// lambda: 0.8 build accuracy: 0.97619
+// lambda: 0.8 query accuracy: 0.771429
+// lambda: 0.8 total accuracy: 0.990476
+
+// lambda: 0.9 build accuracy: 0.97619
+// lambda: 0.9 query accuracy: 0.771429
+// lambda: 0.9 total accuracy: 1
+// lambda: 1 build accuracy: 0.97619
+// lambda: 1 query accuracy: 0.771429
+// lambda: 1 total accuracy: 1
+            // torch::Tensor x = torch::tensor(parameters, at::kCUDA).reshape({build_time_labels.size(), 10});
+            vector<float> build_scores = build_cost_model->predict(parameters);
+            vector<float> query_scores = query_cost_model->predict(parameters);
+
+            int cardinalitys[] = {1, 2, 4, 8, 16, 32, 64, 128, 200, 400, 800, 1600, 3200, 6400};
+            for (size_t j = 0; j < 11; j++)
+            {
+                float lambda = j * 0.1;
+                int total_num = 0;
+                int correct_num = 0;
+                int correct_num_build = 0;
+                int correct_num_query = 0;
+                for (size_t i = 0; i < 14; i++)
+                {
+                    map<string, vector<float>>::iterator out_iter;
+                    out_iter = distributions.begin();
+                    while (out_iter != distributions.end())
+                    {
+                        float max_score = 0;
+                        float max_build_score = 0;
+                        float max_query_score = 0;
+                        float max_score_real = 0;
+                        float max_build_score_real = 0;
+                        float max_query_score_real = 0;
+                        int predicted_result = 1;
+                        int predicted_build_result = 0;
+                        int predicted_query_result = 1;
+                        int real_result = 1;
+                        int real_build_result = 0;
+                        int real_query_result = 1;
+                        vector<float> items;
+                        vector<float> distribution_list = distributions[out_iter->first];
+                        items.push_back(cardinalitys[i] * 1.0 / 6400);
+                        items.insert(items.end(), distribution_list.begin(), distribution_list.end());
+                        map<int, vector<float>>::iterator iter;
+                        iter = methods.begin();
+                        while (iter != methods.end())
+                        {
+                            vector<float> temp = items;
+                            temp.insert(temp.end(), iter->second.begin(), iter->second.end());
+#ifdef use_gpu
+                            torch::Tensor x = torch::tensor(temp, at::kCUDA).reshape({1, 10});
+#else
+                            torch::Tensor x = torch::tensor(temp).reshape({1, 10});
+#endif
+                            float build_score = build_cost_model->predict(x).item().toFloat();
+                            float query_score = query_cost_model->predict(x).item().toFloat();
+                            float score = lambda * build_score + (1 - lambda) * query_score;
+                            // cout<< "build_score: " <<build_score << " query_score: " << query_score << endl;
+                            if (build_score > max_build_score)
+                            {
+                                max_build_score = build_score;
+                                predicted_build_result = iter->first;
+                            }
+                            if (query_score > max_query_score)
+                            {
+                                max_query_score = query_score;
+                                predicted_query_result = iter->first;
+                            }
+                            if (score > max_score)
+                            {
+                                max_score = score;
+                                predicted_result = iter->first;
+                            }
+
+                            // find from oridinal data set
+                            for (size_t k = 0; k < training_set_size; k++)
+                            {
+                                vector<float> training_set_temp(parameters.begin() + k * 10, parameters.begin() + k * 10 + 10);
+                                if (training_set_temp == temp)
+                                {
+                                    float build_score_real = build_time_labels[k];
+                                    float query_score_real = query_time_labels[k];
+                                    float score_real = lambda * build_score_real + (1 - lambda) * query_score_real;
+                                    if (build_score_real > max_build_score_real)
+                                    {
+                                        max_build_score_real = build_score_real;
+                                        real_build_result = iter->first;
+                                    }
+                                    if (query_score_real > max_query_score_real)
+                                    {
+                                        max_query_score_real = query_score_real;
+                                        real_query_result = iter->first;
+                                    }
+                                    if (score_real > max_score_real)
+                                    {
+                                        max_score_real = score_real;
+                                        real_result = iter->first;
+                                    }
+                                }
+                            }
+                            // cout << "real_result: " << real_result << " predicted_result: " << predicted_result << endl;
+                            if (real_result == predicted_result)
+                            {
+                                correct_num++;
+                            }
+                            if (real_build_result == predicted_build_result)
+                            {
+                                correct_num_build++;
+                            }
+                            if (real_query_result == predicted_query_result)
+                            {
+                                correct_num_query++;
+                            }
+                            total_num++;
+
+                            iter++;
+                        }
+                        out_iter++;
+                    }
+                }
+                cout<< "lambda: " << lambda << " build accuracy: " << correct_num_build * 1.0 / total_num << endl;
+                cout<< "lambda: " << lambda << " query accuracy: " << correct_num_query * 1.0 / total_num << endl;
+                cout<< "lambda: " << lambda << " total accuracy: " << correct_num * 1.0 / total_num << endl;
+            }
+        }
     }
 
     string get_distribution(Histogram hist)
@@ -745,13 +901,9 @@ namespace pre_train_zm
     {
         // cout << "cardinality: " << cardinality << endl;
         // cout << "distribution: " << distribution << endl;
-        map<string, vector<float>> distributions = {
-            {"normal", {1, 0, 0}}, {"skewed", {0, 1, 0}}, {"uniform", {0, 0, 1}}};
 
         vector<float> distribution_list = distributions[distribution];
         // {"cl", {1, 0, 0, 0, 0, 0}},
-        map<int, vector<float>> methods = {
-            {1, {0, 1, 0, 0, 0, 0}}, {2, {0, 0, 1, 0, 0, 0}}, {3, {0, 0, 0, 1, 0, 0}}, {4, {0, 0, 0, 0, 1, 0}}, {5, {0, 0, 0, 0, 0, 1}}};
 
         float score = 0;
         vector<float> parameters;

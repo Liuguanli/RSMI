@@ -1,0 +1,177 @@
+./configure
+make
+su
+make install
+adduser postgres
+mkdir /usr/local/pgsql/data
+chown postgres /usr/local/pgsql/data
+su - postgres
+/usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data
+/usr/local/pgsql/bin/pg_ctl -D /usr/local/pgsql/data -l logfile start
+/usr/local/pgsql/bin/createdb test
+/usr/local/pgsql/bin/psql test
+
+kd_point_ops
+rsmi_point_ops
+spg_rsmi_config
+
+-- https://www.ruanyifeng.com/blog/2013/12/getting_started_with_postgresql.html
+
+-- uninstall
+dpkg -l | grep postgres
+sudo apt-get --purge remove postgresql postgresql-12 postgresql-12-postgis-3 postgresql-12-postgis-3-scripts postgresql-client-12 postgresql-client-common postgresql-common
+
+CREATE DATABASE learnedindex OWNER dbuser;
+
+psql learnedindex
+
+GRANT ALL PRIVILEGES ON DATABASE learnedindex to dbuser;
+
+sudo apt-get install postgis postgresql-12-postgis-scripts postgresql-client-common postgresql-common
+
+-- Enable PostGIS (as of 3.0 contains just geometry/geography)
+-- 启用PostGIS功能（仅包括geometry/geography相关）
+CREATE EXTENSION postgis;
+
+-- enable raster support (for 3+)
+-- 启用栅格扩展
+CREATE EXTENSION postgis_raster;
+
+-- Enable Topology
+-- 启用拓扑扩展
+CREATE EXTENSION postgis_topology;
+
+-- Enable PostGIS Advanced 3D
+-- and other geoprocessing algorithms
+-- sfcgal not available with all distributions
+CREATE EXTENSION postgis_sfcgal;
+-- fuzzy matching needed for Tiger
+CREATE EXTENSION fuzzystrmatch;
+-- rule based standardizer
+CREATE EXTENSION address_standardizer;
+-- example rule data set
+CREATE EXTENSION address_standardizer_data_us;
+-- Enable US Tiger Geocoder
+CREATE EXTENSION postgis_tiger_geocoder;
+
+CREATE TABLE test_gist (
+  id SERIAL PRIMARY KEY,
+  geom GEOMETRY(Point, 4326),
+  geolocation point
+);
+ 
+-- Add a spatial index
+-- 给geom列添加一个空间索引，索引类型为GIST
+CREATE INDEX test_gist_index
+  ON test_gist
+  USING GIST (geom);
+ 
+-- Add a point
+-- 插入一个数据点
+INSERT INTO test_gist (geom) VALUES (
+  ST_GeomFromText('POINT(0 0)', 4326)
+);
+
+-- Query for nearby points
+-- 查询与给定点周围1000米的点
+SELECT id, ST_AsText(geom)
+FROM test_gist
+WHERE ST_DWithin(
+  geom,
+  ST_GeomFromText('POINT(0 0)', 4326),
+  1000
+);
+
+create table tmp (x numeric, y numeric);
+copy tmp from '/home/research/datasets/skewed_2000000_4_2_.csv' delimiter ',' csv;
+alter table tmp add column geolocation point;
+UPDATE tmp SET geolocation = point( x || ', ' || y );
+CREATE INDEX test_spgist_index ON tmp USING spgist (geolocation rsmi_point_ops);
+
+drop index test_spgist_index;
+
+CREATE INDEX test_spgist_index ON tmp USING spgist (geolocation kd_point_ops);
+drop index test_spgist_index;
+CREATE INDEX test_spgist_index ON tmp USING spgist (geolocation quad_point_ops);
+drop index test_spgist_index;
+
+select * from tmp limit 10;
+
+select * from tmp where geolocation ~= '(0.5551220774650574,6.61225874054594e-09)';
+select * from tmp where geolocation ~= '(0.4065118134021759,0.1590673327445984)';
+select * from tmp where geolocation ~= '(0.3646734356880188,0.5718042850494385)';
+select * from tmp where geolocation ~= '(0.6858974695205688,0.5830923318862915)';
+select * from tmp where geolocation ~= '(0.31683480739593506,3.755194120458327e-05)';
+select * from tmp where geolocation ~= '(0.517787516117096,0.08434353768825531)';
+select * from tmp where geolocation ~= '(0.49455559253692627,0.00010739722347352654)';
+select * from tmp where geolocation ~= '(0.3215760588645935,0.12543731927871704)';
+select * from tmp where geolocation ~= '(0.20060914754867554,0.035549793392419815)';
+select * from tmp where geolocation ~= '(0.9663891792297363,0.4609198570251465)';
+
+
+create table tmp (x real, y real, geom GEOMETRY(Point, 4326));
+
+copy tmp from '/home/research/datasets/skewed_2000000_4_2_.csv' delimiter ',' csv;
+
+select AddGeometryColumn ('tmp', 'geom', 4326, 'POINT', 2);
+
+alter table tmp add column geolocation point;
+UPDATE tmp SET geolocation = point( x || ', ' || y );
+
+CREATE INDEX test_spgist_index ON tmp USING spgist (geolocation kd_point_ops);
+drop index test_spgist_index;
+CREATE INDEX test_spgist_index ON tmp USING spgist (geolocation rsmi_point_ops);
+drop index test_spgist_index;
+
+CREATE INDEX test_spgist_index ON tmp USING spgist (geolocation quad_point_ops);
+
+
+insert into test_gist (geolocation) select geolocation from tmp;
+
+CREATE INDEX test_spgist_index ON test_gist USING spgist (geolocation kd_point_ops);
+CREATE INDEX test_spgist_index ON test_gist USING spgist (geolocation rsmi_point_ops);
+drop index test_spgist_index;
+
+SELECT geolocation
+FROM tmp
+WHERE ST_Within(
+  geolocation,
+  point(0,0),
+  1000
+);
+
+
+drop index test_spgist_index;
+\timing --TODO record time  \timing again to close timing.
+
+CREATE INDEX test_gist_index ON test_gist USING GIST (geolocation point_ops);
+drop index test_gist_index;
+
+
+--------------------------------------------------------------------------------------
+UPDATE tmp SET geom = ST_GeomFromText('POINT(' || x || ' ' || y || ')',4326);
+
+insert into test_gist (geom) select geom from tmp;
+
+-- CREATE INDEX test_gist_index ON test_gist USING GIST (geom point_ops);
+CREATE INDEX test_gist_index ON test_gist USING GIST (geom);
+drop index test_gist_index;
+
+CREATE INDEX test_spgist_index ON test_gist USING spgist (geom kd_point_ops);
+drop index test_spgist_index;
+
+alter table test_gist add column geolocation point;
+UPDATE tmp SET geom = 'POINT(' || x || ' ' || y || ')',4326);
+
+
+select s.oid,s.relname,t.stausename, t.stasubtype
+from pg_class s, pg_stat_last_operation t
+where s.relname='test_gist_index' and t.objid=s.oid;
+
+--------------------------------------------------------------------------------------
+
+-- TODO operator classes
+-- build -in operator classes 
+
+pg_am changing log
+https://pgpedia.info/p/pg_am.html

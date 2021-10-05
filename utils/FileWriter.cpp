@@ -98,13 +98,26 @@ void FileWriter::write_mbrs(vector<Mbr> mbrs, ExpRecorder exp_recorder)
     }
     write.close();
 }
-void FileWriter::write_points(vector<Point> points, ExpRecorder exp_recorder)
+
+void FileWriter::write_points(vector<Point> points, ExpRecorder exp_recorder, string mid)
 {
     ofstream write;
-    string folder = Constants::KNN;
-    file_utils::check_dir(filename + folder);
-    write.open((filename + folder + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + ".csv"), ios::out);
+    // string folder = Constants::KNN;
+    file_utils::check_dir(filename + mid);
+    cout << "path: " << filename + mid + exp_recorder.get_file_name() << endl;
+    write.open((filename + mid + exp_recorder.get_file_name()), ios::out);
     for (Point point : points)
+    {
+        write << point.get_self();
+    }
+    write.close();
+}
+
+void FileWriter::write_inserted_points(ExpRecorder exp_recorder, string name)
+{
+    ofstream write;
+    write.open((name), ios::out);
+    for (Point point : exp_recorder.inserted_points)
     {
         write << point.get_self();
     }
@@ -180,7 +193,20 @@ void FileWriter::write_learned_cdf(ExpRecorder exp_recorder, vector<float> cdf)
     ofstream write;
     string folder = Constants::LEARNED_CDF;
     file_utils::check_dir(filename + folder);
-    write.open((filename + folder + exp_recorder.structure_name + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_" + to_string(exp_recorder.N) + ".csv"), ios::out);
+    string prefix = "";
+
+    if (exp_recorder.structure_name == "ZM-RL")
+        prefix = "_" + to_string(exp_recorder.bit_num);
+    if (exp_recorder.structure_name == "ZM-RS")
+        prefix = "_" + to_string(exp_recorder.rs_threshold_m);
+    if (exp_recorder.structure_name == "ZM-MR")
+        prefix = "_" + to_string(exp_recorder.model_reuse_threshold);
+    if (exp_recorder.structure_name == "ZM-SP")
+        prefix = "_" + to_string(exp_recorder.sampling_rate);
+    if (exp_recorder.structure_name == "ZM-CL")
+        prefix = "_" + to_string(exp_recorder.cluster_size);
+
+    write.open((filename + folder + exp_recorder.structure_name + prefix + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_" + to_string(exp_recorder.N) + ".csv"), ios::out);
     int N = cdf.size();
     for (size_t i = 0; i < N; i++)
     {
@@ -245,7 +271,7 @@ void FileWriter::write_insert(ExpRecorder exp_recorder)
     string folder = Constants::INSERT;
     file_utils::check_dir(filename + folder);
     write.open((filename + folder + exp_recorder.structure_name + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_" + to_string(exp_recorder.insert_num) + "_" + to_string(exp_recorder.N) + ".txt"), ios::app);
-    if (exp_recorder.structure_name == "RSMI" || exp_recorder.structure_name == "RSMI-MR")
+    if (exp_recorder.is_cost_model)
     {
         write << exp_recorder.get_insert_time_pageaccess_rebuild();
     }

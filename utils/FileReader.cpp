@@ -47,6 +47,24 @@ vector<vector<string>> FileReader::get_data(string path)
     return data_list;
 }
 
+void FileReader::get_rebuild_data(string path, vector<float> &parameters, vector<float> &labels)
+{
+    ifstream file(path);
+    string line = "";
+    while (getline(file, line))
+    {
+        vector<string> vec;
+        boost::algorithm::split(vec, line, boost::is_any_of(delimeter));
+        int length = vec.size();
+        for (size_t i = 0; i < length - 1; i++)
+        {
+            parameters.push_back(stod(vec[i]));
+        }
+        labels.push_back(stod(vec[length - 1]));
+    }
+    file.close();
+}
+
 void FileReader::get_cost_model_data(string path, vector<float> &parameters, vector<float> &build_time_labels, vector<float> &query_time_labels)
 {
     ifstream file(path);

@@ -11,10 +11,12 @@ using namespace std;
 class LeafNode : public nodespace::Node
 {
 public:
+    int id;
     int level;
     vector<Point> *children;
     NonLeafNode *parent;
     LeafNode();
+    LeafNode(int id);
     LeafNode(Mbr mbr);
     void add_point(Point);
     void add_points(vector<Point>);

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <queue>
 #include "../entities/Node.h"
 #include "../entities/Point.h"
 #include "../entities/Mbr.h"
@@ -20,6 +21,8 @@
 #include <torch/utils.h>
 
 #include "../utils/PreTrainRSMI.h"
+#include "../utils/Rebuild.h"
+#include "../utils/SortTools.h"
 
 using namespace at;
 using namespace torch::nn;
@@ -84,7 +87,8 @@ public:
     vector<Point> acc_window_query(ExpRecorder &exp_recorder, Mbr query_windows);
 
     void kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k);
-    vector<Point> kNN_query(ExpRecorder &exp_recorder, Point query_point, int k);
+    // vector<Point> kNN_query(ExpRecorder &exp_recorder, Point query_point, int k);
+    void kNN_query(ExpRecorder &exp_recorder, Point query_point, int k);
     void acc_kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k);
     vector<Point> acc_kNN_query(ExpRecorder &exp_recorder, Point query_point, int k);
     double cal_rho(Point point);
@@ -93,7 +97,7 @@ public:
     void insert(ExpRecorder &exp_recorder, Point);
     void insert(ExpRecorder &exp_recorder);
     void insert(ExpRecorder &exp_recorder, int index);
-    void insert(ExpRecorder &exp_recorder, vector<Point>);
+    bool insert(ExpRecorder &exp_recorder, vector<Point> &);
 
     void remove(ExpRecorder &exp_recorder, Point);
     void remove(ExpRecorder &exp_recorder, vector<Point>);
@@ -103,7 +107,7 @@ public:
     int binary_search_y(float);
 
     void traverse(ExpRecorder &exp_recorder);
-    void clear_statistics(ExpRecorder &exp_recorder);
+    void clear(ExpRecorder &exp_recorder);
 };
 
 RSMI::RSMI()
@@ -149,6 +153,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         side = pow(2, ceil(log(N) / log(2)));
         sort(points.begin(), points.end(), sortX());
         x_gap = 1.0 / (points[N - 1].x - points[0].x);
+        x_scale = 1.0 / x_gap;
         x_0 = points[0].x;
         x_1 = points[N - 1].x;
         for (int i = 0; i < N; i++)
@@ -159,7 +164,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         }
         sort(points.begin(), points.end(), sortY());
         y_gap = points[N - 1].y - points[0].y;
-        y_scale = 1.0 / (points[N - 1].y - points[0].y);
+        y_scale = 1.0 / y_gap;
         y_0 = points[0].y;
         y_1 = points[N - 1].y;
         for (int i = 0; i < N; i++)
@@ -242,7 +247,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         vector<float> labels;
         if (exp_recorder.is_model_reuse)
         {
-            cout << "exp_recorder.is_mr" << endl;
+            // cout << "exp_recorder.is_mr" << endl;
             exp_recorder.model_reuse_num++;
             vector<float> features;
             auto start_mr = chrono::high_resolution_clock::now();
@@ -266,11 +271,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             {
                 net->train_model(locations, labels);
             }
-            cout << "exp_recorder.is_mr finish" << endl;
+            // cout << "exp_recorder.is_mr finish" << endl;
         }
         else if (exp_recorder.is_sp)
         {
-            cout << "exp_recorder.is_sp" << endl;
+            // cout << "exp_recorder.is_sp" << endl;
             exp_recorder.sp_num++;
             auto start_sp = chrono::high_resolution_clock::now();
             int sample_gap = 1 / sampling_rate;
@@ -295,25 +300,25 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             auto finish_sp = chrono::high_resolution_clock::now();
             exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_sp - start_sp).count();
             net->train_model(locations, labels);
-            cout << "exp_recorder.is_sp finish" << endl;
+            // cout << "exp_recorder.is_sp finish" << endl;
         }
         else if (exp_recorder.is_rs)
         {
             exp_recorder.rs_num++;
             if (N < 10 * sqrt(exp_recorder.rs_threshold_m))
             {
-                cout << "exp_recorder.is_rs 1" << endl;
+                // cout << "exp_recorder.is_rs 1" << endl;
                 auto start_train = chrono::high_resolution_clock::now();
                 net->train_model(locations, labels);
                 auto end_train = chrono::high_resolution_clock::now();
                 exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
-                cout << "exp_recorder.is_rs 1 finish" << endl;
+                // cout << "exp_recorder.is_rs 1 finish" << endl;
             }
             else
             {
-                cout << "exp_recorder.is_rs 2" << endl;
+                // cout << "exp_recorder.is_rs 2" << endl;
                 auto start_rs = chrono::high_resolution_clock::now();
-                vector<Point> rs_points = pre_train_zm::get_rep_set_space(sqrt(exp_recorder.rs_threshold_m), x_0, y_0, x_gap / 2, y_gap / 2, points);
+                vector<Point> rs_points = pre_train_zm::get_rep_set_space(exp_recorder.rs_threshold_m / 10, x_0, y_0, x_gap / 2, y_gap / 2, points);
                 int temp_N = rs_points.size();
                 // cout << "temp_N: " << temp_N << endl;
                 vector<float> rs_locations;
@@ -330,41 +335,41 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 net->train_model(rs_locations, rs_labels);
                 auto end_train = chrono::high_resolution_clock::now();
                 exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
-                cout << "exp_recorder.is_rs 2 finish" << endl;
+                // cout << "exp_recorder.is_rs 2 finish" << endl;
             }
         }
-        else if (exp_recorder.is_rl)
-        {
-            exp_recorder.rl_num++;
-            cout << "exp_recorder.is_rl" << endl;
-            auto start_rl = chrono::high_resolution_clock::now();
-            int bit_num = 6;
-            // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
-            pre_train_zm::write_approximate_SFC(points, exp_recorder.get_file_name(), bit_num);
-            string commandStr = "python /home/liuguanli/Documents/pre_train/rl_4_sfc/RL_4_SFC_RSMI.py -d " +
-                                exp_recorder.distribution + " -s " + to_string(exp_recorder.dataset_cardinality) + " -n " +
-                                to_string(exp_recorder.skewness) + " -m 2 -b " + to_string(bit_num) +
-                                " -f /home/liuguanli/Documents/pre_train/sfc_z_weight/bit_num_%d/%s_%d_%d_%d_.csv";
-            char command[1024];
-            strcpy(command, commandStr.c_str());
-            int res = system(command);
+        // else if (exp_recorder.is_rl)
+        // {
+        //     exp_recorder.rl_num++;
+        //     // cout << "exp_recorder.is_rl" << endl;
+        //     auto start_rl = chrono::high_resolution_clock::now();
+        //     int bit_num = exp_recorder.bit_num;
+        //     // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
+        //     pre_train_zm::write_approximate_SFC(points, exp_recorder.get_file_name(), bit_num);
+        //     string commandStr = "python /home/liuguanli/Documents/pre_train/rl_4_sfc/RL_4_SFC_RSMI.py -d " +
+        //                         exp_recorder.distribution + " -s " + to_string(exp_recorder.dataset_cardinality) + " -n " +
+        //                         to_string(exp_recorder.skewness) + " -m 2 -b " + to_string(bit_num) +
+        //                         " -f /home/liuguanli/Documents/pre_train/sfc_z_weight/bit_num_%d/%s_%d_%d_%d_.csv";
+        //     char command[1024];
+        //     strcpy(command, commandStr.c_str());
+        //     int res = system(command);
 
-            vector<int> sfc;
-            vector<float> cdf;
-            FileReader RL_SFC_reader("", ",");
-            int bit_num_shrinked = 6;
-            vector<float> features;
-            RL_SFC_reader.read_sfc_2d("/home/liuguanli/Documents/pre_train/sfc_z/" + to_string(bit_num_shrinked) + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", features, cdf);
-            // cout << "features.size(): " << features.size() << endl;
-            // cout << "cdf.size(): " << cdf.size() << endl;
-            auto finish_rl = chrono::high_resolution_clock::now();
-            exp_recorder.top_rl_time = chrono::duration_cast<chrono::nanoseconds>(finish_rl - start_rl).count();
-            exp_recorder.extra_time += exp_recorder.top_rl_time;
-            net->train_model(features, cdf);
-            cout << "exp_recorder.is_rl finish" << endl;
-            // torch::save(net, this->model_path);
-            // cout << "RL_SFC finish" << endl;
-        }
+        //     vector<int> sfc;
+        //     vector<float> cdf;
+        //     FileReader RL_SFC_reader("", ",");
+        //     int bit_num_shrinked = 6;
+        //     vector<float> features;
+        //     RL_SFC_reader.read_sfc_2d("/home/liuguanli/Documents/pre_train/sfc_z/" + to_string(bit_num_shrinked) + "_" + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", features, cdf);
+        //     // cout << "features.size(): " << features.size() << endl;
+        //     // cout << "cdf.size(): " << cdf.size() << endl;
+        //     auto finish_rl = chrono::high_resolution_clock::now();
+        //     exp_recorder.top_rl_time = chrono::duration_cast<chrono::nanoseconds>(finish_rl - start_rl).count();
+        //     exp_recorder.extra_time += exp_recorder.top_rl_time;
+        //     net->train_model(features, cdf);
+        //     // cout << "exp_recorder.is_rl finish" << endl;
+        //     // torch::save(net, this->model_path);
+        //     // cout << "RL_SFC finish" << endl;
+        // }
         // else if (exp_recorder.is_cluster)
         // {
         //     auto start_rs = chrono::high_resolution_clock::now();
@@ -374,7 +379,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         // }
         else
         {
-            cout << "exp_recorder. is og" << endl;
+            // cout << "exp_recorder. is og" << endl;
             exp_recorder.original_num++;
             for (Point point : points)
             {
@@ -383,7 +388,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 labels.push_back(point.index);
             }
             net->train_model(locations, labels);
-            cout << "exp_recorder. is og finish" << endl;
+            // cout << "exp_recorder. is og finish" << endl;
         }
         net->get_parameters();
         exp_recorder.non_leaf_node_num++;
@@ -394,12 +399,16 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             int predicted_index;
             if (is_reused)
             {
-                predicted_index = (int)(net->predict(point, x_scale, y_scale, x_0, y_0) * leaf_node_num);
+                float x1 = (point.x - x_0) * x_scale + x_0;
+                float x2 = (point.y - y_0) * y_scale + y_0;
+                predicted_index = (int)(net->predict(x1, x2) * leaf_node_num);
+                // predicted_index = (int)(net->predict(point, x_scale, y_scale, x_0, y_0) * leaf_node_num);
             }
             else
             {
                 predicted_index = (int)(net->predict(point) * leaf_node_num);
             }
+
             predicted_index = predicted_index < 0 ? 0 : predicted_index;
             predicted_index = predicted_index >= leaf_node_num ? leaf_node_num - 1 : predicted_index;
 
@@ -419,6 +428,7 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                     min_error = error;
                 }
             }
+
         }
         exp_recorder.bottom_error += total_errors;
         if ((max_error - min_error) > (exp_recorder.max_error - exp_recorder.min_error))
@@ -438,12 +448,12 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         int partition_size = ceil(points.size() * 1.0 / pow(bit_num, 2));
         sort(points.begin(), points.end(), sortY());
         y_gap = points[N - 1].y - points[0].y;
-        y_scale = 1.0 / (points[N - 1].y - points[0].y);
+        y_scale = 1.0 / y_gap;
         y_0 = points[0].y;
         y_1 = points[N - 1].y;
         sort(points.begin(), points.end(), sortX());
         x_gap = points[N - 1].x - points[0].x;
-        x_scale = 1.0 / (points[N - 1].x - points[0].x);
+        x_scale = 1.0 / x_gap;
         x_0 = points[0].x;
         x_1 = points[N - 1].x;
         long long side = pow(bit_num, 2);
@@ -526,6 +536,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         if (exp_recorder.is_cost_model)
         {
             Histogram histogram(pow(2, Constants::UNIFIED_Z_BIT_NUM), labels);
+            if (level == 0)
+            {
+                exp_recorder.ogiginal_histogram = histogram;
+                exp_recorder.changing_histogram = histogram;
+            }
             pre_train_rsmi::cost_model_predict(exp_recorder, exp_recorder.upper_level_lambda, labels.size() * 1.0 / 10000, pre_train_rsmi::get_distribution(histogram, "H"));
         }
 
@@ -534,7 +549,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
         do
         {
             long long total_errors = 0;
-            //TODO solve build
             net = std::make_shared<Net>(2);
 #ifdef use_gpu
             net->to(torch::kCUDA);
@@ -545,11 +559,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
             }
             if (exp_recorder.is_rl)
             {
-                cout << "exp_recorder.is_rl nonleaf" << endl;
+                // cout << "exp_recorder.is_rl nonleaf" << endl;
                 exp_recorder.rl_num++;
                 // cout << "RL_SFC begin" << endl;
                 auto start_rl = chrono::high_resolution_clock::now();
-                int bit_num = 6;
+                int bit_num = exp_recorder.bit_num;
                 // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
                 pre_train_zm::write_approximate_SFC(points, exp_recorder.get_file_name(), bit_num);
                 string commandStr = "python /home/liuguanli/Documents/pre_train/rl_4_sfc/RL_4_SFC_RSMI.py -d " +
@@ -574,20 +588,21 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 net->train_model(features, cdf);
                 // torch::save(net, this->model_path);
                 // cout << "RL_SFC finish" << endl;
-                cout << "exp_recorder.is_rl nonleaf finish" << endl;
+                // cout << "exp_recorder.is_rl nonleaf finish" << endl;
             }
             else if (exp_recorder.is_rs)
             {
-                cout << "exp_recorder.is_rs nonleaf" << endl;
+                // cout << "exp_recorder.is_rs nonleaf" << endl;
                 exp_recorder.rs_num++;
                 // cout << "is_rs" << endl;
                 auto start_rs = chrono::high_resolution_clock::now();
-                int m = N > 10 * exp_recorder.rs_threshold_m ? exp_recorder.rs_threshold_m : sqrt(exp_recorder.rs_threshold_m);
-                cout << "m: " << m << " x_0: " << x_0 << " y_0: " << y_0 << " x_gap: " << x_gap << " y_gap: " << y_gap << endl;
-                cout << "points.size: " << points.size() << endl;
+                // 142 same points!!!
+                int m = N > 10 * exp_recorder.rs_threshold_m ? exp_recorder.rs_threshold_m : sqrt(exp_recorder.rs_threshold_m) * 10;
+                // cout << "m: " << m << " x_0: " << x_0 << " y_0: " << y_0 << " x_gap: " << x_gap << " y_gap: " << y_gap << endl;
+                // cout << "points.size: " << points.size() << endl;
                 vector<Point> rs_points = pre_train_zm::get_rep_set_space(m, x_0, y_0, x_gap / 2, y_gap / 2, points);
                 int temp_N = rs_points.size();
-                cout << "temp_N: " << temp_N << endl;
+                // cout << "temp_N: " << temp_N << endl;
                 vector<float> rs_locations;
                 vector<float> rs_labels;
                 for (Point point : rs_points)
@@ -604,11 +619,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 auto end_train = chrono::high_resolution_clock::now();
                 exp_recorder.training_cost += chrono::duration_cast<chrono::nanoseconds>(end_train - start_train).count();
                 exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_rs - start_rs).count();
-                cout << "exp_recorder.is_rs nonleaf finish" << endl;
+                // cout << "exp_recorder.is_rs nonleaf finish" << endl;
             }
             else if (exp_recorder.is_sp)
             {
-                cout << "exp_recorder.is_sp nonleaf" << endl;
+                // cout << "exp_recorder.is_sp nonleaf" << endl;
                 exp_recorder.sp_num++;
                 // cout << "is_sp" << endl;
                 auto start_sp = chrono::high_resolution_clock::now();
@@ -626,11 +641,11 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 auto finish_sp = chrono::high_resolution_clock::now();
                 exp_recorder.extra_time += chrono::duration_cast<chrono::nanoseconds>(finish_sp - start_sp).count();
                 net->train_model(locations_sp, labels_sp);
-                cout << "exp_recorder.is_sp nonleaf finish" << endl;
+                // cout << "exp_recorder.is_sp nonleaf finish" << endl;
             }
             else if (exp_recorder.is_model_reuse)
             {
-                cout << "exp_recorder.is_mr non-leaf " << endl;
+                // cout << "exp_recorder.is_mr non-leaf " << endl;
                 exp_recorder.model_reuse_num++;
                 // cout << "is_model_reuse" << endl;
                 // SFC sfc(bit_num, features);
@@ -654,14 +669,14 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                     // net->get_parameters();
                     torch::save(net, this->model_path);
                 }
-                cout << "exp_recorder.is_mr non-leaf finish" << endl;
+                // cout << "exp_recorder.is_mr non-leaf finish" << endl;
             }
             else
             {
-                cout << "exp_recorder.is_og" << endl;
+                // cout << "exp_recorder.is_og" << endl;
                 exp_recorder.original_num++;
                 net->train_model(locations, labels);
-                cout << "exp_recorder.is_og finish" << endl;
+                // cout << "exp_recorder.is_og finish" << endl;
             }
             net->get_parameters();
 
@@ -670,7 +685,9 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 int predicted_index;
                 if (is_reused && !is_retrain)
                 {
-                    predicted_index = (int)(net->predict(point, x_scale, y_scale, x_0, y_0) * width);
+                    float x1 = (point.x - x_0) * x_scale + x_0;
+                    float x2 = (point.y - y_0) * y_scale + y_0;
+                    predicted_index = (int)(net->predict(x1, x2) * width);
                 }
                 else
                 {
@@ -721,7 +738,9 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
                 int predicted_index;
                 if (is_reused)
                 {
-                    predicted_index = (int)(net->predict(points[0], x_scale, y_scale, x_0, y_0) * width);
+                    float x1 = (points[0].x - x_0) * x_gap + x_0;
+                    float x2 = (points[0].y - y_0) * y_gap + y_0;
+                    predicted_index = (int)(net->predict(x1, x2) * width);
                 }
                 else
                 {
@@ -877,7 +896,21 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
         // auto finish_sfc = chrono::high_resolution_clock::now();
         // exp_recorder.sfc_cal_time += chrono::duration_cast<chrono::nanoseconds>(finish_sfc - start_sfc).count();
         auto start = chrono::high_resolution_clock::now();
-        predicted_index = predict(exp_recorder, query_point, leaf_node_num);
+        // predicted_index = predict(exp_recorder, query_point, leaf_node_num);
+        if (is_reused)
+        {
+            float x1 = (query_point.x - x_0) * x_scale + x_0;
+            float x2 = (query_point.y - y_0) * y_scale + y_0;
+            // predicted_index = (int)(net->predict(query_point, x_scale, y_scale, x_0, y_0) * width);
+            // predicted_index = net->predict(query_point, x_scale, y_scale, x_0, y_0) * width;
+            predicted_index = net->predict(x1, x2) * leaf_node_num;
+        }
+        else
+        {
+            // predicted_index = (int)(net->predict(query_point) * width);
+            predicted_index = net->predict(query_point) * leaf_node_num;
+        }
+
         auto finish = chrono::high_resolution_clock::now();
         // cout << "leaf model predict Time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << " net width: " << net->width << endl;
         exp_recorder.prediction_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
@@ -887,9 +920,11 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
         predicted_index = predicted_index < 0 ? 0 : predicted_index;
         predicted_index = predicted_index >= leaf_node_num ? leaf_node_num - 1 : predicted_index;
         LeafNode leafnode = leafnodes[predicted_index];
+
         if (leafnode.mbr.contains(query_point))
         {
             exp_recorder.page_access += 1;
+            exp_recorder.search_length += 1;
             vector<Point>::iterator iter = find(leafnode.children->begin(), leafnode.children->end(), query_point);
             if (iter != leafnode.children->end())
             {
@@ -903,49 +938,8 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
         int front = predicted_index + min_error;
         front = front < 0 ? 0 : front;
         int back = predicted_index + max_error;
-        back = back >= leaf_node_num ? leaf_node_num - 1 : back;
-        // while (front <= back)
-        // {
-        //     int mid = (front + back) / 2;
-        //     LeafNode leafnode = leafnodes[mid];
-        //     exp_recorder.page_access += 1;
-        //     if ((*leafnode.children)[0].curve_val <= curve_val && curve_val <= (*leafnode.children)[leafnode.children->size() - 1].curve_val)
-        //     {
-        //         vector<Point>::iterator iter = find(leafnode.children->begin(), leafnode.children->end(), query_point);
-        //         if (iter != leafnode.children->end())
-        //         {
-        //             // cout << "find it" << endl;
-        //             auto finish1 = chrono::high_resolution_clock::now();
-        //             exp_recorder.search_time += chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count();
-        //             return true;
-        //         }
-        //         else
-        //         {
-        //             exp_recorder.point_not_found++;
-        //             return false;
-        //         }
-        //         // query_point.print();
-        //         // for (Point point : (*leafnode.children))
-        //         // {
-        //         //     if (query_point.x == point.x && query_point.y == point.y)
-        //         //     {
-        //         //         // cout<< "find it" << endl;
-        //         //         auto finish1 = chrono::high_resolution_clock::now();
-        //         //         exp_recorder.search_time += chrono::duration_cast<chrono::nanoseconds>(finish1 - start1).count();
-        //         //         return true;
-        //         //     }
-        //         //     point.print();
-        //         // }
-        //     }
-        //     else if ((*leafnode.children)[0].curve_val > curve_val)
-        //     {
-        //         back = mid - 1;
-        //     }
-        //     else
-        //     {
-        //         front = mid + 1;
-        //     }
-        // }
+        back = back >= leafnodes.size() ? leafnodes.size() - 1 : back;
+
 
         int gap = 1;
         int predicted_index_left = predicted_index - gap;
@@ -953,6 +947,7 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
         while (predicted_index_left >= front && predicted_index_right <= back)
         {
             // search left
+            exp_recorder.search_length += 1;
             LeafNode leafnode = leafnodes[predicted_index_left];
             if (leafnode.mbr.contains(query_point))
             {
@@ -970,6 +965,7 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
             }
 
             // search right
+            exp_recorder.search_length += 1;
             leafnode = leafnodes[predicted_index_right];
             if (leafnode.mbr.contains(query_point))
             {
@@ -993,7 +989,7 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
         while (predicted_index_left >= front)
         {
             LeafNode leafnode = leafnodes[predicted_index_left];
-
+            exp_recorder.search_length += 1;
             if (leafnode.mbr.contains(query_point))
             {
                 exp_recorder.page_access += 1;
@@ -1014,6 +1010,7 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
 
         while (predicted_index_right <= back)
         {
+            exp_recorder.search_length += 1;
             LeafNode leafnode = leafnodes[predicted_index_right];
 
             if (leafnode.mbr.contains(query_point))
@@ -1033,6 +1030,7 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
             gap++;
             predicted_index_right = predicted_index + gap;
         }
+
         exp_recorder.point_not_found++;
         return false;
     }
@@ -1049,7 +1047,28 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
         // {
         //     predicted_index = (int)(net->predict_(query_point) * width);
         // }
-        predicted_index = predict(exp_recorder, query_point, width);
+
+        // predicted_index = predict(exp_recorder, query_point, width);
+
+        if (is_reused)
+        {
+            // predicted_index = (int)(net->predict(query_point, x_scale, y_scale, x_0, y_0) * width);
+            // Point point((query_point.x - x_0) * x_scale + x_0, (query_point.y - y_0) * y_scale + y_0);
+            // predicted_index = net->predict(query_point, x_scale, y_scale, x_0, y_0) * width;
+            // predicted_index = net->predict(point) * width;
+
+            float x1 = (query_point.x - x_0) * x_scale + x_0;
+            float x2 = (query_point.y - y_0) * y_scale + y_0;
+            // predicted_index = (int)(net->predict(query_point, x_scale, y_scale, x_0, y_0) * width);
+            // predicted_index = net->predict(query_point, x_scale, y_scale, x_0, y_0) * width;
+            predicted_index = net->predict(x1, x2) * width;
+        }
+        else
+        {
+            // predicted_index = (int)(net->predict(query_point) * width);
+            predicted_index = net->predict(query_point) * width;
+        }
+
         auto finish = chrono::high_resolution_clock::now();
         // cout << "Nonleaf model predict Time: " << chrono::duration_cast<chrono::nanoseconds>(finish - start).count() << " net width: " << net->width << endl;
         exp_recorder.prediction_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
@@ -1067,19 +1086,22 @@ bool RSMI::point_query(ExpRecorder &exp_recorder, Point query_point)
 
 int RSMI::predict(ExpRecorder &exp_recorder, Point query_point, int width)
 {
-    int predicted_index;
-    int size;
+    // int predicted_index;
 
     if (is_reused)
     {
-        predicted_index = (int)(net->predict(query_point, x_scale, y_scale, x_0, y_0) * width);
+        // predicted_index = (int)(net->predict(query_point, x_scale, y_scale, x_0, y_0) * width);
+        float x1 = (query_point.x - x_0) * x_scale + x_0;
+        float x2 = (query_point.y - y_0) * y_scale + y_0;
+        return (net->predict(x1, x2) * width);
     }
     else
     {
-        predicted_index = (int)(net->predict(query_point) * width);
+        // predicted_index = (int)(net->predict(query_point) * width);
+        return (net->predict(query_point) * width);
     }
 
-    return predicted_index;
+    // return predicted_index;
 }
 
 void RSMI::point_query(ExpRecorder &exp_recorder, vector<Point> &query_points)
@@ -1087,7 +1109,7 @@ void RSMI::point_query(ExpRecorder &exp_recorder, vector<Point> &query_points)
     long size = query_points.size();
     // size = 100;
     // for (long i = 19890; i <= 19890; i++)
-    for (long i = 0; i < size; i++)
+    for (long i = 0; i < size; ++i)
     {
         // cout << "i: " << i << endl;
         auto start = chrono::high_resolution_clock::now();
@@ -1101,17 +1123,19 @@ void RSMI::point_query(ExpRecorder &exp_recorder, vector<Point> &query_points)
     exp_recorder.prediction_time /= size;
     exp_recorder.sfc_cal_time /= size;
     exp_recorder.search_steps /= size;
+    exp_recorder.search_length /= size;
 }
 
 void RSMI::window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows)
 {
+    exp_recorder.is_window = true;
     long long time_cost = 0;
     int length = query_windows.size();
-    // length = 1;
     for (int i = 0; i < length; i++)
     {
         vector<Point> vertexes = query_windows[i].get_corner_points();
         auto start = chrono::high_resolution_clock::now();
+        // vector<Point> window_query_results = window_query(exp_recorder, vertexes, query_windows[i]);
         window_query(exp_recorder, vertexes, query_windows[i]);
         auto finish = chrono::high_resolution_clock::now();
         exp_recorder.window_query_result_size += exp_recorder.window_query_results.size();
@@ -1119,17 +1143,25 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows)
         exp_recorder.window_query_results.shrink_to_fit();
         exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     }
+    // cout << "exp_recorder.window_query_result_size: " << exp_recorder.window_query_result_size << endl;
     exp_recorder.time /= length;
     exp_recorder.page_access = (double)exp_recorder.page_access / length;
     exp_recorder.prediction_time /= length;
     exp_recorder.search_time /= length;
+    exp_recorder.search_length /= length;
 }
 
 void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr query_window)
 {
+    // vector<Point> window_query_results;
     if (is_last)
     {
+        auto start = chrono::high_resolution_clock::now();
         int leafnodes_size = leafnodes.size();
+        if (leafnodes_size == 0)
+        {
+            return;
+        }
         int front = leafnodes_size - 1;
         int back = 0;
         if (leaf_node_num == 0)
@@ -1147,9 +1179,17 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
             int min = width;
             for (size_t i = 0; i < vertexes.size(); i++)
             {
-                int predicted_index = net->predict(vertexes[i]) * leaf_node_num;
-                predicted_index = predicted_index < 0 ? 0 : predicted_index;
-                predicted_index = predicted_index > width ? width : predicted_index;
+                int predicted_index = predict(exp_recorder, vertexes[i], leaf_node_num);
+                // if (predicted_index < 0)
+                // {
+                //     predicted_index = 0;
+                // }
+                // if (predicted_index > width)
+                // {
+                //     predicted_index = width;
+                // }
+                // predicted_index = predicted_index < 0 ? 0 : predicted_index;
+                // predicted_index = predicted_index > width ? width : predicted_index;
                 int predicted_index_max = predicted_index + max_error;
                 int predicted_index_min = predicted_index + min_error;
                 if (predicted_index_min < min)
@@ -1163,7 +1203,20 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
             }
             front = min < 0 ? 0 : min;
             back = max >= leafnodes_size ? leafnodes_size - 1 : max;
+            if (back < front)
+            {
+                return;
+            }
+            // std::cout << "min: " << min << std::endl;
+            // std::cout << "max: " << max << std::endl;
+            // std::cout << "front: " << front << std::endl;
+            // std::cout << "back: " << back << std::endl;
+            // front = min < 0 ? 0 : min;
+            // back = max >= leafnodes_size ? leafnodes_size - 1 : max;
         }
+        auto finish = chrono::high_resolution_clock::now();
+        exp_recorder.prediction_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+        start = chrono::high_resolution_clock::now();
         for (size_t i = front; i <= back; i++)
         {
             LeafNode leafnode = leafnodes[i];
@@ -1180,18 +1233,31 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                 }
             }
         }
+        finish = chrono::high_resolution_clock::now();
+        exp_recorder.search_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+        exp_recorder.search_length += (back - front + 1);
+        // return window_query_results;
         return;
     }
     else
     {
-        int children_size = children.size();
-        int front = children_size - 1;
+        int front = width;
         int back = 0;
         for (size_t i = 0; i < vertexes.size(); i++)
         {
-            int predicted_index = net->predict(vertexes[i]) * children.size();
+            int predicted_index = predict(exp_recorder, vertexes[i], width);
             predicted_index = predicted_index < 0 ? 0 : predicted_index;
-            predicted_index = predicted_index >= children_size ? children_size - 1 : predicted_index;
+            predicted_index = predicted_index >= width ? width - 1 : predicted_index;
+
+            // if (predicted_index < 0)
+            // {
+            //     predicted_index = 0;
+            // }
+            // if (predicted_index >= width)
+            // {
+            //     predicted_index = width - 1;
+            // }
+
             if (predicted_index < front)
             {
                 front = predicted_index;
@@ -1201,7 +1267,6 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                 back = predicted_index;
             }
         }
-
         for (size_t i = front; i <= back; i++)
         {
             if (children.count(i) == 0)
@@ -1211,18 +1276,21 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
             if (children[i].mbr.interact(query_window))
             {
                 children[i].window_query(exp_recorder, vertexes, query_window);
+                // vector<Point> temp_result = children[i].window_query(exp_recorder, vertexes, query_window);
+                // window_query_results.insert(window_query_results.end(), temp_result.begin(), temp_result.end());
             }
         }
     }
+    // return window_query_results;
 }
 
-// this method is for window query
+// this method is for knn query
 void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr query_window, float boundary, int k, Point query_point, float &kth)
 {
     if (is_last)
     {
-        int leafnodesSize = leafnodes.size();
-        int front = leafnodesSize - 1;
+        int leafnodes_size = leafnodes.size();
+        int front = leafnodes_size - 1;
         int back = 0;
         if (leaf_node_num == 0)
         {
@@ -1235,30 +1303,35 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
         }
         else
         {
+            auto start = chrono::high_resolution_clock::now();
             int max = 0;
             int min = width;
             for (size_t i = 0; i < vertexes.size(); i++)
             {
-                auto start = chrono::high_resolution_clock::now();
-                int predicted_index = net->predict(vertexes[i]) * leaf_node_num;
-                auto finish = chrono::high_resolution_clock::now();
+                // auto start = chrono::high_resolution_clock::now();
+                int predicted_index = predict(exp_recorder, vertexes[i], leaf_node_num);
+                // auto finish = chrono::high_resolution_clock::now();
                 predicted_index = predicted_index < 0 ? 0 : predicted_index;
                 predicted_index = predicted_index > width ? width : predicted_index;
-                int predictedIndexMax = predicted_index + max_error;
-                int predictedIndexMin = predicted_index + min_error;
-                if (predictedIndexMin < min)
+                int predicted_index_max = predicted_index + max_error;
+                int predicted_index_min = predicted_index + min_error;
+                if (predicted_index_min < min)
                 {
-                    min = predictedIndexMin;
+                    min = predicted_index_min;
                 }
-                if (predictedIndexMax > max)
+                if (predicted_index_max > max)
                 {
-                    max = predictedIndexMax;
+                    max = predicted_index_max;
                 }
             }
 
             front = min < 0 ? 0 : min;
-            back = max >= leafnodesSize ? leafnodesSize - 1 : max;
+            back = max >= leafnodes_size ? leafnodes_size - 1 : max;
+            auto finish = chrono::high_resolution_clock::now();
+            exp_recorder.prediction_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
         }
+        auto start = chrono::high_resolution_clock::now();
+
         for (size_t i = front; i <= back; i++)
         {
             LeafNode leafnode = leafnodes[i];
@@ -1267,10 +1340,10 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
             {
                 continue;
             }
-            if (exp_recorder.pq.size() >= k && dis > kth)
-            {
-                continue;
-            }
+            // if (exp_recorder.pq.size() >= k && dis > kth)
+            // {
+            //     continue;
+            // }
             if (leafnode.mbr.interact(query_window))
             {
                 exp_recorder.page_access += 1;
@@ -1281,22 +1354,31 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                         if (point.cal_dist(query_point) <= boundary)
                         {
                             exp_recorder.pq.push(point);
+                            // if (exp_recorder.pq.size() >= k && kth < point.temp_dist)
+                            // {
+                            //     kth = point.temp_dist;
+                            // }
                         }
                     }
                 }
             }
         }
+        exp_recorder.search_length += (back - front + 1);
+        auto finish = chrono::high_resolution_clock::now();
+        exp_recorder.search_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
         return;
     }
     else
     {
+        auto start = chrono::high_resolution_clock::now();
+
         int front = width;
         int back = 0;
         for (size_t i = 0; i < vertexes.size(); i++)
         {
-            auto start = chrono::high_resolution_clock::now();
-            int predicted_index = net->predict(vertexes[i]) * width;
-            auto finish = chrono::high_resolution_clock::now();
+            // auto start = chrono::high_resolution_clock::now();
+            int predicted_index = predict(exp_recorder, vertexes[i], width);
+            // auto finish = chrono::high_resolution_clock::now();
             predicted_index = predicted_index < 0 ? 0 : predicted_index;
             predicted_index = predicted_index >= width ? width - 1 : predicted_index;
             if (predicted_index < front)
@@ -1308,6 +1390,8 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
                 back = predicted_index;
             }
         }
+        auto finish = chrono::high_resolution_clock::now();
+        exp_recorder.prediction_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
         for (size_t i = front; i <= back; i++)
         {
             if (children.count(i) == 0)
@@ -1353,8 +1437,8 @@ vector<Point> RSMI::acc_window_query(ExpRecorder &exp_recorder, Mbr query_window
         {
             if (iter->second.mbr.interact(query_window))
             {
-                vector<Point> tempResult = iter->second.acc_window_query(exp_recorder, query_window);
-                window_query_results.insert(window_query_results.end(), tempResult.begin(), tempResult.end());
+                vector<Point> temp_result = iter->second.acc_window_query(exp_recorder, query_window);
+                window_query_results.insert(window_query_results.end(), temp_result.begin(), temp_result.end());
             }
             iter++;
         }
@@ -1368,34 +1452,12 @@ void RSMI::acc_window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows
     for (int i = 0; i < length; i++)
     {
         auto start = chrono::high_resolution_clock::now();
-        exp_recorder.acc_window_query_qesult_size += acc_window_query(exp_recorder, query_windows[i]).size();
+        exp_recorder.acc_window_query_result_size += acc_window_query(exp_recorder, query_windows[i]).size();
         auto finish = chrono::high_resolution_clock::now();
         exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     }
     exp_recorder.time = exp_recorder.time / length;
     exp_recorder.page_access = (double)exp_recorder.page_access / length;
-}
-
-void RSMI::kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k)
-{
-    int length = query_points.size();
-    exp_recorder.time = 0;
-    exp_recorder.page_access = 0;
-    // length = 2;
-    for (int i = 0; i < length; i++)
-    {
-        priority_queue<Point, vector<Point>, sortForKNN2> temp_pq;
-        exp_recorder.pq = temp_pq;
-        auto start = chrono::high_resolution_clock::now();
-        vector<Point> knnresult = kNN_query(exp_recorder, query_points[i], k);
-        auto finish = chrono::high_resolution_clock::now();
-        long long temp_time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
-        exp_recorder.time += temp_time;
-        exp_recorder.knn_query_results.insert(exp_recorder.knn_query_results.end(), knnresult.begin(), knnresult.end());
-    }
-    exp_recorder.time /= length;
-    exp_recorder.page_access = (double)exp_recorder.page_access / length;
-    exp_recorder.k_num = k;
 }
 
 double RSMI::cal_rho(Point point)
@@ -1419,39 +1481,109 @@ double RSMI::cal_rho(Point point)
     }
     long long bk1 = bk + children[predicted_index].N;
     double result = bk1 * 1.0 / bk;
-    // TODO use 4 to avoid a large number
     result = result > 1 ? result : 1;
     result = result > 4 ? 4 : result;
     return result;
 }
 
-vector<Point> RSMI::kNN_query(ExpRecorder &exp_recorder, Point query_point, int k)
+void RSMI::kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k)
 {
+    exp_recorder.is_knn = true;
+    cout << "RSMI::kNN_query" << endl;
+    int length = query_points.size();
+    exp_recorder.time = 0;
+    exp_recorder.page_access = 0;
+    // length = 2;
+    for (int i = 0; i < length; i++)
+    {
+        priority_queue<Point, vector<Point>, sortForKNN2> temp_pq;
+        exp_recorder.pq = temp_pq;
+        auto start = chrono::high_resolution_clock::now();
+        kNN_query(exp_recorder, query_points[i], k);
+        auto finish = chrono::high_resolution_clock::now();
+        vector<Point> knn_result;
+        while (!exp_recorder.pq.empty())
+        {
+            knn_result.push_back(exp_recorder.pq.top());
+            // std::cout << "point_pq.top().temp_dist: " << point_pq.top().temp_dist << std::endl;
+            exp_recorder.pq.pop();
+        }
+        exp_recorder.window_query_results.clear();
+        exp_recorder.window_query_results.shrink_to_fit();
+        long long temp_time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+        exp_recorder.time += temp_time;
+        exp_recorder.knn_query_results.insert(exp_recorder.knn_query_results.end(), knn_result.begin(), knn_result.end());
+    }
+    exp_recorder.time /= length;
+    exp_recorder.page_access = (double)exp_recorder.page_access / length;
+    exp_recorder.k_num = k;
+    exp_recorder.prediction_time /= length;
+    exp_recorder.search_time /= length;
+    exp_recorder.knn_r_enlarged_num /= length;
+    exp_recorder.search_length /= length;
+}
+
+void RSMI::kNN_query(ExpRecorder &exp_recorder, Point query_point, int k)
+{
+    // vector<Point> result;
+    double rh0 = 1.0;
     // double rh0 = cal_rho(query_point);
-    // float knnquery_side = sqrt((float)k / N) * rh0;
-    vector<Point> result;
-    float knnquery_side = sqrt((float)k / N) * 4;
+    // rh0 = 0.5;
+    // cout<< "rh0: " << rh0 << endl;
+    float knnquery_side = sqrt((float)k / N) * rh0;
+
+    // priority_queue<NodeExtend *, vector<NodeExtend *>, sortPQ_Desc> point_pq;
+    // priority_queue<Point, vector<Point>, sortForKNN2> point_pq;
     while (true)
     {
         Mbr mbr = Mbr::get_mbr(query_point, knnquery_side);
         vector<Point> vertexes = mbr.get_corner_points();
-
-        int size = 0;
-        float kth = 0.0;
-        window_query(exp_recorder, vertexes, mbr, knnquery_side, k, query_point, kth);
-        size = exp_recorder.pq.size();
-        if (size >= k)
+        // vector<Point> temp_result = window_query(exp_recorder, vertexes, mbr);
+        window_query(exp_recorder, vertexes, mbr);
+        vector<Point> temp_result = exp_recorder.window_query_results;
+        if (temp_result.size() >= k)
         {
-            for (size_t i = 0; i < k; i++)
+            // sort(temp_result.begin(), temp_result.end(), sort_for_kNN(query_point));
+            // Point last = temp_result[k - 1];
+            double dist_furthest = 0;
+            int dist_furthest_i = 0;
+            for (size_t i = 0; i < temp_result.size(); i++)
             {
-                result.push_back(exp_recorder.pq.top());
-                exp_recorder.pq.pop();
+                // Point temp_point = temp_result[i];
+                double temp_dist = temp_result[i].cal_dist(query_point);
+                // std::cout << "temp_dist: " << temp_dist << std::endl;
+
+                temp_result[i].temp_dist = temp_dist;
+                if (exp_recorder.pq.size() < k)
+                {
+                    // NodeExtend *temp = new NodeExtend(temp_result[i], temp_dist);
+                    exp_recorder.pq.push(temp_result[i]);
+                }
+                else
+                {
+                    if (exp_recorder.pq.top().temp_dist < temp_dist)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        // NodeExtend *temp = new NodeExtend(temp_result[i], temp_dist);
+                        exp_recorder.pq.pop();
+                        exp_recorder.pq.push(temp_result[i]);
+                    }
+                }
             }
-            break;
+
+            // if (last.cal_dist(query_point) <= knnquery_side)
+            if (exp_recorder.pq.top().temp_dist <= knnquery_side)
+            {
+                break;
+            }
         }
+        exp_recorder.knn_r_enlarged_num++;
         knnquery_side *= 2;
     }
-    return result;
+    // return result;
 }
 
 void RSMI::acc_kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k)
@@ -1461,10 +1593,14 @@ void RSMI::acc_kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, 
     for (int i = 0; i < length; i++)
     {
         auto start = chrono::high_resolution_clock::now();
-        vector<Point> knnresult = acc_kNN_query(exp_recorder, query_points[i], k);
+        vector<Point> knn_result = acc_kNN_query(exp_recorder, query_points[i], k);
+        // for (size_t j = 0; j < k; j++)
+        // {
+        //     cout << "dist: " << query_points[i].cal_dist(knn_result[j]) << endl;
+        // }
         auto finish = chrono::high_resolution_clock::now();
         exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
-        exp_recorder.acc_knn_query_results.insert(exp_recorder.acc_knn_query_results.end(), knnresult.begin(), knnresult.end());
+        exp_recorder.acc_knn_query_results.insert(exp_recorder.acc_knn_query_results.end(), knn_result.begin(), knn_result.end());
     }
     exp_recorder.time /= length;
     exp_recorder.k_num = k;
@@ -1478,16 +1614,15 @@ vector<Point> RSMI::acc_kNN_query(ExpRecorder &exp_recorder, Point query_point, 
     while (true)
     {
         Mbr mbr = Mbr::get_mbr(query_point, knnquery_side);
-        vector<Point> tempResult = acc_window_query(exp_recorder, mbr);
-        if (tempResult.size() >= k)
+        vector<Point> temp_result = acc_window_query(exp_recorder, mbr);
+        if (temp_result.size() >= k)
         {
-            sort(tempResult.begin(), tempResult.end(), sortForKNN(query_point));
-            Point last = tempResult[k - 1];
+            sort(temp_result.begin(), temp_result.end(), sort_for_kNN(query_point));
+            Point last = temp_result[k - 1];
             if (last.cal_dist(query_point) <= knnquery_side)
             {
-                // TODO get top K from the vector.
-                auto bn = tempResult.begin();
-                auto en = tempResult.begin() + k;
+                auto bn = temp_result.begin();
+                auto en = temp_result.begin() + k;
                 vector<Point> vec(bn, en);
                 result = vec;
                 break;
@@ -1501,7 +1636,8 @@ vector<Point> RSMI::acc_kNN_query(ExpRecorder &exp_recorder, Point query_point, 
 void RSMI::insert(ExpRecorder &exp_recorder, Point point)
 {
     auto start = chrono::high_resolution_clock::now();
-    int predicted_index = net->predict(point) * width;
+    exp_recorder.update_num++;
+    int predicted_index = predict(exp_recorder, point, width);
     predicted_index = predicted_index < 0 ? 0 : predicted_index;
     predicted_index = predicted_index >= width ? width - 1 : predicted_index;
     auto finish = chrono::high_resolution_clock::now();
@@ -1519,7 +1655,12 @@ void RSMI::insert(ExpRecorder &exp_recorder, Point point)
                 points.insert(points.end(), leafNode.children->begin(), leafNode.children->end());
             }
             points.push_back(point);
+            if (level == exp_recorder.depth)
+            {
+                exp_recorder.new_depth = level + 1;
+            }
             build(exp_recorder, points);
+
             // rebuild(exp_recorder, points);
             auto finish = chrono::high_resolution_clock::now();
             exp_recorder.rebuild_time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
@@ -1529,13 +1670,30 @@ void RSMI::insert(ExpRecorder &exp_recorder, Point point)
         {
             int insertedIndex = predicted_index / Constants::PAGESIZE;
             LeafNode leafnode = leafnodes[insertedIndex];
+            // if (leafnode.is_full())
+            // {
+            //     LeafNode right = leafnode.split1();
+            //     leafnodes.insert(leafnodes.begin() + insertedIndex + 1, right);
+            //     leaf_node_num++;
+            // }
+            // leafnode.add_point(point);
+
             if (leafnode.is_full())
             {
+                leafnode.add_point(point);
+                sort(leafnode.children->begin(), leafnode.children->end(), sort_curve_val());
                 LeafNode right = leafnode.split1();
                 leafnodes.insert(leafnodes.begin() + insertedIndex + 1, right);
-                leaf_node_num++;
+                min_error--;
+                max_error++;
+                // cout << "creat new page" << endl;
             }
-            leafnode.add_point(point);
+            else
+            {
+                leafnode.add_point(point);
+                sort(leafnode.children->begin(), leafnode.children->end(), sort_curve_val());
+            }
+
             N++;
             width++;
         }
@@ -1546,21 +1704,27 @@ void RSMI::insert(ExpRecorder &exp_recorder, Point point)
         {
             return;
         }
+        if (level == 0)
+        {
+            exp_recorder.changing_histogram.update(predicted_index);
+        }
         children[predicted_index].insert(exp_recorder, point);
     }
 }
 
-void RSMI::insert(ExpRecorder &exp_recorder, vector<Point> points)
+bool RSMI::insert(ExpRecorder &exp_recorder, vector<Point> &points)
 {
     auto start = chrono::high_resolution_clock::now();
     for (int i = 0; i < points.size(); i++)
     {
         insert(exp_recorder, points[i]);
     }
-    auto finish = chrono::high_resolution_clock::now();
-    long long previous_time = exp_recorder.insert_time * exp_recorder.previous_insert_num;
     exp_recorder.previous_insert_num += points.size();
+    auto finish = chrono::high_resolution_clock::now();
+    bool is_rebuild = rebuild_index::is_rebuild(exp_recorder, "Z");
+    long long previous_time = exp_recorder.insert_time * exp_recorder.previous_insert_num;
     exp_recorder.insert_time = (previous_time + chrono::duration_cast<chrono::nanoseconds>(finish - start).count()) / exp_recorder.previous_insert_num;
+    return is_rebuild;
 }
 
 void RSMI::insert(ExpRecorder &exp_recorder, int index)
@@ -1660,4 +1824,37 @@ void RSMI::traverse(ExpRecorder &exp_recorder)
 
     auto finish = chrono::high_resolution_clock::now();
     exp_recorder.traverse_time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+}
+
+void RSMI::clear(ExpRecorder &exp_recorder)
+{
+    level = 0;
+    index = 0;
+    N = 0;
+    max_error = 0;
+    min_error = 0;
+    width = 0;
+    leaf_node_num = 0;
+    is_last = false;
+
+    x_gap = 1.0;
+    x_scale = 1.0;
+    x_0 = 0;
+    x_1 = 0;
+    y_gap = 1.0;
+    y_scale = 1.0;
+    y_0 = 0;
+    y_1 = 0;
+    is_reused = false;
+    side = 0;
+
+    children.clear();
+    leafnodes.clear();
+    leafnodes.shrink_to_fit();
+    points_x.clear();
+    points_x.shrink_to_fit();
+    points_y.clear();
+    points_y.shrink_to_fit();
+    sampling_rate = 1.0;
+    // exp_recorder.previous_insert_num = 0;
 }

@@ -276,14 +276,14 @@ def run_exp(parameters):
     bit_nums = [6]
     # method_names = ['dqn', 'ddpg']
     method_names = ['dqn']
-    for bit_num in bit_nums:
-        for method_name in method_names:
-            source_cdf, new_cdf, target_cdf, min_dist, new_sfc = run(file_name_pattern % (bit_num, distribution, size, skewness, dim), method_name)
-            write_SFC(bit_num, new_sfc, new_cdf)
-            source_cdfs.append(source_cdf)
-            new_cdfs.append(new_cdf)
-            target_cdfs.append(target_cdf)
-            labels.append(method_name + "-" + str(pow(2, bit_num)) + " cells    dist=" + str(min_dist))
+    # for bit_num in bit_nums:
+    for method_name in method_names:
+        source_cdf, new_cdf, target_cdf, min_dist, new_sfc = run(file_name_pattern % (bit_num, distribution, size, skewness, dim), method_name)
+        write_SFC(bit_num, new_sfc, new_cdf)
+        source_cdfs.append(source_cdf)
+        new_cdfs.append(new_cdf)
+        target_cdfs.append(target_cdf)
+        labels.append(method_name + "-" + str(pow(2, bit_num)) + " cells    dist=" + str(min_dist))
     # draw_cdf(source_cdfs, new_cdfs, target_cdfs, labels)
     # draw_cdf_8t8(source_cdfs, new_cdfs, target_cdfs, labels)
 

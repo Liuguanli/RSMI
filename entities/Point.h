@@ -8,25 +8,27 @@ class Point
 {
 
 public:
-
-    double index;
-    float x;
-    float y;
-    long long x_i;
-    long long y_i;
+    double index = 0.0;
+    float x = 0.0;
+    float y = 0.0;
+    long long x_i = 0;
+    long long y_i = 0;
     // long long xs[2];
-    long long curve_val;
-    float normalized_curve_val;
+    long long curve_val = 0;
+    float normalized_curve_val = 0.0;
+    double ml_normalized_curve_val = 0.0;
 
-    float temp_dist = 0.0;
+    double temp_dist = 0.0;
 
     int partition_id = 0;
-    float key = 0;
+    double key = 0;
+
+    bool is_deleted = false;
 
     Point(float, float);
     Point();
-    bool operator == (const Point& point);
-    float cal_dist(Point);
+    bool operator==(const Point &point);
+    double cal_dist(Point);
     void print();
     static vector<Point> get_points(vector<Point>, int);
     static vector<Point> get_inserted_points(long long, string distribution);

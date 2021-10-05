@@ -525,7 +525,7 @@ namespace pre_train_rsmi
                     char command[1024];
                     strcpy(command, commandStr.c_str());
                     int res = system(command);
-                    vector<Point> cl_points = pre_train_zm::get_cluster_point("/home/liuguanli/Documents/pre_train/cluster/"+ file_name + "_minibatchkmeans_auto.csv");
+                    vector<Point> cl_points = pre_train_zm::get_cluster_point("/home/liuguanli/Documents/pre_train/cluster/" + file_name + "_minibatchkmeans_auto.csv");
 
                     train_for_cost_model(cl_points, ppath, path, 1, "Z");
                     test_errors(all_points, model_path, "Z", max_error, min_error);
@@ -537,7 +537,7 @@ namespace pre_train_rsmi
                 else if (method == "rl")
                 {
                     start = chrono::high_resolution_clock::now();
-                    int bit_num = 6;
+                    int bit_num = Constants::BIT_NUM;
                     // pre_train_zm::write_approximate_SFC(Constants::DATASETS, exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv", bit_num);
                     pre_train_zm::write_approximate_SFC(all_points, path, bit_num);
                     string commandStr = "python /home/liuguanli/Dropbox/shared/VLDB20/codes/rsmi/pre_train/rl_4_sfc/RL_4_SFC_for_cost_model.py -d " +
@@ -604,7 +604,6 @@ namespace pre_train_rsmi
     // std::shared_ptr<Net>
     auto query_cost_model = std::make_shared<Net>(10, 32);
     auto build_cost_model = std::make_shared<Net>(10, 32);
-
     void cost_model_build()
     {
         cout << "cost_model_build" << endl;
@@ -616,6 +615,10 @@ namespace pre_train_rsmi
 
         std::ifstream fin_build(build_time_model_path);
         std::ifstream fin_query(query_time_model_path);
+#ifdef use_gpu
+        query_cost_model->to(torch::kCUDA);
+        build_cost_model->to(torch::kCUDA);
+#endif
         if (fin_build && fin_query)
         {
             torch::load(build_cost_model, build_time_model_path);
@@ -627,10 +630,10 @@ namespace pre_train_rsmi
             vector<float> build_time_labels;
             vector<float> query_time_labels;
             filereader.get_cost_model_data(path, parameters, build_time_labels, query_time_labels);
-#ifdef use_gpu
-            query_cost_model->to(torch::kCUDA);
-            build_cost_model->to(torch::kCUDA);
-#endif
+// #ifdef use_gpu
+//             query_cost_model->to(torch::kCUDA);
+//             build_cost_model->to(torch::kCUDA);
+// #endif
             build_cost_model->train_model(parameters, build_time_labels);
             query_cost_model->train_model(parameters, query_time_labels);
             torch::save(build_cost_model, build_time_model_path);

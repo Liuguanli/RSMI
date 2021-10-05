@@ -61,7 +61,7 @@ NonLeafNode *NonLeafNode::split()
     auto en = children->end();
     vector<Node *> vec(bn, en);
     right->addNodes(vec);
-    
+
     // build leftNode
     auto bn1 = children->begin();
     auto en1 = children->begin() + mid;
