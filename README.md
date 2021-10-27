@@ -12,7 +12,7 @@ homepage: https://pytorch.org/get-started/locally/
 
 CPU version: https://download.pytorch.org/libtorch/cpu/libtorch-macos-1.4.0.zip
 
-For GPU version, you need to choose according to your setup.
+For GPU version, choose according to your setup.
 
 #### boost
 
@@ -53,7 +53,7 @@ comment *#define use_gpu* to use CPU version
 
 #### 4. Change path
 
-Change the path is you do not want to store the datasets under the project's root path.
+Change the path if you do not want to store the datasets under the project's root path.
 
 Constants.h
 ```C++
