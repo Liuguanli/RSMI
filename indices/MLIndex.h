@@ -1501,33 +1501,6 @@ vector<Point> MLIndex::kNN_query(ExpRecorder &exp_recorder, Point query_point, i
         r *= 2;
     }
     return S;
-    // vector<Point> result;
-    // float knn_query_side = sqrt((float)kk / N);
-
-    // while (true)
-    // {
-    //     Mbr mbr = Mbr::get_mbr(query_point, knn_query_side);
-    //     vector<Point> temp_result = window_query(exp_recorder, mbr);
-    //     // cout << "mbr: " << mbr->getSelf() << "size: " << temp_result.size() << endl;
-    //     if (temp_result.size() >= kk)
-    //     {
-    //         sort(temp_result.begin(), temp_result.end(), sort_for_kNN(query_point));
-    //         Point last = temp_result[kk - 1];
-    //         // cout << " last dist : " << last->calDist(query_point) << " knn_query_side: " << knn_query_side << endl;
-    //         if (last.cal_dist(query_point) <= knn_query_side)
-    //         {
-    //             // TODO get top K from the vector.
-    //             auto bn = temp_result.begin();
-    //             auto en = temp_result.begin() + kk;
-    //             vector<Point> vec(bn, en);
-    //             result = vec;
-    //             break;
-    //         }
-    //     }
-    //     knn_query_side = knn_query_side * 2;
-    //     // cout << " knn_query_side: " << knn_query_side << endl;
-    // }
-    // return result;
 }
 
 void MLIndex::kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int kk)

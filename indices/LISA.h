@@ -227,9 +227,7 @@ void LISA::build(ExpRecorder &exp_recorder, vector<Point> points)
 {
 
     cout << " build" << endl;
-
     auto build_start = chrono::high_resolution_clock::now();
-
     N = points.size();
     n_models = N / Constants::THRESHOLD;
     int partition_size = floor(N / n_parts);
@@ -284,7 +282,7 @@ void LISA::build(ExpRecorder &exp_recorder, vector<Point> points)
     int index = 0;
 
     vector<float> float_mappings;
-    
+
     for (size_t i = 0; i < x_split_idxes.size(); i++)
     {
         // cout << "-----------" << i << "-----------" << endl;
@@ -466,6 +464,8 @@ void LISA::build(ExpRecorder &exp_recorder, vector<Point> points)
         vector<float> predicts;
         for (size_t j = 0; j < part_data_size; j++)
         {
+            // cout << "keys[j]: " << keys[j] << endl;
+            // cout << "net->predict_ZM(keys[j]): " << net->predict_ZM(keys[j]) << endl;
             predicts.push_back(net->predict_ZM(keys[j]));
             int idx = net->predict_ZM(keys[j]) * part_data_size / page_size;
             positions.push_back(idx);

@@ -299,17 +299,17 @@ void exp_LISA(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> &
     // if (exp_recorder.upper_level_lambda == 0.8)
     // {
     // TODO window
-    // for (size_t i = 0; i < 5; i++)
-    // {
-    //     // zm->acc_window_query(exp_recorder, mbrs_map[to_string(areas[i]) + to_string(ratios[2])]);
-    //     // file_writer.write_acc_window_query(exp_recorder);
-    //     lisa->window_query(exp_recorder, mbrs_map[to_string(areas[i]) + to_string(ratios[2])]);
-    //     exp_recorder.window_size = areas[i];
-    //     exp_recorder.window_ratio = ratios[2];
-    //     // exp_recorder.accuracy = ((double)exp_recorder.window_query_result_size) / exp_recorder.acc_window_query_result_size;
-    //     file_writer.write_window_query(exp_recorder);
-    //     exp_recorder.clean();
-    // }
+    for (size_t i = 0; i < 5; i++)
+    {
+        // zm->acc_window_query(exp_recorder, mbrs_map[to_string(areas[i]) + to_string(ratios[2])]);
+        // file_writer.write_acc_window_query(exp_recorder);
+        lisa->window_query(exp_recorder, mbrs_map[to_string(areas[i]) + to_string(ratios[2])]);
+        exp_recorder.window_size = areas[i];
+        exp_recorder.window_ratio = ratios[2];
+        // exp_recorder.accuracy = ((double)exp_recorder.window_query_result_size) / exp_recorder.acc_window_query_result_size;
+        file_writer.write_window_query(exp_recorder);
+        exp_recorder.clean();
+    }
 
     // // TODO knn
     // for (size_t i = 0; i < 5; i++)

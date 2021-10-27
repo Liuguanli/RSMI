@@ -138,7 +138,6 @@ void RSMI::build(ExpRecorder &exp_recorder, vector<Point> points)
     stream << std::fixed << std::setprecision(1) << exp_recorder.model_reuse_threshold;
     string threshold = stream.str();
     bit_num = ceil((log(N / Constants::RESOLUTION)) / log(2)) * 2;
-
     // if (points.size() <= 256 * 100)
     if (points.size() <= exp_recorder.N)
     {

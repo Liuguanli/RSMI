@@ -456,7 +456,7 @@ public:
                 for (size_t i = 0; i < batch_num; i++)
                 {
                     optimizer.zero_grad();
-                    torch::Tensor loss = torch::l1_loss(this->forward(x_chunks[i]), y_chunks[i]);
+                    torch::Tensor loss = torch::mse_loss(this->forward(x_chunks[i]), y_chunks[i]);
 #ifdef use_gpu
                     loss.to(torch::kCUDA);
 #endif
@@ -471,7 +471,7 @@ public:
             for (size_t epoch = 0; epoch < Constants::EPOCH; epoch++)
             {
                 optimizer.zero_grad();
-                torch::Tensor loss = torch::l1_loss(this->forward(x), y);
+                torch::Tensor loss = torch::mse_loss(this->forward(x), y);
 #ifdef use_gpu
                 loss.to(torch::kCUDA);
 #endif
