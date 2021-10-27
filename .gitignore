@@ -6,3 +6,12 @@ Exp
 files/*
 indices/ZM.h
 datasets/*
+
+PostgreSQL/
+
+*.txt
+
+torch_models_zm/*
+
+*.eps
+*.png
