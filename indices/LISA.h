@@ -86,6 +86,9 @@ public:
     void window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows);
     vector<Point> window_query(ExpRecorder &exp_recorder, Mbr query_window, int partition_index);
 
+    void acc_window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows);
+    vector<Point> acc_window_query(ExpRecorder &exp_recorder, Mbr query_window, int partition_index);
+
     void kNN_query(ExpRecorder &exp_recorder, vector<Point> query_points, int k);
     vector<Point> kNN_query(ExpRecorder &exp_recorder, Point query_point, int k);
 
@@ -563,6 +566,45 @@ void LISA::point_query(ExpRecorder &exp_recorder, vector<Point> query_points)
     exp_recorder.prediction_time /= query_points.size();
     cout << "finish point_query time: " << exp_recorder.time << endl;
     cout << "point_not_found: " << exp_recorder.point_not_found << endl;
+}
+
+void LISA::acc_window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows)
+{
+    exp_recorder.is_window = true;
+    long long time_cost = 0;
+    int length = query_windows.size();
+    for (int i = 0; i < length; i++)
+    {
+        auto start = chrono::high_resolution_clock::now();
+        acc_window_query(exp_recorder, query_windows[i], -1);
+        auto finish = chrono::high_resolution_clock::now();
+        exp_recorder.acc_window_query_result_size += exp_recorder.window_query_results.size();
+        exp_recorder.window_query_results.clear();
+        exp_recorder.window_query_results.shrink_to_fit();
+        exp_recorder.time += chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+    }
+    cout << "exp_recorder.acc_window_query_result_size: " << exp_recorder.acc_window_query_result_size << endl;
+    exp_recorder.time /= length;
+    exp_recorder.page_access = (double)exp_recorder.page_access / length;
+    exp_recorder.prediction_time /= length;
+    cout << "finish window_query time: " << exp_recorder.time << endl;
+    cout << "finish page_access time: " << exp_recorder.page_access << endl;
+    cout << "finish exp_recorder.window_query_result_size: " << exp_recorder.window_query_result_size << endl;
+}
+
+vector<Point> LISA::acc_window_query(ExpRecorder &exp_recorder, Mbr query_window, int partition_index)
+{
+    vector<Point> result;
+    for (size_t i = 0; i < shards.size(); i++)
+    {
+        map<int, Shard>::iterator iter = shards[i].begin();
+        while (iter != shards[i].end())
+        {
+            iter->second.window_query(exp_recorder, query_window);
+            iter++;
+        }
+    }
+    return result;
 }
 
 void LISA::window_query(ExpRecorder &exp_recorder, vector<Mbr> query_windows)
