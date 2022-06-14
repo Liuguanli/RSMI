@@ -92,15 +92,27 @@ bool Mbr::strict_contains(Point point)
 
 bool Mbr::interact(Mbr mbr)
 {
-    if ((x1 <= mbr.x1 && mbr.x1 <= x2 && y1 <= mbr.y1 && mbr.y1 <= y2) || (x1 <= mbr.x1 && mbr.x1 <= x2 && y1 <= mbr.y2 && mbr.y2 <= y2) || (x1 <= mbr.x2 && mbr.x2 <= x2 && y1 <= mbr.y1 && mbr.y1 <= y2) || (x1 <= mbr.x2 && mbr.x2 <= x2 && y1 <= mbr.y2 && mbr.y2 <= y2))
-    {
-        return true;
+
+    if (x2 < mbr.x1 || mbr.x2 < x1) {
+        return false;
     }
-    if ((mbr.x1 <= x1 && x1 <= mbr.x2 && mbr.y1 <= y1 && y1 <= mbr.y2) || (mbr.x1 <= x1 && x1 <= mbr.x2 && mbr.y1 <= y2 && y2 <= mbr.y2) || (mbr.x1 <= x2 && x2 <= mbr.x2 && mbr.y1 <= y1 && y1 <= mbr.y2) || (mbr.x1 <= x2 && x2 <= mbr.x2 && mbr.y1 <= y2 && y2 <= mbr.y2))
-    {
-        return true;
+
+    if (y2 < mbr.y1 || mbr.y2 < y1) {
+        return false;
     }
-    return false;
+
+    return true;
+
+
+    // if ((x1 <= mbr.x1 && mbr.x1 <= x2 && y1 <= mbr.y1 && mbr.y1 <= y2) || (x1 <= mbr.x1 && mbr.x1 <= x2 && y1 <= mbr.y2 && mbr.y2 <= y2) || (x1 <= mbr.x2 && mbr.x2 <= x2 && y1 <= mbr.y1 && mbr.y1 <= y2) || (x1 <= mbr.x2 && mbr.x2 <= x2 && y1 <= mbr.y2 && mbr.y2 <= y2))
+    // {
+    //     return true;
+    // }
+    // if ((mbr.x1 <= x1 && x1 <= mbr.x2 && mbr.y1 <= y1 && y1 <= mbr.y2) || (mbr.x1 <= x1 && x1 <= mbr.x2 && mbr.y1 <= y2 && y2 <= mbr.y2) || (mbr.x1 <= x2 && x2 <= mbr.x2 && mbr.y1 <= y1 && y1 <= mbr.y2) || (mbr.x1 <= x2 && x2 <= mbr.x2 && mbr.y1 <= y2 && y2 <= mbr.y2))
+    // {
+    //     return true;
+    // }
+    // return false;
 }
 
 vector<Mbr> Mbr::get_mbrs(vector<Point> dataset, float area, int num, float ratio)
