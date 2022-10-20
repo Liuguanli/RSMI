@@ -4,11 +4,14 @@
 #include "../entities/Point.h"
 #include "../entities/Mbr.h"
 #include "../entities/NonLeafNode.h"
+#include "../entities/LeafNode.h"
 #include <typeinfo>
-// #include "../file_utils/SortTools.h"
-// #include "../file_utils/ModelTools.h"
+#include "../utils/ExpRecorder.h"
+#include "../utils/SortTools.h"
+#include "../utils/ModelTools.h"
 #include "../curves/hilbert.H"
 #include "../curves/hilbert4.H"
+#include "../curves/z.H"
 #include <map>
 #include <boost/smart_ptr/make_shared_object.hpp>
 #include <torch/script.h>
