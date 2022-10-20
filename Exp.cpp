@@ -239,7 +239,7 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> &
             // exp_recorder.accuracy = knn_diff(exp_recorder.acc_knn_query_results, exp_recorder.knn_query_results);
             // file_writer.write_insert_kNN_query(exp_recorder);
             // exp_recorder.clean();
-                }
+        }
     }
 
     // for (size_t i = 0; i < exp_recorder.insert_times; i++)
@@ -364,7 +364,6 @@ void exp_LISA(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> &
             file_writer.write_acc_window_query(exp_recorder);
             lisa->window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
 
-            
             exp_recorder.accuracy = ((double)exp_recorder.window_query_result_size) / exp_recorder.acc_window_query_result_size;
             file_writer.write_insert_window_query(exp_recorder);
             exp_recorder.clean();
@@ -719,50 +718,53 @@ void expHRR(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> poin
     file_writer.write_point_query(exp_recorder);
     exp_recorder.clean();
 
-    for (size_t i = 0; i < 5; i++)
+    for (size_t i = 2; i < 5; i++)
     {
         hrr->window_query(exp_recorder, mbrs_map[to_string(areas[i]) + to_string(ratios[2])]);
         exp_recorder.window_size = areas[i];
         exp_recorder.window_ratio = ratios[2];
+        cout << "window query time: " << exp_recorder.time << endl;
         file_writer.write_window_query(exp_recorder);
         exp_recorder.clean();
+        break;
     }
 
     exp_recorder.k_num = 25;
     hrr->kNN_query(exp_recorder, query_points, exp_recorder.k_num);
     file_writer.write_kNN_query(exp_recorder);
+    cout << "knn query time: " << exp_recorder.time << endl;
     exp_recorder.clean();
 
-    long inserted_all_size = exp_recorder.inserted_points.size();
-    int inserted_time = 50;
-    int inserted_gap = inserted_all_size / inserted_time;
-    if (is_update)
-    {
-        for (size_t i = 0; i < inserted_time; i++)
-        {
-            auto bn = exp_recorder.inserted_points.begin() + i * inserted_gap;
-            auto en = exp_recorder.inserted_points.begin() + (i + 1) * inserted_gap;
-            vector<Point> vec(bn, en);
-            hrr->insert(exp_recorder, vec);
-            file_writer.write_insert(exp_recorder);
-            exp_recorder.clean();
+    // long inserted_all_size = exp_recorder.inserted_points.size();
+    // int inserted_time = 50;
+    // int inserted_gap = inserted_all_size / inserted_time;
+    // if (is_update)
+    // {
+    //     for (size_t i = 0; i < inserted_time; i++)
+    //     {
+    //         auto bn = exp_recorder.inserted_points.begin() + i * inserted_gap;
+    //         auto en = exp_recorder.inserted_points.begin() + (i + 1) * inserted_gap;
+    //         vector<Point> vec(bn, en);
+    //         hrr->insert(exp_recorder, vec);
+    //         file_writer.write_insert(exp_recorder);
+    //         exp_recorder.clean();
 
-            hrr->point_query(exp_recorder, points);
-            file_writer.write_insert_point_query(exp_recorder);
-            exp_recorder.clean();
+    //         hrr->point_query(exp_recorder, points);
+    //         file_writer.write_insert_point_query(exp_recorder);
+    //         exp_recorder.clean();
 
-            hrr->window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
-            exp_recorder.window_size = areas[2];
-            exp_recorder.window_ratio = ratios[2];
-            file_writer.write_insert_window_query(exp_recorder);
-            exp_recorder.clean();
+    //         hrr->window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
+    //         exp_recorder.window_size = areas[2];
+    //         exp_recorder.window_ratio = ratios[2];
+    //         file_writer.write_insert_window_query(exp_recorder);
+    //         exp_recorder.clean();
 
-            exp_recorder.k_num = ks[2];
-            hrr->kNN_query(exp_recorder, query_points, exp_recorder.k_num);
-            file_writer.write_insert_kNN_query(exp_recorder);
-            exp_recorder.clean();
-        }
-    }
+    //         exp_recorder.k_num = ks[2];
+    //         hrr->kNN_query(exp_recorder, query_points, exp_recorder.k_num);
+    //         file_writer.write_insert_kNN_query(exp_recorder);
+    //         exp_recorder.clean();
+    //     }
+    // }
 }
 
 void expGrid(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_points)
@@ -788,45 +790,48 @@ void expGrid(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> poi
         grid->window_query(exp_recorder, mbrs_map[to_string(areas[i]) + to_string(ratios[2])]);
         exp_recorder.window_size = areas[i];
         exp_recorder.window_ratio = ratios[2];
+        cout << "window_query time: " << exp_recorder.time << endl;
         file_writer.write_window_query(exp_recorder);
         exp_recorder.clean();
+        break;
     }
 
     exp_recorder.k_num = 25;
     grid->kNN_query(exp_recorder, query_points, exp_recorder.k_num);
     file_writer.write_kNN_query(exp_recorder);
+    cout << "knn query time: " << exp_recorder.time << endl;
     exp_recorder.clean();
 
-    long inserted_all_size = exp_recorder.inserted_points.size();
-    int inserted_time = 50;
-    int inserted_gap = inserted_all_size / inserted_time;
-    if (is_update)
-    {
-        for (size_t i = 0; i < inserted_time; i++)
-        {
-            auto bn = exp_recorder.inserted_points.begin() + i * inserted_gap;
-            auto en = exp_recorder.inserted_points.begin() + (i + 1) * inserted_gap;
-            vector<Point> vec(bn, en);
-            grid->insert(exp_recorder, vec);
-            file_writer.write_insert(exp_recorder);
-            exp_recorder.clean();
+    // long inserted_all_size = exp_recorder.inserted_points.size();
+    // int inserted_time = 50;
+    // int inserted_gap = inserted_all_size / inserted_time;
+    // if (is_update)
+    // {
+    //     for (size_t i = 0; i < inserted_time; i++)
+    //     {
+    //         auto bn = exp_recorder.inserted_points.begin() + i * inserted_gap;
+    //         auto en = exp_recorder.inserted_points.begin() + (i + 1) * inserted_gap;
+    //         vector<Point> vec(bn, en);
+    //         grid->insert(exp_recorder, vec);
+    //         file_writer.write_insert(exp_recorder);
+    //         exp_recorder.clean();
 
-            grid->point_query(exp_recorder, points);
-            file_writer.write_insert_point_query(exp_recorder);
-            exp_recorder.clean();
+    //         grid->point_query(exp_recorder, points);
+    //         file_writer.write_insert_point_query(exp_recorder);
+    //         exp_recorder.clean();
 
-            grid->window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
-            exp_recorder.window_size = areas[2];
-            exp_recorder.window_ratio = ratios[2];
-            file_writer.write_insert_window_query(exp_recorder);
-            exp_recorder.clean();
+    //         grid->window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
+    //         exp_recorder.window_size = areas[2];
+    //         exp_recorder.window_ratio = ratios[2];
+    //         file_writer.write_insert_window_query(exp_recorder);
+    //         exp_recorder.clean();
 
-            exp_recorder.k_num = ks[2];
-            grid->kNN_query(exp_recorder, query_points, exp_recorder.k_num);
-            file_writer.write_insert_kNN_query(exp_recorder);
-            exp_recorder.clean();
-        }
-    }
+    //         exp_recorder.k_num = ks[2];
+    //         grid->kNN_query(exp_recorder, query_points, exp_recorder.k_num);
+    //         file_writer.write_insert_kNN_query(exp_recorder);
+    //         exp_recorder.clean();
+    //     }
+    // }
 }
 
 void expKDB(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_points)
@@ -844,50 +849,53 @@ void expKDB(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> poin
     file_writer.write_point_query(exp_recorder);
     exp_recorder.clean();
 
-    for (size_t i = 0; i < 5; i++)
+    for (size_t i = 2; i < 5; i++)
     {
         kdb->window_query(exp_recorder, mbrs_map[to_string(areas[i]) + to_string(ratios[2])]);
         exp_recorder.window_size = areas[i];
         exp_recorder.window_ratio = ratios[2];
+        cout << "window_query time: " << exp_recorder.time << endl;
         file_writer.write_window_query(exp_recorder);
         exp_recorder.clean();
+        break;
     }
 
     exp_recorder.k_num = 25;
     kdb->kNN_query(exp_recorder, query_points, exp_recorder.k_num);
     file_writer.write_kNN_query(exp_recorder);
+    cout << "knn_query time: " << exp_recorder.time << endl;
     exp_recorder.clean();
 
-    long inserted_all_size = exp_recorder.inserted_points.size();
-    int inserted_time = 50;
-    int inserted_gap = inserted_all_size / inserted_time;
-    if (is_update)
-    {
-        for (size_t i = 0; i < inserted_time; i++)
-        {
-            auto bn = exp_recorder.inserted_points.begin() + i * inserted_gap;
-            auto en = exp_recorder.inserted_points.begin() + (i + 1) * inserted_gap;
-            vector<Point> vec(bn, en);
-            kdb->insert(exp_recorder, vec);
-            file_writer.write_insert(exp_recorder);
-            exp_recorder.clean();
+    // long inserted_all_size = exp_recorder.inserted_points.size();
+    // int inserted_time = 50;
+    // int inserted_gap = inserted_all_size / inserted_time;
+    // if (is_update)
+    // {
+    //     for (size_t i = 0; i < inserted_time; i++)
+    //     {
+    //         auto bn = exp_recorder.inserted_points.begin() + i * inserted_gap;
+    //         auto en = exp_recorder.inserted_points.begin() + (i + 1) * inserted_gap;
+    //         vector<Point> vec(bn, en);
+    //         kdb->insert(exp_recorder, vec);
+    //         file_writer.write_insert(exp_recorder);
+    //         exp_recorder.clean();
 
-            kdb->point_query(exp_recorder, points);
-            file_writer.write_insert_point_query(exp_recorder);
-            exp_recorder.clean();
+    //         kdb->point_query(exp_recorder, points);
+    //         file_writer.write_insert_point_query(exp_recorder);
+    //         exp_recorder.clean();
 
-            kdb->window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
-            exp_recorder.window_size = areas[2];
-            exp_recorder.window_ratio = ratios[2];
-            file_writer.write_insert_window_query(exp_recorder);
-            exp_recorder.clean();
+    //         kdb->window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
+    //         exp_recorder.window_size = areas[2];
+    //         exp_recorder.window_ratio = ratios[2];
+    //         file_writer.write_insert_window_query(exp_recorder);
+    //         exp_recorder.clean();
 
-            exp_recorder.k_num = ks[2];
-            kdb->kNN_query(exp_recorder, query_points, exp_recorder.k_num);
-            file_writer.write_insert_kNN_query(exp_recorder);
-            exp_recorder.clean();
-        }
-    }
+    //         exp_recorder.k_num = ks[2];
+    //         kdb->kNN_query(exp_recorder, query_points, exp_recorder.k_num);
+    //         file_writer.write_insert_kNN_query(exp_recorder);
+    //         exp_recorder.clean();
+    //     }
+    // }
 }
 
 void exp1(FileWriter file_writer, ExpRecorder &exp_recorder, vector<Point> &points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_points, string model_path)

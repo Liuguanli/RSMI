@@ -100,6 +100,7 @@ void Grid::build(ExpRecorder &expRecorder, vector<Point> points)
             expRecorder.leaf_node_num++;
         }
     }
+    
     auto finish = chrono::high_resolution_clock::now();
     expRecorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
     expRecorder.cal_size();
@@ -124,13 +125,15 @@ void Grid::point_query(ExpRecorder &expRecorder, vector<Point> queryPoints)
 {
     cout << "Grid::point_query:" << endl;
     auto start = chrono::high_resolution_clock::now();
-    for (Point point : queryPoints)
+    int index = 0;
+    for (int i = 0; i < queryPoints.size(); i += 10000)
     {
-        point_query(expRecorder, point);
+        point_query(expRecorder, queryPoints[i]);
+        index++;
     }
     auto finish = chrono::high_resolution_clock::now();
-    expRecorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / queryPoints.size();
-    expRecorder.page_access = (double)expRecorder.page_access / queryPoints.size();
+    expRecorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count() / index;
+    expRecorder.page_access = (double)expRecorder.page_access / index;
 }
 
 void Grid::window_query(ExpRecorder &expRecorder, vector<Mbr> queryWindows)

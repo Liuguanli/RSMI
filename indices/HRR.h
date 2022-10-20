@@ -335,8 +335,9 @@ vector<Point> HRR::window_query(ExpRecorder &expRecorder, Mbr queryWindow)
 
 void HRR::window_query(ExpRecorder &expRecorder, vector<Mbr> queryWindows)
 {
-    cout << "HRR::window_query" << endl;
     int length = queryWindows.size();
+
+    cout << "HRR::window_query length: " << length << endl;
     // length = 1;
     long long time = 0;
     int size = 0;
