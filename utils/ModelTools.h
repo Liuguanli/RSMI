@@ -146,14 +146,14 @@ public:
     {
         for (size_t i = 0; i < width; i++)
         {
-            cout<< b1[i] << " " << b1[i] << " ";
+            cout << b1[i] << " " << b1[i] << " ";
         }
-        cout<< endl;
+        cout << endl;
         for (size_t i = 0; i < width; i++)
         {
-            cout<< b1_[i] << " " << b1_[i] << " ";
+            cout << b1_[i] << " " << b1_[i] << " ";
         }
-        cout<< endl;
+        cout << endl;
     }
 
     torch::Tensor forward(torch::Tensor x)
@@ -220,7 +220,7 @@ public:
             w2_ += 4;
         }
         result = 0;
-        if(blocks > 0)
+        if (blocks > 0)
         {
             result += fSum0[0] + fSum0[1] + fSum0[2] + fSum0[3];
         }
@@ -274,7 +274,7 @@ public:
             w2_ += 4;
         }
         result = 0;
-        if(blocks > 0)
+        if (blocks > 0)
         {
             result += fSum0[0] + fSum0[1] + fSum0[2] + fSum0[3];
         }
@@ -315,18 +315,19 @@ public:
     void train_model(vector<float> locations, vector<float> labels)
     {
         long long N = labels.size();
-        
-        #ifdef use_gpu
-            torch::Tensor x = torch::tensor(locations, at::kCUDA).reshape({N, this->input_width});
-            torch::Tensor y = torch::tensor(labels, at::kCUDA).reshape({N, 1});
-        #else
-            torch::Tensor x = torch::tensor(locations).reshape({N, this->input_width});
-            torch::Tensor y = torch::tensor(labels).reshape({N, 1});
-        #endif
+
+#ifdef use_gpu
+        torch::Tensor x = torch::tensor(locations, at::kCUDA).reshape({N, this->input_width});
+        torch::Tensor y = torch::tensor(labels, at::kCUDA).reshape({N, 1});
+#else
+        torch::Tensor x = torch::tensor(locations).reshape({N, this->input_width});
+        torch::Tensor y = torch::tensor(labels).reshape({N, 1});
+#endif
         // torch::Tensor x = torch::tensor(locations).reshape({N, this->input_width});
         // torch::Tensor y = torch::tensor(labels).reshape({N, 1});
         // auto net = isRetrain ? this->net : std::make_shared<Net>(2, width);
         // auto net = std::make_shared<Net>(this->input_width, this->width);
+        cout << "trained size: " << N << endl;
 
         torch::optim::Adam optimizer(this->parameters(), torch::optim::AdamOptions(this->learning_rate));
         if (N > 64000000)
@@ -341,9 +342,9 @@ public:
                 {
                     optimizer.zero_grad();
                     torch::Tensor loss = torch::mse_loss(this->forward(x_chunks[i]), y_chunks[i]);
-                    #ifdef use_gpu
-                        loss.to(torch::kCUDA);
-                    #endif
+#ifdef use_gpu
+                    loss.to(torch::kCUDA);
+#endif
                     loss.backward();
                     optimizer.step();
                 }
@@ -355,13 +356,14 @@ public:
             {
                 optimizer.zero_grad();
                 torch::Tensor loss = torch::mse_loss(this->forward(x), y);
-                #ifdef use_gpu
-                    loss.to(torch::kCUDA);
-                #endif
+#ifdef use_gpu
+                loss.to(torch::kCUDA);
+#endif
                 loss.backward();
                 optimizer.step();
             }
         }
+        cout << "finish training " << endl;
     }
 
     torch::nn::Linear fc1{nullptr}, fc2{nullptr};

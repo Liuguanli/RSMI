@@ -14,7 +14,7 @@ public:
     static const int START_EPOCH = 300;
     static const int EPOCH_ADDED = 100;
     static const int HIDDEN_LAYER_WIDTH = 50;
-    static const int THRESHOLD = 10000;
+    static const int THRESHOLD = 20000;
 
     static const int DEFAULT_SIZE  = 16000000;
     static const int DEFAULT_SKEWNESS  = 4;

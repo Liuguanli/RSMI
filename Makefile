@@ -8,7 +8,7 @@ OBJS=$(patsubst %.cpp, %.o, $(SRCS))
 # FLAG = -Xlinker -rpath -Xlinker /usr/local/include/libtorch/lib
 
 TYPE = CPU
-# TYPE = GPU
+TYPE = GPU
 
 # for linux
 ifeq ($(TYPE), GPU)
