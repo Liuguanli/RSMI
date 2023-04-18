@@ -5,6 +5,9 @@ Exp
 *.sh
 files/*
 indices/ZM.h
+indices/Grid.h
+indices/HRR.h
+indices/KDBTree.h
 datasets/*
 
 PostgreSQL/
