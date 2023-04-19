@@ -22,12 +22,14 @@
 #include <torch/types.h>
 #include <torch/utils.h>
 
+#include "Index.h"
+
 using namespace at;
 using namespace torch::nn;
 using namespace torch::optim;
 using namespace std;
 
-class RSMI
+class RSMI : public Index
 {
 
 private:

@@ -27,6 +27,10 @@ public:
 
     int depth = 0;
 
+    int level = 0;
+
+    int point_not_found = 0;
+
     long long total_depth;
 
     int N = Constants::THRESHOLD;

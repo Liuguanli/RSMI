@@ -121,4 +121,25 @@ struct sort_curve_val
     }
 };
 
+struct sort_key
+{
+    bool operator()(const Point point1, const Point point2)
+    {
+        return (point1.normalized_curve_val < point2.normalized_curve_val);
+    }
+};
+
+struct sort_for_kNN
+{
+    Point queryPoint;
+    sort_for_kNN(Point &point)
+    {
+        queryPoint = point;
+    }
+    bool operator()(Point point1, Point point2)
+    {
+        return (point1.cal_dist(queryPoint) < point2.cal_dist(queryPoint));
+    }
+};
+
 #endif

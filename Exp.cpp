@@ -6,8 +6,9 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include "utils/FileReader.h"
-// #include "indices/ZM.h"
+#include "indices/ZM.h"
 #include "indices/RSMI.h"
+#include "indices/Index.h"
 #include "utils/ExpRecorder.h"
 #include "utils/Constants.h"
 #include "utils/FileWriter.h"
@@ -20,6 +21,7 @@
 #include <getopt.h>
 
 using namespace std;
+// using namespace base_index;
 
 #ifndef use_gpu
 // #define use_gpu
@@ -117,6 +119,66 @@ void exp_RSMI(FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> po
     exp_recorder.clean();
 }
 
+// TODO build with ZM extends Index
+// TODO build with other indices
+
+void exp_index(Index &index, FileWriter file_writer, ExpRecorder exp_recorder, vector<Point> points, map<string, vector<Mbr>> mbrs_map, vector<Point> query_poitns, vector<Point> insert_points)
+{
+    exp_recorder.clean();
+    // index.structure_name = "RSMI";
+    // RSMI::model_path_root = model_path;
+    // RSMI *partition = new RSMI(0,  Constants::MAX_WIDTH);
+    // partition->model_path = model_path;
+    auto start = chrono::high_resolution_clock::now();
+    index.build(exp_recorder, points);
+    auto finish = chrono::high_resolution_clock::now();
+    exp_recorder.time = chrono::duration_cast<chrono::nanoseconds>(finish - start).count();
+    cout << "build time: " << exp_recorder.time << endl;
+    exp_recorder.size = (2 * Constants::HIDDEN_LAYER_WIDTH + Constants::HIDDEN_LAYER_WIDTH * 1 + Constants::HIDDEN_LAYER_WIDTH * 1 + 1) * Constants::EACH_DIM_LENGTH * exp_recorder.non_leaf_node_num + (Constants::DIM * Constants::PAGESIZE + Constants::PAGESIZE + Constants::DIM * Constants::DIM) * Constants::EACH_DIM_LENGTH * exp_recorder.leaf_node_num;
+    file_writer.write_build(exp_recorder);
+    exp_recorder.clean();
+    index.point_query(exp_recorder, points);
+    cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
+    cout << "finish point_query time: " << exp_recorder.time << endl;
+    file_writer.write_point_query(exp_recorder);
+    exp_recorder.clean();
+
+    exp_recorder.window_size = areas[2];
+    exp_recorder.window_ratio = ratios[2];
+    // partition->acc_window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
+    // cout << "RSMI::acc_window_query time: " << exp_recorder.time << endl;
+    // cout << "RSMI::acc_window_query page_access: " << exp_recorder.page_access << endl;
+    // file_writer.write_acc_window_query(exp_recorder);
+    index.window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
+    // exp_recorder.accuracy = ((double)exp_recorder.window_query_result_size) / exp_recorder.acc_window_query_qesult_size;
+    cout << "window_query time: " << exp_recorder.time << endl;
+    cout << "window_query page_access: " << exp_recorder.page_access << endl;
+    // cout<< "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
+    file_writer.write_window_query(exp_recorder);
+
+    exp_recorder.clean();
+    exp_recorder.k_num = ks[2];
+    // partition->acc_kNN_query(exp_recorder, query_poitns, ks[2]);
+    // cout << "exp_recorder.time: " << exp_recorder.time << endl;
+    // cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
+    // file_writer.write_acc_kNN_query(exp_recorder);
+    index.kNN_query(exp_recorder, query_poitns, ks[2]);
+    cout << "exp_recorder.time: " << exp_recorder.time << endl;
+    cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
+    // exp_recorder.accuracy = knn_diff(exp_recorder.acc_knn_query_results, exp_recorder.knn_query_results);
+    // cout<< "exp_recorder.accuracy: " << exp_recorder.accuracy << endl;
+    file_writer.write_kNN_query(exp_recorder);
+    exp_recorder.clean();
+
+    // partition->insert(exp_recorder, insert_points);
+    // cout << "exp_recorder.insert_time: " << exp_recorder.insert_time << endl;
+    // exp_recorder.clean();
+    // partition->point_query(exp_recorder, points);
+    // cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
+    // cout << "finish point_query time: " << exp_recorder.time << endl;
+    // exp_recorder.clean();
+}
+
 string RSMI::model_path_root = "";
 int main(int argc, char **argv)
 {
@@ -157,7 +219,6 @@ int main(int argc, char **argv)
     exp_recorder.skewness = skewness;
     inserted_num = cardinality / 2;
 
-    // TODO change filename
     string dataset_filename = Constants::DATASETS + exp_recorder.distribution + "_" + to_string(exp_recorder.dataset_cardinality) + "_" + to_string(exp_recorder.skewness) + "_2_.csv";
     FileReader filereader(dataset_filename, ",");
     vector<Point> points = filereader.get_points();
@@ -203,7 +264,7 @@ int main(int argc, char **argv)
     file_utils::check_dir(model_root_path);
     string model_path = model_root_path + "/";
     FileWriter file_writer(Constants::RECORDS);
-    exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
+    // exp_RSMI(file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points, model_path);
 }
 
 #endif  // use_gpu
