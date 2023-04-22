@@ -6,6 +6,9 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include "utils/FileReader.h"
+#include "indices/Grid.h"
+#include "indices/HRR.h"
+#include "indices/KDBTree.h"
 #include "indices/ZM.h"
 #include "indices/RSMI.h"
 #include "indices/Index.h"
