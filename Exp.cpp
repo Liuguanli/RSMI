@@ -30,7 +30,7 @@ using namespace std;
 // #define use_gpu
 
 std::random_device rd;
-std::mt19937 shuffle_order_engine(rd());
+std::mt19937 rg(rd());
 
 int ks[] = {1, 5, 25, 125, 625};
 float areas[] = {0.000006, 0.000025, 0.0001, 0.0004, 0.0016};
@@ -146,7 +146,7 @@ void exp_index(Index &index, FileWriter file_writer, ExpRecorder exp_recorder, v
 
     for (size_t i = 0; i < 10; i++)
     {
-        std::shuffle(points.begin(), points.end(), shuffle_order_engine);
+        std::shuffle(points.begin(), points.end(), rg);
         index.point_query(exp_recorder, points);
         cout << "finish point_query: pageaccess:" << exp_recorder.page_access << endl;
         cout << "finish point_query time: " << exp_recorder.time << endl;
@@ -163,7 +163,7 @@ void exp_index(Index &index, FileWriter file_writer, ExpRecorder exp_recorder, v
     for (size_t i = 0; i < 10; i++)
     {
         vector<Mbr> query_windows = mbrs_map[to_string(areas[2]) + to_string(ratios[2])];
-        std::shuffle(query_windows.begin(), query_windows.end(), shuffle_order_engine);
+        std::shuffle(query_windows.begin(), query_windows.end(), rg);
         index.window_query(exp_recorder, mbrs_map[to_string(areas[2]) + to_string(ratios[2])]);
         // exp_recorder.accuracy = ((double)exp_recorder.window_query_result_size) / exp_recorder.acc_window_query_qesult_size;
         cout << "window_query time: " << exp_recorder.time << endl;
@@ -181,7 +181,7 @@ void exp_index(Index &index, FileWriter file_writer, ExpRecorder exp_recorder, v
 
     for (size_t i = 0; i < 10; i++)
     {
-        std::shuffle(query_poitns.begin(), query_poitns.end(), shuffle_order_engine);
+        std::shuffle(query_poitns.begin(), query_poitns.end(), rg);
         index.kNN_query(exp_recorder, query_poitns, ks[2]);
         cout << "exp_recorder.time: " << exp_recorder.time << endl;
         cout << "exp_recorder.page_access: " << exp_recorder.page_access << endl;
@@ -288,8 +288,8 @@ int main(int argc, char **argv)
 
     int side = (int)sqrt(points.size() / Constants::PAGESIZE);
 
-    // Grid grid(side, side);
-    // exp_index(grid, file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
+    Grid grid(side, side);
+    exp_index(grid, file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
 
     // HRR hrr(Constants::PAGESIZE);
     // exp_index(hrr, file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
@@ -297,11 +297,11 @@ int main(int argc, char **argv)
     // KDBTree kdb(points.size());
     // exp_index(kdb, file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
 
-    ZM zm;
-    exp_index(zm, file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
+    // ZM zm;
+    // exp_index(zm, file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
 
-    RSMI rsmi(0, Constants::MAX_WIDTH);
-    exp_index(rsmi, file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
+    // RSMI rsmi(0, Constants::MAX_WIDTH);
+    // exp_index(rsmi, file_writer, exp_recorder, points, mbrs_map, query_poitns, insert_points);
 }
 
 #endif // use_gpu
