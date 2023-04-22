@@ -15,7 +15,7 @@ __uint128_t compute_Z_value(long long x[], const size_t& x_len, const long long&
 	assert(bits > 0);
 	assert(x_len > 0);
 	for (size_t i = 0; i < x_len; ++i)
-		{ assert(x[i] > 0); }
+		{ assert(x[i] >= 0); }
 
 	__uint128_t z = 0;
 	for(long long i = 0; i < bits; ++i) 
