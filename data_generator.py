@@ -75,13 +75,15 @@ def getNormalPoints(num, filename, dim):
                         i += 1
 
 def getSkewedPoints(num, a, filename, dim):
-    locations_tf = []
-    for i in range(dim):
-        locations_tf.append(tf.random.truncated_normal([num, 1], mean=0.5, stddev=0.25, dtype=tf.float32))
-    with tf.compat.v1.Session() as sees:
-        locations = []
-        for i in range(dim):
-            locations.append(sees.run(locations_tf[i]))
+    # locations_tf = []
+    # for i in range(dim):
+    #     locations_tf.append(tf.random.truncated_normal([num, 1], mean=0.5, stddev=0.25, dtype=tf.float32))
+
+    graph = tf.Graph()
+    with graph.as_default():
+        locations_tf = [tf.random.truncated_normal([num, 1], mean=0.5, stddev=0.25, dtype=tf.float32) for _ in range(dim)]
+        with tf.compat.v1.Session(graph=graph) as sees:
+            locations = sees.run(locations_tf)
     # for a in range(1, 9, 2):
     name = filename % (num, a, dim)
     with open(name, "w") as fo:
