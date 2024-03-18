@@ -604,12 +604,12 @@ void RSMI::window_query(ExpRecorder &exp_recorder, vector<Point> vertexes, Mbr q
     }
     else
     {
-        int children_size = children.size();
+        int children_size = width;
         int front = children_size - 1;
         int back = 0;
         for (size_t i = 0; i < vertexes.size(); i++)
         {
-            int predicted_index = net->predict(vertexes[i]) * children.size();
+            int predicted_index = net->predict(vertexes[i]) * children_size;
             predicted_index = predicted_index < 0 ? 0 : predicted_index;
             predicted_index = predicted_index >= children_size ? children_size - 1 : predicted_index;
             if (predicted_index < front)
